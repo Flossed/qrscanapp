@@ -152,40 +152,65 @@ body {
     background: var(--primary-color);
 }
 
-/* Hide the stop scanning button within the html5-qrcode scanning interface */
-#reader__dashboard_section_csr button,
-#reader__dashboard_section button {
-    display: none !important;
-}
-
-/* Hide any stop/close buttons in the scanner */
-#reader button[data-action="stop"],
-#reader .html5-qrcode-element button {
-    display: none !important;
-}
-
-/* Add border to scanning window */
-#reader__scan_region {
-    border: 3px solid var(--primary-color) !important;
-    border-radius: var(--border-radius) !important;
-    overflow: hidden !important;
-}
-
-/* Remove white bar and other unwanted elements at bottom */
-#reader__dashboard,
-#reader__dashboard_section,
-#reader__dashboard_section_csr,
-#reader__status_span {
-    display: none !important;
-}
-
-/* Clean up the reader container */
+/* Style the QR code reader */
 #reader {
-    background: transparent !important;
+    position: relative;
+    padding: 0;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    background: #f5f5f5;
 }
 
-#reader > div {
-    background: transparent !important;
+/* Make video responsive */
+#reader video {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Style the scan region */
+#reader__scan_region {
+    position: relative !important;
+}
+
+/* Style the scan region border */
+#reader__scan_region video {
+    border-radius: var(--border-radius);
+}
+
+/* Keep camera selection visible if multiple cameras */
+#reader__camera_selection {
+    margin: 10px;
+}
+
+/* Style permission button */
+#reader__camera_permission_button {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    padding: 12px 20px !important;
+    border: none !important;
+    border-radius: var(--border-radius) !important;
+    cursor: pointer !important;
+    font-size: 16px !important;
+}
+
+/* Style the file scan option if visible */
+#reader__filescan_input {
+    margin: 10px;
+}
+
+/* Dashboard styling - keep it visible but styled */
+#reader__dashboard {
+    background: white;
+    padding: 10px;
+    border-top: 1px solid #ddd;
+}
+
+/* Status messages */
+#reader__status_span {
+    color: #666;
+    font-size: 14px;
+    padding: 5px;
 }
 
 

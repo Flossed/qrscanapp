@@ -35,6 +35,13 @@ function onScanFailure(error) {
 }
 
 function startScanner() {
+    // Check if camera API is available
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showMessage('Camera not available. Please use HTTPS or check browser compatibility.', 'error');
+        console.error('getUserMedia not supported. Make sure you are using HTTPS.');
+        return;
+    }
+
     document.getElementById('reader').style.display = 'block';
     startButton.style.display = 'none';
     stopButton.style.display = 'inline-block';
@@ -44,23 +51,30 @@ function startScanner() {
     // Use same experience for all devices
     const qrboxSize = Math.min(window.innerWidth * 0.8, 400);
 
-    html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader",
-        {
-            fps: 10,
-            qrbox: {width: qrboxSize, height: qrboxSize},
-            aspectRatio: 1.0,
-            showTorchButtonIfSupported: true,
-            showZoomSliderIfSupported: true,
-            defaultZoomValueIfSupported: 1.5,
-            rememberLastUsedCamera: true,
-            videoConstraints: {
-                facingMode: "environment"
+    try {
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            {
+                fps: 10,
+                qrbox: {width: qrboxSize, height: qrboxSize},
+                aspectRatio: 1.0,
+                showTorchButtonIfSupported: true,
+                showZoomSliderIfSupported: true,
+                defaultZoomValueIfSupported: 1.5,
+                rememberLastUsedCamera: true,
+                videoConstraints: {
+                    facingMode: "environment"
+                }
             }
-        }
-    );
+        );
 
-    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    } catch (error) {
+        console.error('Scanner initialization error:', error);
+        showMessage(`Scanner error: ${error.message}`, 'error');
+        stopButton.style.display = 'none';
+        startButton.style.display = 'inline-block';
+    }
 }
 
 function stopScanner() {
