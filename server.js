@@ -14,11 +14,28 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 // MongoDB connection with retry logic for production
-const mongoUri = process.env.MONGODB_URI || 'mongodb://192.168.129.197:27017/qrscanapp';
+// Build MongoDB URI from individual environment variables or use full URI
+let mongoUri;
+if (process.env.DB_USER && process.env.DB_PASSWORD && process.env.DB_CLUSTER && process.env.DB_NAME) {
+  mongoUri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_CLUSTER}/${process.env.DB_NAME}?retryWrites=true&w=majority`;
+  console.log('Using MongoDB Atlas with individual env variables');
+  console.log('DB_USER:', process.env.DB_USER);
+  console.log('DB_CLUSTER:', process.env.DB_CLUSTER);
+  console.log('DB_NAME:', process.env.DB_NAME);
+} else if (process.env.MONGODB_URI) {
+  mongoUri = process.env.MONGODB_URI;
+  console.log('Using MONGODB_URI environment variable');
+} else if (process.env.NODE_ENV === 'production') {
+  console.error('ERROR: Production environment but no database credentials found!');
+  console.error('Please set DB_USER, DB_PASSWORD, DB_CLUSTER, and DB_NAME environment variables');
+  process.exit(1);
+} else {
+  mongoUri = 'mongodb://192.168.129.197:27017/qrscanapp';
+  console.log('Using local MongoDB (development mode)');
+}
 
+// MongoDB options (removed deprecated options)
 const mongoOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
 };
