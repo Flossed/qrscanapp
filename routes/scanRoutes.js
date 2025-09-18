@@ -473,7 +473,8 @@ router.post('/api/send-verification-email', async (req, res) => {
         const statusSymbol = (status) => status ? '✅' : '❌';
         const overallStatus = verificationStatus?.overall ? 'VERIFIED' : 'FAILED';
         doc.fontSize(12).text(`VERIFICATION STATUS: ${statusSymbol(verificationStatus?.overall)} ${overallStatus}`, { align: 'center' });
-        doc.text(`Reference: ${referenceNumber} | Verified: ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
+        doc.text(`Reference: ${referenceNumber} | Treatment Date: ${treatmentDate}`, { align: 'center' });
+        doc.text(`Verified: ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
         doc.moveDown();
 
         // Extract EHIC/PRC data from JWT payload
