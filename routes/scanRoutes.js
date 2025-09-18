@@ -459,69 +459,156 @@ router.post('/api/send-verification-email', async (req, res) => {
         // Stream to file
         doc.pipe(fs.createWriteStream(pdfPath));
 
-        // Add content to PDF
-        doc.fontSize(20).text('EHIC/PRC Verification Evidence', { align: 'center' });
+        // Add PRC Certificate header
+        doc.fontSize(16).text('PROVISIONAL REPLACEMENT CERTIFICATE', { align: 'center' });
+        doc.fontSize(14).text('OF THE', { align: 'center' });
+        doc.fontSize(16).text('EUROPEAN HEALTH INSURANCE CARD', { align: 'center' });
         doc.moveDown();
 
-        doc.fontSize(14).text(`Reference Number: ${referenceNumber}`);
-        doc.text(`Treatment Date: ${treatmentDate}`);
-        doc.text(`Verification Time: ${new Date(timestamp).toLocaleString()}`);
+        doc.fontSize(10).text('as defined in Annex 2 to Decision No S2', { align: 'center' });
+        doc.text('concerning the technical specifications of the European Health Insurance Card', { align: 'center' });
         doc.moveDown();
 
-        // Add verification status
-        doc.fontSize(16).text('Verification Results:', { underline: true });
-        doc.moveDown();
-
+        // Add verification header
         const statusSymbol = (status) => status ? '✅' : '❌';
-
-        doc.fontSize(12);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.base45Decode)} BASE45 Decoding`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.zlibDecompression)} ZLIB Decompression`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.jwtParsing)} JWT Parsing`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.certificateAuthority)} Certificate Authority Verification`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.signatureVerification)} Digital Signature Validation`);
+        const overallStatus = verificationStatus?.overall ? 'VERIFIED' : 'FAILED';
+        doc.fontSize(12).text(`VERIFICATION STATUS: ${statusSymbol(verificationStatus?.overall)} ${overallStatus}`, { align: 'center' });
+        doc.text(`Reference: ${referenceNumber} | Verified: ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
         doc.moveDown();
 
-        // Extract JWT payload data if available
-        let patientData = {};
+        // Extract EHIC/PRC data from JWT payload
+        let prcData = {
+            issuingMemberState: 'N/A',
+            cardHolderName: 'N/A',
+            cardHolderGivenName: 'N/A',
+            dateOfBirth: 'N/A',
+            personalIdNumber: 'N/A',
+            institutionId: 'N/A',
+            institutionName: 'N/A',
+            cardId: 'N/A',
+            expiryDate: 'N/A',
+            validityStart: 'N/A',
+            validityEnd: 'N/A',
+            deliveryDate: 'N/A'
+        };
+
         if (verificationStatus?.details?.jwt?.payload) {
             const payload = verificationStatus.details.jwt.payload;
-            // Extract patient information from JWT payload
+
+            // Check for EHIC/PRC specific structure
             if (payload.hcert && payload.hcert.v) {
                 const cert = payload.hcert.v[0];
-                patientData = {
-                    name: cert.nam?.fn || 'N/A',
-                    givenName: cert.nam?.gn || 'N/A',
-                    dateOfBirth: cert.dob || 'N/A',
-                    certificateId: cert.ci || 'N/A'
+                prcData = {
+                    issuingMemberState: cert.ic || payload.iss?.split('/').pop() || 'N/A',
+                    cardHolderName: cert.fn || 'N/A',
+                    cardHolderGivenName: cert.gn || 'N/A',
+                    dateOfBirth: cert.dob ? formatDate(cert.dob) : 'N/A',
+                    personalIdNumber: cert.hi || 'N/A',
+                    institutionId: cert.ii || 'N/A',
+                    institutionName: cert.in || 'N/A',
+                    cardId: cert.ci || 'N/A',
+                    expiryDate: cert.xd ? formatDate(cert.xd) : 'N/A',
+                    validityStart: cert.sd ? formatDate(cert.sd) : 'N/A',
+                    validityEnd: cert.ed ? formatDate(cert.ed) : 'N/A',
+                    deliveryDate: cert.di ? formatDate(cert.di) : 'N/A'
                 };
             }
         }
 
-        // Add patient information
-        doc.fontSize(16).text('Patient Information:', { underline: true });
-        doc.moveDown();
-        doc.fontSize(12);
-        doc.text(`Name: ${patientData.name || 'N/A'}`);
-        doc.text(`Given Name: ${patientData.givenName || 'N/A'}`);
-        doc.text(`Date of Birth: ${patientData.dateOfBirth || 'N/A'}`);
-        doc.text(`Certificate ID: ${patientData.certificateId || 'N/A'}`);
+        // Helper function to format dates
+        function formatDate(dateStr) {
+            try {
+                if (!dateStr) return 'N/A';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            } catch (e) {
+                return dateStr; // Return original if parsing fails
+            }
+        }
+
+        // PRC Certificate sections - exact template format
+
+        // Issuing Member State section
+        doc.fontSize(12).text('Issuing Member State', { underline: true });
+        doc.text('1.', { continued: true }).text(`                                                  2. ${prcData.issuingMemberState}`);
         doc.moveDown();
 
-        // Add QR code to PDF
+        // Card holder-related information
+        doc.text('Card holder-related information', { underline: true });
+        doc.text(`3. Name: ${prcData.cardHolderName}`);
+        doc.text(`4. Given name(s): ${prcData.cardHolderGivenName}`);
+        doc.text(`5. Date of birth: ${prcData.dateOfBirth}`);
+        doc.text(`6. Personal identification number: ${prcData.personalIdNumber}`);
+        doc.moveDown();
+
+        // Competent institution-related information
+        doc.text('Competent institution-related information', { underline: true });
+        doc.text(`7. Identification number of the institution:`);
+        doc.text(`    ${prcData.institutionId}`);
+        if (prcData.institutionName && prcData.institutionName !== 'N/A') {
+            doc.text(`    Institution name: ${prcData.institutionName}`);
+        }
+        doc.moveDown();
+
+        // Card-related information
+        doc.text('Card-related information', { underline: true });
+        doc.text(`8. Identification number of the card: ${prcData.cardId}`);
+        doc.text(`9. Expiry date: ${prcData.expiryDate}`);
+        doc.moveDown();
+
+        // Certificate validity period
+        doc.text('Certificate validity period', { underline: true });
+        doc.text(`(a). From: ${prcData.validityStart}`);
+        doc.text(`(b). To: ${prcData.validityEnd}`);
+        doc.moveDown();
+
+        // Certificate delivery date
+        doc.text('Certificate delivery date', { underline: true });
+        doc.text(`(c). ${prcData.deliveryDate}`);
+        doc.moveDown();
+
+        // Add signature section
+        doc.text('Signature and stamp of the institution');
+        doc.moveDown();
+
+        // Add QR code (positioned in signature area)
         if (verificationData) {
             try {
                 const qrCodeDataUrl = await QRCode.toDataURL(verificationData, {
                     width: 200,
-                    margin: 1
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
                 });
                 const qrCodeBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64');
-                doc.text('Original QR Code:', { underline: true });
-                doc.image(qrCodeBuffer, doc.x, doc.y + 10, { width: 150 });
+                doc.image(qrCodeBuffer, doc.x + 200, doc.y - 20, { width: 120 });
             } catch (qrError) {
                 logger.error('Failed to generate QR code for PDF', { error: qrError.message });
             }
         }
+
+        doc.moveDown(8); // Space for QR code
+
+        // Add notes section
+        doc.text('Notes and information', { underline: true });
+        doc.fontSize(10).text('All norms applicable to the eye-readable data included in the European card and related to the description, values, length and remarks of the data fields, are applicable to the certificate.');
+        doc.moveDown();
+
+        // Add verification results section
+        doc.fontSize(12).text('VERIFICATION RESULTS', { underline: true, align: 'center' });
+        doc.moveDown();
+        doc.fontSize(10);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.base45Decode)} BASE45 Decoding: ${verificationStatus?.steps?.base45Decode ? 'PASSED' : 'FAILED'}`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.zlibDecompression)} ZLIB Decompression: ${verificationStatus?.steps?.zlibDecompression ? 'PASSED' : 'FAILED'}`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.jwtParsing)} JWT Structure Validation: ${verificationStatus?.steps?.jwtParsing ? 'PASSED' : 'FAILED'}`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.certificateAuthority)} Certificate Authority Verification: ${verificationStatus?.steps?.certificateAuthority ? 'PASSED' : 'FAILED'}`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.signatureVerification)} Digital Signature Validation: ${verificationStatus?.steps?.signatureVerification ? 'PASSED' : 'FAILED'}`);
 
         // Finalize PDF
         doc.end();
@@ -549,14 +636,20 @@ router.post('/api/send-verification-email', async (req, res) => {
                 <li>${statusSymbol(verificationStatus?.steps?.certificateAuthority)} Certificate Authority Verification</li>
                 <li>${statusSymbol(verificationStatus?.steps?.signatureVerification)} Digital Signature Validation</li>
             </ul>
-            ${patientData.name ? `
             <hr>
-            <h3>Patient Information</h3>
-            <p><strong>Name:</strong> ${patientData.name}</p>
-            <p><strong>Given Name:</strong> ${patientData.givenName}</p>
-            <p><strong>Date of Birth:</strong> ${patientData.dateOfBirth}</p>
-            <p><strong>Certificate ID:</strong> ${patientData.certificateId}</p>
-            ` : ''}
+            <h3>PRC Certificate Information</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="padding: 5px; font-weight: bold;">Name:</td><td style="padding: 5px;">${prcData.cardHolderName}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">Given Name:</td><td style="padding: 5px;">${prcData.cardHolderGivenName}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">Date of Birth:</td><td style="padding: 5px;">${prcData.dateOfBirth}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">Personal ID:</td><td style="padding: 5px;">${prcData.personalIdNumber}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">Issuing State:</td><td style="padding: 5px;">${prcData.issuingMemberState}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">Institution ID:</td><td style="padding: 5px;">${prcData.institutionId}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">Card ID:</td><td style="padding: 5px;">${prcData.cardId}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">Valid From:</td><td style="padding: 5px;">${prcData.validityStart}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">Valid To:</td><td style="padding: 5px;">${prcData.validityEnd}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">Expiry Date:</td><td style="padding: 5px;">${prcData.expiryDate}</td></tr>
+            </table>
             <hr>
             <p><strong>Note:</strong> A detailed PDF evidence document is attached to this email.</p>
             <p>This is an automated verification summary from the EHIC/PRC Verification System.</p>
