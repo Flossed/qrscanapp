@@ -160,7 +160,8 @@ function onScanSuccess(decodedText, decodedResult) {
         html5QrcodeScanner.clear();
         document.getElementById('reader').style.display = 'none';
         stopButton.style.display = 'none';
-        startButton.style.display = 'inline-block';
+        // Keep start button hidden when showing results
+        startButton.style.display = 'none';
     }
 }
 
@@ -299,6 +300,12 @@ saveButton.addEventListener('click', () => {
     if (!lastDecodedText) return;
     sessionStorage.setItem('verificationData', lastDecodedText);
     window.location.href = '/verify';
+});
+
+document.getElementById('show-results').addEventListener('click', () => {
+    if (!lastDecodedText) return;
+    sessionStorage.setItem('verificationData', lastDecodedText);
+    window.location.href = '/results';
 });
 
 scanAgainButton.addEventListener('click', () => {

@@ -51,6 +51,18 @@
 
     <main class="main-content">
         <div class="treatment-date-container">
+            <!-- Mobile why treatment date - shown only on mobile between breadcrumb and form -->
+            <div class="mobile-why-treatment">
+                <div class="info-box">
+                    <h3>Why Treatment Date?</h3>
+                    <p>The treatment date helps ensure:</p>
+                    <ul>
+                        <li>Accurate reimbursement calculations</li>
+                        <li>Proper coverage validation</li>
+                        <li>Administrative compliance</li>
+                    </ul>
+                </div>
+            </div>
 
             <div class="form-container">
                 <div class="form-header">
@@ -97,6 +109,18 @@
                             cols="80"
                             maxlength="1200"
                         ></textarea>
+                    </div>
+
+                    <!-- Mobile next steps - shown only on mobile between input and button -->
+                    <div class="mobile-next-steps">
+                        <div class="info-box">
+                            <h3>Next Steps</h3>
+                            <ol>
+                                <li>Verify patient identity document</li>
+                                <li>Scan QR code on PRC card</li>
+                                <li>Complete verification process</li>
+                            </ol>
+                        </div>
                     </div>
 
                     <div class="form-actions">
@@ -503,6 +527,12 @@
             line-height: 1.5;
         }
 
+        /* Mobile sections - hidden on desktop */
+        .mobile-next-steps,
+        .mobile-why-treatment {
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .breadcrumb {
                 flex-wrap: wrap;
@@ -539,7 +569,22 @@
             }
 
             .info-sidebar {
-                order: -1;
+                display: none;
+            }
+
+            .mobile-why-treatment {
+                display: block;
+                margin: 1.5rem 2rem 0 2rem;
+            }
+
+            .mobile-next-steps {
+                display: block;
+                margin: 2rem 0;
+            }
+
+            .mobile-next-steps .info-box,
+            .mobile-why-treatment .info-box {
+                margin-bottom: 0;
             }
         }
     </style>
@@ -642,8 +687,8 @@
 
             sessionStorage.setItem('treatmentData', JSON.stringify(formData));
 
-            // Navigate to identity check (scanner page)
-            window.location.href = '/scanner';
+            // Navigate to identity check page
+            window.location.href = '/identity-check';
         });
     </script>
 </body>

@@ -167,6 +167,11 @@ router.get('/treatment-date', (req, res) => {
     res.render('treatment-date');
 });
 
+// Identity check route
+router.get('/identity-check', (req, res) => {
+    res.render('identity-check');
+});
+
 router.get('/', (req, res) => {
     res.render('landing');
 });

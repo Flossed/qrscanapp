@@ -107,8 +107,16 @@ async function stopScanner() {
 }
 
 function onScanSuccess(decodedText) {
-    // Stop scanning
-    stopScanner();
+    // Stop scanning but don't show start button
+    if (html5QrCode && isScanning) {
+        html5QrCode.stop().catch(err => console.error('Error stopping scanner:', err));
+    }
+
+    isScanning = false;
+    readerDiv.style.display = 'none';
+    stopButton.style.display = 'none';
+    // Keep start button hidden when showing results
+    startButton.style.display = 'none';
 
     // Show result
     resultDiv.innerHTML = `<strong>${decodedText}</strong>`;
@@ -180,6 +188,14 @@ document.getElementById('save-scan').addEventListener('click', () => {
     if (content) {
         sessionStorage.setItem('verificationData', content);
         window.location.href = '/verify';
+    }
+});
+
+document.getElementById('show-results').addEventListener('click', () => {
+    const content = resultDiv.textContent;
+    if (content) {
+        sessionStorage.setItem('verificationData', content);
+        window.location.href = '/results';
     }
 });
 
