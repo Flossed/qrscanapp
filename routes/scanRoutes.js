@@ -576,7 +576,35 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.text('Signature and stamp of the institution');
         doc.moveDown();
 
-        // Add QR code (positioned in signature area)
+        // Add signature box and QR code side by side
+        const startY = doc.y;
+
+        // Left side - Signature information
+        doc.fontSize(10);
+        doc.text('Digitally signed by:', doc.x, startY);
+        doc.text('EHIC/PRC Verification System', doc.x, doc.y + 5);
+        doc.text(`Institution: ${prcData.institutionName !== 'N/A' ? prcData.institutionName : 'Healthcare Provider'}`, doc.x, doc.y + 5);
+        doc.text(`Institution ID: ${prcData.institutionId}`, doc.x, doc.y + 5);
+        doc.text(`Signed on: ${new Date(timestamp).toLocaleDateString('en-GB')}`, doc.x, doc.y + 5);
+        doc.text(`Time: ${new Date(timestamp).toLocaleTimeString('en-GB')}`, doc.x, doc.y + 5);
+
+        // Add verification hash/fingerprint
+        const verificationHash = require('crypto')
+            .createHash('sha256')
+            .update(verificationData + timestamp)
+            .digest('hex')
+            .substring(0, 16)
+            .toUpperCase();
+
+        doc.text(`Verification Hash: ${verificationHash}`, doc.x, doc.y + 10);
+
+        // Add signature line
+        doc.moveTo(doc.x, doc.y + 20)
+           .lineTo(doc.x + 180, doc.y + 20)
+           .stroke();
+        doc.text('Digital Signature', doc.x + 50, doc.y + 25);
+
+        // Right side - Add QR code
         if (verificationData) {
             try {
                 const qrCodeDataUrl = await QRCode.toDataURL(verificationData, {
@@ -588,13 +616,17 @@ router.post('/api/send-verification-email', async (req, res) => {
                     }
                 });
                 const qrCodeBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64');
-                doc.image(qrCodeBuffer, doc.x + 200, doc.y - 20, { width: 120 });
+                doc.image(qrCodeBuffer, doc.x + 220, startY, { width: 120 });
+
+                // QR code label
+                doc.fontSize(8);
+                doc.text('Original QR Code', doc.x + 240, startY + 125);
             } catch (qrError) {
                 logger.error('Failed to generate QR code for PDF', { error: qrError.message });
             }
         }
 
-        doc.moveDown(8); // Space for QR code
+        doc.moveDown(10); // Space for signature area
 
         // Add notes section
         doc.text('Notes and information', { underline: true });
