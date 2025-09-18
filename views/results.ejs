@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Verification Results - EHIC Verifier</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">EHIC Verifier</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/scanner" class="nav-link">Scanner</a>
+                <a href="/history" class="nav-link">History</a>
+                <a href="/check-bridge" class="nav-link">Check Bridge</a>
+                <a href="#" class="nav-link active">Results</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="breadcrumb-container">
+        <nav class="breadcrumb">
+            <a href="/" class="breadcrumb-item completed">
+                <span class="step-number">1</span>
+                Welcome
+            </a>
+            <span class="breadcrumb-separator">→</span>
+            <a href="/treatment-date" class="breadcrumb-item completed">
+                <span class="step-number">2</span>
+                Treatment Date
+            </a>
+            <span class="breadcrumb-separator">→</span>
+            <a href="/identity-check" class="breadcrumb-item completed">
+                <span class="step-number">3</span>
+                Identity Check
+            </a>
+            <span class="breadcrumb-separator">→</span>
+            <a href="/scanner" class="breadcrumb-item completed">
+                <span class="step-number">4</span>
+                QR Verification
+            </a>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-item active">
+                <span class="step-number">5</span>
+                Results
+            </span>
+        </nav>
+    </div>
+
+    <main class="main-content">
+        <div class="verification-container">
+            <h1>Verification Results</h1>
+
+            <div id="overall-status" class="overall-status">
+                <!-- Overall status will be populated by JavaScript -->
+            </div>
+
+            <div id="loading" class="loading" style="display: block;">
+                <p>Processing verification steps...</p>
+            </div>
+
+            <div id="error-container" class="error-container" style="display: none;">
+                <h3>Verification Error</h3>
+                <div id="error-message" class="error-message"></div>
+            </div>
+
+            <div id="verification-results" class="verification-results" style="display: none;">
+                <!-- Verification steps will be populated by JavaScript -->
+            </div>
+
+            <div class="controls" style="display: none;" id="action-buttons">
+                <a href="/scanner" class="btn btn-primary">Scan Another QR Code</a>
+                <a href="/history" class="btn btn-secondary">View History</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 QR Scanner App</p>
+    </footer>
+
+    <style>
+        .overall-status {
+            text-align: center;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: var(--border-radius);
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .overall-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .overall-status.failure {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .overall-status .status-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .verification-results {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--box-shadow);
+        }
+
+        .verification-step-result {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: var(--light-color);
+            border-radius: var(--border-radius);
+            border-left: 4px solid #ddd;
+        }
+
+        .verification-step-result.success {
+            border-left-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+
+        .verification-step-result.failure {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        .step-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .step-icon.success {
+            color: #28a745;
+        }
+
+        .step-icon.failure {
+            color: #dc3545;
+        }
+
+        .step-details {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+        }
+
+        .step-description {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .step-error {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .verification-step-result {
+                flex-direction: column;
+                align-items: flex-start;
+                text-align: left;
+            }
+
+            .step-icon {
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+            }
+
+            .overall-status .status-icon {
+                font-size: 2rem;
+            }
+        }
+    </style>
+
+    <script>
+        // Get data from sessionStorage
+        const originalData = sessionStorage.getItem('verificationData');
+
+        // Redirect back if no data
+        if (!originalData) {
+            window.location.href = '/scanner';
+        }
+
+        // Start verification process immediately
+        processVerification();
+
+        async function processVerification() {
+            const loadingDiv = document.getElementById('loading');
+            const errorContainer = document.getElementById('error-container');
+            const resultsContainer = document.getElementById('verification-results');
+            const overallStatus = document.getElementById('overall-status');
+            const actionButtons = document.getElementById('action-buttons');
+
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ data: originalData })
+                });
+
+                const result = await response.json();
+                loadingDiv.style.display = 'none';
+
+                if (response.ok && result.success) {
+                    displayVerificationResults(result.steps);
+                    actionButtons.style.display = 'block';
+                } else {
+                    displayError(result.error || 'Unknown error', result.message, result.step);
+                    actionButtons.style.display = 'block';
+                }
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                displayError('Network Error', error.message, 'network');
+                actionButtons.style.display = 'block';
+            }
+        }
+
+        function displayVerificationResults(steps) {
+            const resultsContainer = document.getElementById('verification-results');
+            const overallStatus = document.getElementById('overall-status');
+
+            // Determine overall success based on steps
+            const allStepsSuccessful = steps.every(step => {
+                // Check if this step indicates success
+                if (step.name.includes('FAILED')) return false;
+                if (step.name.includes('Signature Verification Response')) {
+                    // Check if the response indicates an error
+                    try {
+                        const data = JSON.parse(step.data);
+                        return !data.error;
+                    } catch (e) {
+                        return true; // If we can't parse, assume success
+                    }
+                }
+                if (step.name.includes('JWT Signature Validation')) {
+                    // Check if signature is valid
+                    try {
+                        const data = JSON.parse(step.data);
+                        return data.signatureValid === true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+                return true; // Other steps are considered successful if they exist
+            });
+
+            // Display overall status
+            overallStatus.className = `overall-status ${allStepsSuccessful ? 'success' : 'failure'}`;
+            overallStatus.innerHTML = `
+                <span class="status-icon">${allStepsSuccessful ? '✅' : '❌'}</span>
+                <div>${allStepsSuccessful ? 'Verification Successful' : 'Verification Failed'}</div>
+            `;
+
+            // Display each verification step
+            const stepDescriptions = {
+                'Original BASE45 String': 'QR code data received successfully',
+                'Decoded BASE45 (ZLIB Compressed)': 'BASE45 decoding completed',
+                'Decompressed ZLIB (JWT)': 'Data decompression successful',
+                'Parsed JWT (Clear Text)': 'JWT structure validation passed',
+                'Signature Verification Response': 'Certificate authority lookup completed',
+                'JWT Signature Validation': 'Digital signature verification completed'
+            };
+
+            steps.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                const isFailed = step.name.includes('FAILED');
+                let isSuccess = !isFailed;
+
+                // Special handling for specific steps
+                if (step.name.includes('Signature Verification Response')) {
+                    try {
+                        const data = JSON.parse(step.data);
+                        isSuccess = !data.error;
+                    } catch (e) {
+                        isSuccess = true;
+                    }
+                } else if (step.name.includes('JWT Signature Validation')) {
+                    try {
+                        const data = JSON.parse(step.data);
+                        isSuccess = data.signatureValid === true;
+                    } catch (e) {
+                        isSuccess = false;
+                    }
+                }
+
+                stepDiv.className = `verification-step-result ${isSuccess ? 'success' : 'failure'}`;
+
+                const baseStepName = step.name.replace(' (FAILED)', '');
+                const description = stepDescriptions[baseStepName] || 'Processing step completed';
+
+                let errorMessage = '';
+                if (!isSuccess) {
+                    if (step.name.includes('FAILED')) {
+                        try {
+                            const data = JSON.parse(step.data);
+                            errorMessage = `<div class="step-error">Error: ${data.error || 'Unknown error'}</div>`;
+                        } catch (e) {
+                            errorMessage = '<div class="step-error">Step failed</div>';
+                        }
+                    } else if (step.name.includes('Signature Verification Response')) {
+                        try {
+                            const data = JSON.parse(step.data);
+                            if (data.error) {
+                                errorMessage = `<div class="step-error">Error: ${data.message || data.error}</div>`;
+                            }
+                        } catch (e) {
+                            errorMessage = '<div class="step-error">Response parsing failed</div>';
+                        }
+                    } else if (step.name.includes('JWT Signature Validation')) {
+                        try {
+                            const data = JSON.parse(step.data);
+                            if (!data.signatureValid) {
+                                errorMessage = `<div class="step-error">Signature validation failed: ${data.error || 'Invalid signature'}</div>`;
+                            }
+                        } catch (e) {
+                            errorMessage = '<div class="step-error">Signature validation failed</div>';
+                        }
+                    }
+                }
+
+                stepDiv.innerHTML = `
+                    <div class="step-icon ${isSuccess ? 'success' : 'failure'}">
+                        ${isSuccess ? '✅' : '❌'}
+                    </div>
+                    <div class="step-details">
+                        <div class="step-title">Step ${index + 1}: ${baseStepName}</div>
+                        <div class="step-description">${description}</div>
+                        ${errorMessage}
+                    </div>
+                `;
+
+                resultsContainer.appendChild(stepDiv);
+            });
+
+            resultsContainer.style.display = 'block';
+        }
+
+        function displayError(error, message, step) {
+            const errorContainer = document.getElementById('error-container');
+            const errorMessage = document.getElementById('error-message');
+            const overallStatus = document.getElementById('overall-status');
+
+            // Display overall failure status
+            overallStatus.className = 'overall-status failure';
+            overallStatus.innerHTML = `
+                <span class="status-icon">❌</span>
+                <div>Verification Failed</div>
+            `;
+
+            errorMessage.innerHTML = `
+                <p><strong>Error:</strong> ${error}</p>
+                <p><strong>Message:</strong> ${message}</p>
+                <p><strong>Failed at:</strong> ${step}</p>
+            `;
+
+            errorContainer.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

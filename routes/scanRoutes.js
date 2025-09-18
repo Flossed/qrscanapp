@@ -374,6 +374,11 @@ router.get('/verify', (req, res) => {
     res.render('verify');
 });
 
+// Results route
+router.get('/results', (req, res) => {
+    res.render('results');
+});
+
 router.get('/check-bridge', (req, res) => {
     res.render('check-bridge');
 });
