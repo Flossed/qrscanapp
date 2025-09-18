@@ -528,12 +528,35 @@
             sendButton.disabled = true;
             sendButton.textContent = 'Sending...';
 
-            // Prepare summary data
+            // Prepare summary data with verification results
+            const verificationResults = sessionStorage.getItem('verificationResults');
+            let verificationStatus = {
+                overall: true,
+                steps: {
+                    base45Decode: true,
+                    zlibDecompression: true,
+                    jwtParsing: true,
+                    signatureVerification: true,
+                    certificateAuthority: true
+                }
+            };
+
+            // Parse verification results if available
+            if (verificationResults) {
+                try {
+                    const results = JSON.parse(verificationResults);
+                    verificationStatus = results;
+                } catch (e) {
+                    console.error('Could not parse verification results');
+                }
+            }
+
             const summaryData = {
                 email: email,
                 referenceNumber: document.getElementById('reference-number').textContent,
                 treatmentDate: document.getElementById('treatment-date-summary').textContent,
                 verificationData: sessionStorage.getItem('verificationData') || '',
+                verificationStatus: verificationStatus,
                 timestamp: new Date().toISOString()
             };
 

@@ -369,30 +369,62 @@
             const resultsContainer = document.getElementById('verification-results');
             const overallStatus = document.getElementById('overall-status');
 
-            // Determine overall success based on steps
-            const allStepsSuccessful = steps.every(step => {
-                // Check if this step indicates success
-                if (step.name.includes('FAILED')) return false;
-                if (step.name.includes('Signature Verification Response')) {
-                    // Check if the response indicates an error
+            // Create verification status object for saving
+            const verificationStatus = {
+                overall: true,
+                steps: {
+                    base45Decode: false,
+                    zlibDecompression: false,
+                    jwtParsing: false,
+                    signatureVerification: false,
+                    certificateAuthority: false
+                },
+                details: {}
+            };
+
+            // Process each step and update verification status
+            steps.forEach(step => {
+                // Check step status and update verification object
+                if (step.name.includes('Original BASE45 String')) {
+                    verificationStatus.steps.base45Decode = true;
+                } else if (step.name.includes('Decoded BASE45')) {
+                    verificationStatus.steps.base45Decode = !step.name.includes('FAILED');
+                } else if (step.name.includes('Decompressed ZLIB')) {
+                    verificationStatus.steps.zlibDecompression = !step.name.includes('FAILED');
+                } else if (step.name.includes('Parsed JWT')) {
+                    verificationStatus.steps.jwtParsing = !step.name.includes('FAILED');
+                    // Extract JWT data if available
+                    try {
+                        const jwtData = JSON.parse(step.data);
+                        verificationStatus.details.jwt = jwtData;
+                    } catch (e) {
+                        console.log('Could not parse JWT data');
+                    }
+                } else if (step.name.includes('Signature Verification Response')) {
                     try {
                         const data = JSON.parse(step.data);
-                        return !data.error;
+                        verificationStatus.steps.certificateAuthority = !data.error;
+                        verificationStatus.details.ebsiResponse = data;
                     } catch (e) {
-                        return true; // If we can't parse, assume success
+                        verificationStatus.steps.certificateAuthority = false;
                     }
-                }
-                if (step.name.includes('JWT Signature Validation')) {
-                    // Check if signature is valid
+                } else if (step.name.includes('JWT Signature Validation')) {
                     try {
                         const data = JSON.parse(step.data);
-                        return data.signatureValid === true;
+                        verificationStatus.steps.signatureVerification = data.signatureValid === true;
+                        verificationStatus.details.signatureValidation = data;
                     } catch (e) {
-                        return false;
+                        verificationStatus.steps.signatureVerification = false;
                     }
                 }
-                return true; // Other steps are considered successful if they exist
             });
+
+            // Determine overall success
+            const allStepsSuccessful = Object.values(verificationStatus.steps).every(status => status === true);
+            verificationStatus.overall = allStepsSuccessful;
+
+            // Save verification status to sessionStorage
+            sessionStorage.setItem('verificationResults', JSON.stringify(verificationStatus));
 
             // Display overall status
             overallStatus.className = `overall-status ${allStepsSuccessful ? 'success' : 'failure'}`;

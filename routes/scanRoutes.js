@@ -387,7 +387,7 @@ router.get('/finalization', (req, res) => {
 // Email verification summary endpoint
 router.post('/api/send-verification-email', async (req, res) => {
     try {
-        const { email, referenceNumber, treatmentDate, verificationData, timestamp } = req.body;
+        const { email, referenceNumber, treatmentDate, verificationData, verificationStatus, timestamp } = req.body;
 
         // Validate email
         if (!email || !email.includes('@')) {
@@ -439,32 +439,150 @@ router.post('/api/send-verification-email', async (req, res) => {
             }
         });
 
-        // Email HTML content
+        // Generate PDF attachment with verification evidence
+        const PDFDocument = require('pdfkit');
+        const QRCode = require('qrcode');
+        const fs = require('fs');
+        const path = require('path');
+
+        // Create PDF document
+        const doc = new PDFDocument();
+        const pdfFileName = `verification-${referenceNumber}.pdf`;
+        const pdfPath = path.join(__dirname, '..', 'temp', pdfFileName);
+
+        // Ensure temp directory exists
+        const tempDir = path.join(__dirname, '..', 'temp');
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir);
+        }
+
+        // Stream to file
+        doc.pipe(fs.createWriteStream(pdfPath));
+
+        // Add content to PDF
+        doc.fontSize(20).text('EHIC/PRC Verification Evidence', { align: 'center' });
+        doc.moveDown();
+
+        doc.fontSize(14).text(`Reference Number: ${referenceNumber}`);
+        doc.text(`Treatment Date: ${treatmentDate}`);
+        doc.text(`Verification Time: ${new Date(timestamp).toLocaleString()}`);
+        doc.moveDown();
+
+        // Add verification status
+        doc.fontSize(16).text('Verification Results:', { underline: true });
+        doc.moveDown();
+
+        const statusSymbol = (status) => status ? '✅' : '❌';
+
+        doc.fontSize(12);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.base45Decode)} BASE45 Decoding`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.zlibDecompression)} ZLIB Decompression`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.jwtParsing)} JWT Parsing`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.certificateAuthority)} Certificate Authority Verification`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.signatureVerification)} Digital Signature Validation`);
+        doc.moveDown();
+
+        // Extract JWT payload data if available
+        let patientData = {};
+        if (verificationStatus?.details?.jwt?.payload) {
+            const payload = verificationStatus.details.jwt.payload;
+            // Extract patient information from JWT payload
+            if (payload.hcert && payload.hcert.v) {
+                const cert = payload.hcert.v[0];
+                patientData = {
+                    name: cert.nam?.fn || 'N/A',
+                    givenName: cert.nam?.gn || 'N/A',
+                    dateOfBirth: cert.dob || 'N/A',
+                    certificateId: cert.ci || 'N/A'
+                };
+            }
+        }
+
+        // Add patient information
+        doc.fontSize(16).text('Patient Information:', { underline: true });
+        doc.moveDown();
+        doc.fontSize(12);
+        doc.text(`Name: ${patientData.name || 'N/A'}`);
+        doc.text(`Given Name: ${patientData.givenName || 'N/A'}`);
+        doc.text(`Date of Birth: ${patientData.dateOfBirth || 'N/A'}`);
+        doc.text(`Certificate ID: ${patientData.certificateId || 'N/A'}`);
+        doc.moveDown();
+
+        // Add QR code to PDF
+        if (verificationData) {
+            try {
+                const qrCodeDataUrl = await QRCode.toDataURL(verificationData, {
+                    width: 200,
+                    margin: 1
+                });
+                const qrCodeBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64');
+                doc.text('Original QR Code:', { underline: true });
+                doc.image(qrCodeBuffer, doc.x, doc.y + 10, { width: 150 });
+            } catch (qrError) {
+                logger.error('Failed to generate QR code for PDF', { error: qrError.message });
+            }
+        }
+
+        // Finalize PDF
+        doc.end();
+
+        // Wait for PDF to be written
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Determine overall status
+        const overallSuccess = verificationStatus?.overall || false;
+        const statusIcon = overallSuccess ? '✅' : '❌';
+        const statusText = overallSuccess ? 'SUCCESSFUL' : 'FAILED';
+
+        // Email HTML content with actual verification status
         const emailHTML = `
-            <h2>EHIC/PRC Verification Summary</h2>
+            <h2>EHIC/PRC Verification Summary - ${statusText}</h2>
             <p><strong>Reference Number:</strong> ${referenceNumber}</p>
             <p><strong>Treatment Date:</strong> ${treatmentDate}</p>
             <p><strong>Verification Time:</strong> ${new Date(timestamp).toLocaleString()}</p>
             <hr>
-            <h3>Verification Status</h3>
+            <h3>Verification Status: ${statusIcon} ${statusText}</h3>
             <ul>
-                <li>✅ Identity Verified</li>
-                <li>✅ QR Code Valid</li>
-                <li>✅ Digital Signature Verified</li>
-                <li>✅ Certificate Authority Confirmed</li>
+                <li>${statusSymbol(verificationStatus?.steps?.base45Decode)} BASE45 Decoding</li>
+                <li>${statusSymbol(verificationStatus?.steps?.zlibDecompression)} ZLIB Decompression</li>
+                <li>${statusSymbol(verificationStatus?.steps?.jwtParsing)} JWT Structure Validation</li>
+                <li>${statusSymbol(verificationStatus?.steps?.certificateAuthority)} Certificate Authority Verification</li>
+                <li>${statusSymbol(verificationStatus?.steps?.signatureVerification)} Digital Signature Validation</li>
             </ul>
+            ${patientData.name ? `
             <hr>
+            <h3>Patient Information</h3>
+            <p><strong>Name:</strong> ${patientData.name}</p>
+            <p><strong>Given Name:</strong> ${patientData.givenName}</p>
+            <p><strong>Date of Birth:</strong> ${patientData.dateOfBirth}</p>
+            <p><strong>Certificate ID:</strong> ${patientData.certificateId}</p>
+            ` : ''}
+            <hr>
+            <p><strong>Note:</strong> A detailed PDF evidence document is attached to this email.</p>
             <p>This is an automated verification summary from the EHIC/PRC Verification System.</p>
-            <p>Please keep this email for your records.</p>
+            <p>Please keep this email and attachment for your records.</p>
         `;
 
-        // Send email
+        // Read PDF file for attachment
+        const pdfContent = fs.readFileSync(pdfPath);
+
+        // Send email with PDF attachment
         await transporter.sendMail({
             from: '"EHIC Verifier" <noreply@ehic-verifier.com>',
             to: email,
-            subject: `Verification Summary - Reference: ${referenceNumber}`,
-            html: emailHTML
+            subject: `Verification Summary - Reference: ${referenceNumber} - ${overallSuccess ? 'PASSED' : 'FAILED'}`,
+            html: emailHTML,
+            attachments: [
+                {
+                    filename: pdfFileName,
+                    content: pdfContent,
+                    contentType: 'application/pdf'
+                }
+            ]
         });
+
+        // Clean up temp file
+        fs.unlinkSync(pdfPath);
         
 
         // For demonstration, we'll save the email request to the database
@@ -473,16 +591,18 @@ router.post('/api/send-verification-email', async (req, res) => {
         // Simulate a delay
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // In a real implementation, you would send the actual email here
-        logger.info('Email would be sent to:', {
+        // Log successful email send
+        logger.info('Verification email sent successfully', {
             recipient: email,
             referenceNumber: referenceNumber,
-            treatmentDate: treatmentDate
+            treatmentDate: treatmentDate,
+            overallStatus: verificationStatus?.overall ? 'PASSED' : 'FAILED',
+            withAttachment: true
         });
 
         res.json({
             success: true,
-            message: 'Email sent successfully',
+            message: 'Email sent successfully with PDF attachment',
             recipient: email
         });
 
