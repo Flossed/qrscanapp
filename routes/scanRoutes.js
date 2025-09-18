@@ -157,7 +157,22 @@ function normalizeThumbprintForEbsi(thumbprint) {
     }
 }
 
+// Landing page route
+router.get('/landing', (req, res) => {
+    res.render('landing');
+});
+
+// Treatment date route
+router.get('/treatment-date', (req, res) => {
+    res.render('treatment-date');
+});
+
 router.get('/', (req, res) => {
+    res.render('landing');
+});
+
+// Scanner page (moved from root)
+router.get('/scanner', (req, res) => {
     res.render('index');
 });
 
@@ -1101,37 +1116,50 @@ async function verifySignature(jwtDecoded) {
             countryCode = payload.country;
         }
 
-        // Normalize thumbprint for EBSI query (convert to base64url if needed)
-        const normalizationResult = normalizeThumbprintForEbsi(x509Thumbprint);
-        const ebsiThumbprint = normalizationResult.normalized;
-
-        logger.debug('Thumbprint normalization for signature verification', {
+        // Use cache-aware EBSI bridge check instead of direct API call
+        logger.debug('Using cache-aware EBSI bridge check for signature verification', {
             originalThumbprint: x509Thumbprint.substring(0, 16) + '...',
-            normalizedThumbprint: ebsiThumbprint.substring(0, 16) + '...',
-            conversionApplied: normalizationResult.conversionApplied
+            extractedKid: kid,
+            detectedCountryCode: countryCode
         });
 
-        // Construct the EBSI resolver URL with only the x509Thumbprint parameter
-        const fullUrl = `https://resolver-test.ebsi.eu/api/v1/issuers?x509Thumbprint=${ebsiThumbprint}`;
+        // This will check cache first, then EBSI if needed, and update cache
+        const bridgeFound = await checkThumbprintInBridge(x509Thumbprint);
 
-        // Make the API call
-        const response = await axios.get(fullUrl, {
-            timeout: 10000, // 10 second timeout
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'QR-Scanner-App/1.0'
-            }
+        // Get the cached entry to return full EBSI response data
+        const cacheEntry = await EbsiCache.findOne({ thumbprint: x509Thumbprint });
+
+        let ebsiResponseData = null;
+        let status = 200;
+        let statusText = 'OK';
+
+        if (cacheEntry && cacheEntry.ebsiResponse) {
+            ebsiResponseData = cacheEntry.ebsiResponse;
+            status = cacheEntry.lastStatus || 200;
+        }
+
+        // Construct response URL for compatibility
+        const normalizationResult = normalizeThumbprintForEbsi(x509Thumbprint);
+        const fullUrl = `https://resolver-test.ebsi.eu/api/v1/issuers?x509Thumbprint=${normalizationResult.normalized}`;
+
+        logger.info('Signature verification using cached EBSI response', {
+            thumbprint: x509Thumbprint.substring(0, 16) + '...',
+            foundInBridge: bridgeFound,
+            cacheEntryExists: !!cacheEntry,
+            lastChecked: cacheEntry?.lastChecked
         });
 
         return {
             url: fullUrl,
-            status: response.status,
-            statusText: response.statusText,
-            headers: response.headers,
-            data: response.data,
+            status: status,
+            statusText: statusText,
+            headers: { 'content-type': 'application/json' },
+            data: ebsiResponseData,
             extractedKid: kid,
             extractedThumbprint: x509Thumbprint,
-            detectedCountryCode: countryCode
+            detectedCountryCode: countryCode,
+            fromCache: !!cacheEntry,
+            cacheHitCount: cacheEntry?.hitCount || 0
         };
     } catch (error) {
         if (error.response) {

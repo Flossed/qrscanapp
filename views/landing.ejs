@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>QR Code Scanner</title>
+    <title>EHIC Verifier - Welcome</title>
     <link rel="stylesheet" href="/css/style.css">
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="nav-brand">EHIC Verifier</a>
             <div class="nav-menu">
-                <a href="/" class="nav-link">Home</a>
-                <a href="/scanner" class="nav-link active">Scanner</a>
+                <a href="/" class="nav-link active">Home</a>
+                <a href="/scanner" class="nav-link">Scanner</a>
                 <a href="/history" class="nav-link">History</a>
                 <a href="/check-bridge" class="nav-link">Check Bridge</a>
             </div>
@@ -23,17 +22,17 @@
 
     <div class="breadcrumb-container">
         <nav class="breadcrumb">
-            <a href="/" class="breadcrumb-item completed">
+            <span class="breadcrumb-item active">
                 <span class="step-number">1</span>
                 Welcome
-            </a>
+            </span>
             <span class="breadcrumb-separator">→</span>
-            <a href="/treatment-date" class="breadcrumb-item completed">
+            <span class="breadcrumb-item disabled">
                 <span class="step-number">2</span>
                 Treatment Date
-            </a>
+            </span>
             <span class="breadcrumb-separator">→</span>
-            <span class="breadcrumb-item active">
+            <span class="breadcrumb-item disabled">
                 <span class="step-number">3</span>
                 Identity Check
             </span>
@@ -51,62 +50,38 @@
     </div>
 
     <main class="main-content">
-        <div class="scanner-container">
-            <h1>Scan QR Code</h1>
-
-            <div id="reader" class="qr-reader"></div>
-
-            <div class="controls">
-                <button id="start-scanner" class="btn btn-primary">Start Scanner</button>
-                <button id="stop-scanner" class="btn btn-secondary" style="display: none;">Stop Scanner</button>
+        <div class="landing-container">
+            <div class="welcome-header">
+                <h1>PRC Verifier</h1>
             </div>
 
-            <div id="result-container" class="result-container" style="display: none;">
-                <h2>Scan Result</h2>
-                <div id="result" class="result-text"></div>
-                <button id="save-scan" class="btn btn-success">Verify QR Code</button>
-                <button id="scan-again" class="btn btn-primary">Scan Again</button>
+            <div class="welcome-content">
+                <div class="welcome-text">
+                    <p>Welcome to the verifier-app of EHIC attestations. Please start the verification by optionally adding the treatment date. If you are unsure about the treatment date please proceed with the verification.</p>
+
+                    <p>We will start by asking the customer for a valid passport or identity card. The identity will need to match with the PRC, else the reimbursement of the treatment might be refused.</p>
+
+                    <p>Then please scan the QR code on the PRC if there is one, to assure the validity of the document. The verifier app will then do some checks to assure the customer can be reimbursed for treatment.</p>
+
+                    <p>Once verified, the result of the verification can be seen, and the evidence can be sent to your HCP administrative account.</p>
+
+                    <p class="thank-you">Thank you very much</p>
+                </div>
+
+                <div class="action-buttons">
+                    <button onclick="window.location.href='/treatment-date'" class="btn btn-primary btn-large">
+                        Continue to Treatment Date
+                        <span class="btn-arrow">→</span>
+                    </button>
+                </div>
             </div>
 
-            <div id="message" class="message"></div>
         </div>
     </main>
 
     <footer class="footer">
-        <p>&copy; 2024 QR Scanner App</p>
+        <p>&copy; 2024 EHIC Verifier App - Healthcare Provider Solution</p>
     </footer>
-
-    <!-- Scanner version selector -->
-    <script>
-        // Check URL parameter for scanner version
-        const urlParams = new URLSearchParams(window.location.search);
-        const scannerVersion = urlParams.get('scanner') || 'simple';
-
-        // Load appropriate scanner
-        const script = document.createElement('script');
-        if (scannerVersion === 'debug') {
-            script.src = '/js/scanner-debug.js';
-            console.log('Using DEBUG scanner');
-        } else if (scannerVersion === 'original') {
-            script.src = '/js/scanner.js';
-            console.log('Using ORIGINAL scanner');
-        } else {
-            script.src = '/js/scanner-simple.js';
-            console.log('Using SIMPLE scanner (default)');
-        }
-        document.body.appendChild(script);
-
-        // Add version indicator
-        window.addEventListener('load', () => {
-            const versionDiv = document.createElement('div');
-            versionDiv.style.cssText = 'position: fixed; bottom: 10px; right: 10px; background: #333; color: #fff; padding: 5px 10px; border-radius: 5px; font-size: 12px; z-index: 1000;';
-            versionDiv.innerHTML = `Scanner: ${scannerVersion}<br>
-                <a href="?scanner=simple" style="color: #4CAF50">Simple</a> |
-                <a href="?scanner=debug" style="color: #4CAF50">Debug</a> |
-                <a href="?scanner=original" style="color: #4CAF50">Original</a>`;
-            document.body.appendChild(versionDiv);
-        });
-    </script>
 
     <style>
         .breadcrumb-container {
@@ -227,6 +202,106 @@
             .breadcrumb-separator {
                 font-size: 1.2rem;
                 margin: 0 0.25rem;
+            }
+        }
+
+        .landing-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .welcome-header {
+            margin-bottom: 3rem;
+        }
+
+        .welcome-header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 300;
+        }
+
+
+        .welcome-content {
+            background: #fff;
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 3rem;
+        }
+
+        .welcome-text {
+            text-align: left;
+            line-height: 1.8;
+            color: #555;
+            font-size: 1.1rem;
+        }
+
+        .welcome-text p {
+            margin-bottom: 1.5rem;
+        }
+
+        .thank-you {
+            font-weight: 600;
+            color: #2c3e50;
+            text-align: center;
+            font-size: 1.2rem;
+            margin-top: 2rem !important;
+        }
+
+        .action-buttons {
+            margin-top: 2.5rem;
+        }
+
+        .btn-large {
+            font-size: 1.3rem;
+            padding: 1rem 2.5rem;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .btn-large:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-arrow {
+            font-size: 1.1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .btn-large:hover .btn-arrow {
+            transform: translateX(3px);
+        }
+
+
+        @media (max-width: 768px) {
+            .landing-container {
+                padding: 1rem;
+            }
+
+            .welcome-header h1 {
+                font-size: 2rem;
+            }
+
+            .welcome-content {
+                padding: 1.5rem;
+            }
+
+
+            .btn-large {
+                font-size: 1.1rem;
+                padding: 0.8rem 2rem;
             }
         }
     </style>

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>EHIC Verifier - Treatment Date</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">EHIC Verifier</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/scanner" class="nav-link">Scanner</a>
+                <a href="/history" class="nav-link">History</a>
+                <a href="/check-bridge" class="nav-link">Check Bridge</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="breadcrumb-container">
+        <nav class="breadcrumb">
+            <a href="/" class="breadcrumb-item completed">
+                <span class="step-number">1</span>
+                Welcome
+            </a>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-item active">
+                <span class="step-number">2</span>
+                Treatment Date
+            </span>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-item disabled">
+                <span class="step-number">3</span>
+                Identity Check
+            </span>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-item disabled">
+                <span class="step-number">4</span>
+                QR Verification
+            </span>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-item disabled">
+                <span class="step-number">5</span>
+                Results
+            </span>
+        </nav>
+    </div>
+
+    <main class="main-content">
+        <div class="treatment-date-container">
+
+            <div class="form-container">
+                <div class="form-header">
+                    <h1>Treatment Date</h1>
+                    <p>Please specify the date when the treatment occurred (defaults to today)</p>
+                </div>
+
+                <form id="treatmentDateForm" class="treatment-form">
+                    <div class="form-group">
+                        <label for="treatmentDate" class="form-label">
+                            <span class="label-text">Treatment Date</span>
+                            <span class="label-optional">(Optional)</span>
+                        </label>
+                        <div class="date-input-wrapper">
+                            <input
+                                type="date"
+                                id="treatmentDate"
+                                name="treatmentDate"
+                                class="form-input date-input"
+                                min=""
+                                max=""
+                                value=""
+                            >
+                            <div class="date-input-overlay" id="dateOverlay">dd/mm/yyyy</div>
+                        </div>
+                        <div class="input-help">
+                            <span class="help-icon">💡</span>
+                            <span>Defaults to today. Click to select a different date (up to 30 days in the future)</span>
+                        </div>
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="notes" class="form-label">
+                            <span class="label-text">Additional Notes</span>
+                            <span class="label-optional">(Optional)</span>
+                        </label>
+                        <textarea
+                            id="notes"
+                            name="notes"
+                            class="form-input textarea-input"
+                            placeholder="Any additional information about the treatment..."
+                            rows="15"
+                            cols="80"
+                            maxlength="1200"
+                        ></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            Continue to Identity Check →
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="info-sidebar">
+                <div class="info-box">
+                    <h3>Why Treatment Date?</h3>
+                    <p>The treatment date helps ensure:</p>
+                    <ul>
+                        <li>Accurate reimbursement calculations</li>
+                        <li>Proper coverage validation</li>
+                        <li>Administrative compliance</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>Next Steps</h3>
+                    <ol>
+                        <li>Verify patient identity document</li>
+                        <li>Scan QR code on PRC card</li>
+                        <li>Complete verification process</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 EHIC Verifier App - Healthcare Provider Solution</p>
+    </footer>
+
+    <style>
+        .breadcrumb-container {
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 1.5rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .breadcrumb {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 0 2rem;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: #6c757d;
+            min-width: 80px;
+            max-width: 100px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .breadcrumb-item.active {
+            color: #667eea;
+        }
+
+        .breadcrumb-item.completed {
+            color: #28a745;
+            cursor: pointer;
+        }
+
+        .breadcrumb-item.completed:hover {
+            color: #218838;
+        }
+
+        .breadcrumb-item.disabled {
+            color: #ced4da;
+            cursor: default;
+        }
+
+        .breadcrumb-item .step-number {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0;
+            transition: all 0.3s ease;
+            border: 2px solid #ced4da;
+            background: #ced4da;
+        }
+
+        .breadcrumb-item.active .step-number {
+            background: #667eea;
+            border-color: #667eea;
+            transform: scale(1.2);
+        }
+
+        .breadcrumb-item.completed .step-number {
+            background: #28a745;
+            border-color: #28a745;
+        }
+
+        .breadcrumb-item.completed:hover .step-number {
+            background: #218838;
+            border-color: #218838;
+            transform: scale(1.1);
+        }
+
+        .breadcrumb-item.disabled .step-number {
+            background: #f8f9fa;
+            border-color: #ced4da;
+        }
+
+        .breadcrumb-separator {
+            color: #ced4da;
+            font-size: 1.5rem;
+            margin: 0 0.5rem;
+            font-weight: bold;
+        }
+
+        .treatment-date-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 3rem;
+        }
+
+        .form-container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .form-header h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+        }
+
+        .form-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .label-optional {
+            color: #999;
+            font-weight: 300;
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .date-input {
+            cursor: pointer;
+            background-color: #f8f9fa;
+            position: relative;
+            color: #6c757d;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 0.95rem;
+        }
+
+        .date-input:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+            background-color: #f1f3f4;
+        }
+
+        .date-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background-color: #fff;
+            color: #495057;
+        }
+
+        /* Style the date input placeholder/format */
+        .date-input::-webkit-datetime-edit {
+            color: #6c757d;
+        }
+
+        .date-input::-webkit-datetime-edit-fields-wrapper {
+            color: #6c757d;
+        }
+
+        .date-input::-webkit-datetime-edit-text {
+            color: #6c757d;
+            padding: 0 0.2em;
+        }
+
+        .date-input::-webkit-datetime-edit-month-field,
+        .date-input::-webkit-datetime-edit-day-field,
+        .date-input::-webkit-datetime-edit-year-field {
+            color: #6c757d;
+        }
+
+        .date-input::-webkit-calendar-picker-indicator {
+            color: #6c757d;
+            opacity: 0.7;
+            cursor: pointer;
+        }
+
+        .date-input::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        /* Additional Firefox styling */
+        .date-input::-moz-placeholder {
+            color: #6c757d;
+            opacity: 1;
+        }
+
+        .date-input::placeholder {
+            color: #6c757d;
+        }
+
+        /* Ensure consistent greyed appearance across browsers */
+        .date-input {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .date-input:invalid {
+            color: #6c757d;
+        }
+
+        /* Custom date format overlay */
+        .date-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .date-input-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #6c757d;
+            font-size: 0.95rem;
+            background: transparent;
+            border: 2px solid transparent;
+            border-radius: 8px;
+        }
+
+        .date-input:focus + .date-input-overlay,
+        .date-input:not(:placeholder-shown) + .date-input-overlay {
+            display: none;
+        }
+
+        .textarea-input {
+            resize: none;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.2;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .input-help {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .help-icon {
+            font-size: 1rem;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 3rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+        }
+
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .info-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-box h3 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .info-box p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box ul, .info-box ol {
+            color: #666;
+            padding-left: 1.5rem;
+        }
+
+        .info-box li {
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .breadcrumb {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.5rem;
+                padding: 0 1rem;
+            }
+
+            .breadcrumb-item {
+                padding: 0.3rem;
+                font-size: 0.75rem;
+                min-width: 60px;
+                max-width: 80px;
+            }
+
+            .breadcrumb-item .step-number {
+                width: 12px;
+                height: 12px;
+            }
+
+            .breadcrumb-separator {
+                font-size: 1.2rem;
+                margin: 0 0.25rem;
+            }
+
+            .treatment-date-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+                gap: 2rem;
+            }
+
+            .form-container {
+                padding: 1.5rem;
+            }
+
+            .info-sidebar {
+                order: -1;
+            }
+        }
+    </style>
+
+    <script>
+        // Set date range: today to 30 days in the future
+        const today = new Date();
+        const maxDate = new Date();
+        maxDate.setDate(today.getDate() + 30);
+
+        const todayStr = today.toISOString().split('T')[0];
+        const maxDateStr = maxDate.toISOString().split('T')[0];
+
+        const dateInput = document.getElementById('treatmentDate');
+        dateInput.min = todayStr;
+        dateInput.max = maxDateStr;
+
+        // Set default value to today
+        dateInput.value = todayStr;
+
+        const dateOverlay = document.getElementById('dateOverlay');
+
+        // Format the display to show dd/mm/yyyy in a more user-friendly way
+        function updateDateDisplay() {
+            const dateValue = dateInput.value;
+            if (dateValue) {
+                const date = new Date(dateValue);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+
+                // Hide overlay when date is selected
+                dateOverlay.style.display = 'none';
+
+                // Update the input's visual appearance
+                dateInput.style.color = '#6c757d';
+            } else {
+                // Show overlay when no date is selected
+                dateOverlay.style.display = 'flex';
+                dateOverlay.textContent = 'dd/mm/yyyy';
+            }
+        }
+
+        // Handle focus and blur to manage overlay
+        dateInput.addEventListener('focus', function() {
+            dateOverlay.style.display = 'none';
+        });
+
+        dateInput.addEventListener('blur', function() {
+            if (!this.value) {
+                dateOverlay.style.display = 'flex';
+            }
+        });
+
+        // Format on load and when changed
+        updateDateDisplay();
+        dateInput.addEventListener('change', updateDateDisplay);
+
+        // Prevent manual typing while allowing datepicker to work
+        dateInput.addEventListener('keydown', function(e) {
+            // Allow arrow keys, enter, escape, and tab for datepicker navigation
+            const allowedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Tab'];
+            if (!allowedKeys.includes(e.key)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        dateInput.addEventListener('paste', function(e) {
+            e.preventDefault(); // Block paste
+            return false;
+        });
+
+        // Validate date is within range when changed
+        dateInput.addEventListener('change', function() {
+            const selectedDate = this.value;
+            if (selectedDate < todayStr || selectedDate > maxDateStr) {
+                this.value = todayStr; // Reset to today if invalid
+                alert('Please select a date between today and 30 days from now.');
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('treatmentDateForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Ensure treatment date has a value (default to today if empty)
+            let treatmentDate = document.getElementById('treatmentDate').value;
+            if (!treatmentDate) {
+                treatmentDate = todayStr;
+                document.getElementById('treatmentDate').value = todayStr;
+            }
+
+            // Store form data in sessionStorage
+            const formData = {
+                treatmentDate: treatmentDate,
+                notes: document.getElementById('notes').value || '', // Default to empty string
+                timestamp: new Date().toISOString()
+            };
+
+            sessionStorage.setItem('treatmentData', JSON.stringify(formData));
+
+            // Navigate to identity check (scanner page)
+            window.location.href = '/scanner';
+        });
+    </script>
+</body>
+</html>
