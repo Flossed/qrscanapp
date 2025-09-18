@@ -379,6 +379,11 @@ router.get('/results', (req, res) => {
     res.render('results');
 });
 
+// Finalization route
+router.get('/finalization', (req, res) => {
+    res.render('finalization');
+});
+
 router.get('/check-bridge', (req, res) => {
     res.render('check-bridge');
 });

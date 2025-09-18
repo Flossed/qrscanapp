@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Finalization - EHIC Verifier</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">EHIC Verifier</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/scanner" class="nav-link">Scanner</a>
+                <a href="/history" class="nav-link">History</a>
+                <a href="/check-bridge" class="nav-link">Check Bridge</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="breadcrumb-container">
+        <nav class="breadcrumb">
+            <span class="breadcrumb-item completed">
+                <span class="step-number">1</span>
+                Welcome
+            </span>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-item completed">
+                <span class="step-number">2</span>
+                Treatment Date
+            </span>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-item completed">
+                <span class="step-number">3</span>
+                Identity Check
+            </span>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-item completed">
+                <span class="step-number">4</span>
+                QR Verification
+            </span>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-item completed">
+                <span class="step-number">5</span>
+                Results
+            </span>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-item active">
+                <span class="step-number">6</span>
+                Finalization
+            </span>
+        </nav>
+    </div>
+
+    <main class="main-content">
+        <div class="finalization-container">
+            <div class="finalization-status">
+                <span class="status-icon-large">✅</span>
+                <h1>Verification Complete</h1>
+                <p class="finalization-subtitle">All verification steps have been successfully completed</p>
+            </div>
+
+            <div class="summary-section">
+                <h2>Verification Summary</h2>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="summary-icon">📅</span>
+                        <div class="summary-details">
+                            <div class="summary-label">Treatment Date</div>
+                            <div class="summary-value" id="treatment-date-summary">-</div>
+                        </div>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-icon">👤</span>
+                        <div class="summary-details">
+                            <div class="summary-label">Identity Verified</div>
+                            <div class="summary-value">✅ Confirmed</div>
+                        </div>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-icon">📱</span>
+                        <div class="summary-details">
+                            <div class="summary-label">QR Code Status</div>
+                            <div class="summary-value">✅ Valid</div>
+                        </div>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-icon">🔐</span>
+                        <div class="summary-details">
+                            <div class="summary-label">Digital Signature</div>
+                            <div class="summary-value">✅ Verified</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reference-number-section">
+                <h3>Reference Number</h3>
+                <div class="reference-number" id="reference-number">-</div>
+                <p class="reference-note">Please save this reference number for your records</p>
+            </div>
+
+            <div class="next-steps-section">
+                <h3>Next Steps</h3>
+                <ul class="next-steps-list">
+                    <li>The verification has been completed successfully</li>
+                    <li>The patient's EHIC/PRC is valid and verified</li>
+                    <li>You may now proceed with the treatment</li>
+                    <li>Keep the reference number for billing purposes</li>
+                </ul>
+            </div>
+
+            <div class="controls">
+                <button id="print-summary" class="btn btn-secondary">Print Summary</button>
+                <a href="/" class="btn btn-primary">Start New Verification</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 QR Scanner App</p>
+    </footer>
+
+    <style>
+        .breadcrumb-container {
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 1.5rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .breadcrumb {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 0 2rem;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: default;
+            text-decoration: none;
+            color: #6c757d;
+            min-width: 80px;
+            max-width: 100px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .breadcrumb-item.active {
+            color: #667eea;
+        }
+
+        .breadcrumb-item.completed {
+            color: #28a745;
+        }
+
+        .breadcrumb-item .step-number {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0;
+            transition: all 0.3s ease;
+            border: 2px solid #ced4da;
+            background: #ced4da;
+        }
+
+        .breadcrumb-item.active .step-number {
+            background: #667eea;
+            border-color: #667eea;
+            transform: scale(1.2);
+        }
+
+        .breadcrumb-item.completed .step-number {
+            background: #28a745;
+            border-color: #28a745;
+        }
+
+        .breadcrumb-separator {
+            color: #ced4da;
+            font-size: 1.5rem;
+            margin: 0 0.5rem;
+            font-weight: bold;
+        }
+
+        .finalization-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--box-shadow);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .finalization-status {
+            text-align: center;
+            padding: 2rem 0;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 2rem;
+        }
+
+        .status-icon-large {
+            font-size: 4rem;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .finalization-status h1 {
+            color: #28a745;
+            margin-bottom: 0.5rem;
+        }
+
+        .finalization-subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .summary-section {
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-section h2 {
+            margin-bottom: 1.5rem;
+            color: var(--dark-color);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .summary-icon {
+            font-size: 2rem;
+        }
+
+        .summary-details {
+            flex: 1;
+        }
+
+        .summary-label {
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .summary-value {
+            color: var(--dark-color);
+            font-weight: bold;
+        }
+
+        .reference-number-section {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .reference-number-section h3 {
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+
+        .reference-number {
+            font-family: monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1976d2;
+            letter-spacing: 2px;
+            padding: 0.5rem;
+            background: white;
+            border-radius: var(--border-radius);
+            margin-bottom: 0.5rem;
+        }
+
+        .reference-note {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .next-steps-section {
+            margin-bottom: 2rem;
+        }
+
+        .next-steps-section h3 {
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+
+        .next-steps-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .next-steps-list li {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            background: #f8f9fa;
+            border-left: 3px solid #28a745;
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        }
+
+        .next-steps-list li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .controls {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .breadcrumb {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.5rem;
+                padding: 0 1rem;
+            }
+
+            .breadcrumb-item {
+                padding: 0.3rem;
+                font-size: 0.75rem;
+                min-width: 60px;
+                max-width: 80px;
+            }
+
+            .breadcrumb-item .step-number {
+                width: 12px;
+                height: 12px;
+            }
+
+            .breadcrumb-separator {
+                font-size: 1.2rem;
+                margin: 0 0.25rem;
+            }
+
+            .finalization-container {
+                padding: 1rem;
+            }
+
+            .status-icon-large {
+                font-size: 3rem;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .controls .btn {
+                width: 100%;
+            }
+
+            .reference-number {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+
+    <script>
+        // Generate reference number
+        function generateReferenceNumber() {
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const random = Math.random().toString(36).substr(2, 6).toUpperCase();
+            return `EHIC-${year}${month}${day}-${random}`;
+        }
+
+        // Set reference number
+        document.getElementById('reference-number').textContent = generateReferenceNumber();
+
+        // Get treatment date from sessionStorage if available
+        const treatmentDate = sessionStorage.getItem('treatmentDate');
+        if (treatmentDate) {
+            // Format the date nicely
+            const date = new Date(treatmentDate);
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('treatment-date-summary').textContent = date.toLocaleDateString('en-US', options);
+        } else {
+            document.getElementById('treatment-date-summary').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // Print functionality
+        document.getElementById('print-summary').addEventListener('click', () => {
+            window.print();
+        });
+
+        // Clear session data when starting new verification
+        document.querySelector('a[href="/"]').addEventListener('click', () => {
+            sessionStorage.clear();
+        });
+    </script>
+</body>
+</html>

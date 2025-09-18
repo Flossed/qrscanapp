@@ -72,8 +72,7 @@
             </div>
 
             <div class="controls" style="display: none;" id="action-buttons">
-                <a href="/scanner" class="btn btn-primary">Scan Another QR Code</a>
-                <a href="/history" class="btn btn-secondary">View History</a>
+                <button id="finalize-verification" class="btn btn-primary">Continue to Finalize Verification</button>
             </div>
         </div>
     </main>
@@ -321,6 +320,17 @@
 
         // Start verification process immediately
         processVerification();
+
+        // Handle finalize verification button
+        document.addEventListener('DOMContentLoaded', () => {
+            const finalizeBtn = document.getElementById('finalize-verification');
+            if (finalizeBtn) {
+                finalizeBtn.addEventListener('click', () => {
+                    // Navigate to the finalization page
+                    window.location.href = '/finalization';
+                });
+            }
+        });
 
         async function processVerification() {
             const loadingDiv = document.getElementById('loading');
