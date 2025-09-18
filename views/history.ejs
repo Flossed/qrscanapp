@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Scan History - QR Scanner</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">QR Scanner</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Scan</a>
+                <a href="/history" class="nav-link active">History</a>
+                <a href="/check-bridge" class="nav-link">Check Bridge</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="history-container">
+            <h1>Scan History</h1>
+
+            <div class="reference-section">
+                <h3>Reference QR Code</h3>
+                <div class="reference-controls">
+                    <textarea id="reference-input" placeholder="Enter reference QR code content for comparison..." rows="3"></textarea>
+                    <div class="reference-buttons">
+                        <button id="set-reference" class="btn btn-primary btn-small">Set Reference</button>
+                        <button id="clear-reference" class="btn btn-secondary btn-small">Clear</button>
+                    </div>
+                </div>
+                <div id="reference-status" class="reference-status"></div>
+            </div>
+
+            <% if (scans && scans.length > 0) { %>
+                <div class="scan-list">
+                    <% scans.forEach(scan => { %>
+                        <div class="scan-item <%= scan.isDuplicate ? 'duplicate-scan' : '' %>">
+                            <div class="scan-content">
+                                <p class="scan-text"><%= scan.content %></p>
+                                <p class="scan-meta">
+                                    <span class="scan-type"><%= scan.type %></span>
+
+                                    <% if (scan.verification && scan.verification.isVerified) { %>
+                                        <% if (scan.verification.verificationResult.success) { %>
+                                            <span class="verification-badge success">
+                                                🔍 Verified <%= scan.verification.verificationCount %>x
+                                            </span>
+                                        <% } else { %>
+                                            <span class="verification-badge failed">
+                                                ❌ Verification Failed (<%= scan.verification.verificationResult.error.step %>)
+                                            </span>
+                                        <% } %>
+                                    <% } %>
+
+                                    <% if (scan.referenceComparison && scan.referenceComparison.hasReference) { %>
+                                        <% if (scan.referenceComparison.isMatch) { %>
+                                            <span class="comparison-badge match">✅ Perfect Match</span>
+                                        <% } else { %>
+                                            <span class="comparison-badge mismatch">
+                                                ⚠️ <%= scan.referenceComparison.similarity %>% similarity
+                                                (<%= scan.referenceComparison.differences.length %> differences)
+                                            </span>
+                                        <% } %>
+                                    <% } %>
+
+                                    <% if (scan.isDuplicate) { %>
+                                        <span class="duplicate-badge">
+                                            Duplicate × <%= scan.duplicateCount %>
+                                        </span>
+                                        <span class="scan-date">
+                                            First: <%= new Date(scan.firstScannedAt).toLocaleString() %>
+                                        </span>
+                                        <span class="scan-date">
+                                            Last: <%= new Date(scan.scannedAt).toLocaleString() %>
+                                        </span>
+                                    <% } else { %>
+                                        <span class="scan-date"><%= new Date(scan.scannedAt).toLocaleString() %></span>
+                                    <% } %>
+                                </p>
+
+                                <% if (scan.referenceComparison && scan.referenceComparison.hasReference && !scan.referenceComparison.isMatch) { %>
+                                    <div class="differences-section">
+                                        <details>
+                                            <summary>View Differences (<%= scan.referenceComparison.differences.length %>)</summary>
+                                            <div class="differences-list">
+                                                <% scan.referenceComparison.differences.slice(0, 10).forEach(diff => { %>
+                                                    <div class="difference-item">
+                                                        Position <%= diff.position %>: Expected <code><%= diff.expected %></code>, Got <code><%= diff.actual %></code>
+                                                    </div>
+                                                <% }) %>
+                                                <% if (scan.referenceComparison.differences.length > 10) { %>
+                                                    <div class="difference-item">... and <%= scan.referenceComparison.differences.length - 10 %> more differences</div>
+                                                <% } %>
+                                            </div>
+                                        </details>
+                                    </div>
+                                <% } %>
+
+                                <% if (scan.verification && scan.verification.isVerified) { %>
+                                    <div class="verification-section">
+                                        <h4>Verification Results</h4>
+                                        <p><strong>Verified:</strong> <%= new Date(scan.verification.verifiedAt).toLocaleString() %></p>
+                                        <p><strong>Times Verified:</strong> <%= scan.verification.verificationCount %></p>
+
+                                        <% if (scan.verification.verificationResult.success) { %>
+                                            <div class="verification-success">
+                                                <p><strong>✅ Successfully decoded through all steps:</strong></p>
+                                                <ul class="verification-steps-list">
+                                                    <% scan.verification.verificationResult.steps.forEach(step => { %>
+                                                        <li>
+                                                            <strong><%= step.name %>:</strong>
+                                                            <%= formatBytes(step.size) %> (<%= step.percentage %>%)
+                                                        </li>
+                                                    <% }) %>
+                                                </ul>
+                                            </div>
+                                        <% } else { %>
+                                            <div class="verification-error">
+                                                <p><strong>❌ Verification Failed:</strong></p>
+                                                <p><strong>Error:</strong> <%= scan.verification.verificationResult.error.message %></p>
+                                                <p><strong>Failed at step:</strong> <%= scan.verification.verificationResult.error.step %></p>
+                                            </div>
+                                        <% } %>
+                                    </div>
+                                <% } %>
+                            </div>
+                            <div class="scan-actions">
+                                <button class="btn btn-small btn-verify" data-content="<%= scan.content %>">Re-verify</button>
+                                <button class="btn btn-small btn-copy" data-content="<%= scan.content %>">Copy</button>
+                                <button class="btn btn-small btn-danger" data-id="<%= scan._id %>">Delete</button>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } else { %>
+                <div class="empty-state">
+                    <p>No scans yet. <a href="/">Start scanning</a></p>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 QR Scanner App</p>
+    </footer>
+
+    <script src="/js/history.js"></script>
+    <script src="/js/reference.js"></script>
+</body>
+</html>

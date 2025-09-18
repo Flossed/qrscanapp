@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>QR Code Scanner</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">QR Scanner</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link active">Scan</a>
+                <a href="/history" class="nav-link">History</a>
+                <a href="/check-bridge" class="nav-link">Check Bridge</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="scanner-container">
+            <h1>Scan QR Code</h1>
+
+            <div id="reader" class="qr-reader"></div>
+
+            <div class="controls">
+                <button id="start-scanner" class="btn btn-primary">Start Scanner</button>
+                <button id="stop-scanner" class="btn btn-secondary" style="display: none;">Stop Scanner</button>
+            </div>
+
+            <div id="result-container" class="result-container" style="display: none;">
+                <h2>Scan Result</h2>
+                <div id="result" class="result-text"></div>
+                <button id="save-scan" class="btn btn-success">Verify QR Code</button>
+                <button id="scan-again" class="btn btn-primary">Scan Again</button>
+            </div>
+
+            <div id="message" class="message"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 QR Scanner App</p>
+    </footer>
+
+    <script src="/js/scanner.js"></script>
+</body>
+</html>

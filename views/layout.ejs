@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title><%= typeof title !== 'undefined' ? title : 'QR Scanner' %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">QR Scanner</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Scan</a>
+                <a href="/history" class="nav-link">History</a>
+            </div>
+        </div>
+    </nav>
+    <main class="main-content">
+        <%- body %>
+    </main>
+    <footer class="footer">
+        <p>&copy; 2024 QR Scanner App</p>
+    </footer>
+</body>
+</html>

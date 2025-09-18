@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>QR Code Verification - QR Scanner</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">QR Scanner</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Scan</a>
+                <a href="/history" class="nav-link">History</a>
+                <a href="/check-bridge" class="nav-link">Check Bridge</a>
+                <a href="#" class="nav-link active">Verify</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="verification-container">
+            <h1>QR Code Verification</h1>
+            <p class="verification-subtitle">BASE45 → ZLIB → JWT Decoder</p>
+
+            <div class="controls">
+                <button id="process-verification" class="btn btn-primary">Process Verification</button>
+                <a href="/" class="btn btn-secondary">Back to Scanner</a>
+            </div>
+
+            <div id="loading" class="loading" style="display: none;">
+                <p>Processing verification steps...</p>
+            </div>
+
+            <div id="error-container" class="error-container" style="display: none;">
+                <h3>Verification Error</h3>
+                <div id="error-message" class="error-message"></div>
+            </div>
+
+            <div id="verification-steps" class="verification-steps">
+                <!-- Steps will be populated by JavaScript -->
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 QR Scanner App</p>
+    </footer>
+
+    <script>
+        // Get data from sessionStorage
+        const originalData = sessionStorage.getItem('verificationData');
+
+        // Redirect back if no data
+        if (!originalData) {
+            window.location.href = '/';
+        }
+
+        document.getElementById('process-verification').addEventListener('click', async () => {
+            const loadingDiv = document.getElementById('loading');
+            const errorContainer = document.getElementById('error-container');
+            const stepsContainer = document.getElementById('verification-steps');
+
+            // Show loading, hide error and steps
+            loadingDiv.style.display = 'block';
+            errorContainer.style.display = 'none';
+            stepsContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ data: originalData })
+                });
+
+                const result = await response.json();
+                loadingDiv.style.display = 'none';
+
+                if (response.ok && result.success) {
+                    displayVerificationSteps(result.steps);
+                } else {
+                    displayError(result.error || 'Unknown error', result.message, result.step);
+                }
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                displayError('Network Error', error.message, 'network');
+            }
+        });
+
+        function displayVerificationSteps(steps) {
+            const container = document.getElementById('verification-steps');
+
+            steps.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'verification-step';
+
+                const previousSize = index > 0 ? steps[index - 1].size : step.size;
+                const compressionRatio = index > 0 ? Math.round((step.size / previousSize) * 100) : 100;
+
+                stepDiv.innerHTML = `
+                    <div class="step-header">
+                        <h3>Step ${index + 1}: ${step.name}</h3>
+                        <div class="step-stats">
+                            <span class="size-info">Size: ${formatBytes(step.size)}</span>
+                            ${index > 0 ? `<span class="ratio-info">${compressionRatio}% of previous step</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="step-content">
+                        <textarea readonly class="data-box" rows="${Math.min(Math.max(Math.ceil(step.data.length / 80), 3), 15)}">${step.data}</textarea>
+                        <button class="btn btn-small btn-copy" data-content="${step.data}">Copy</button>
+                    </div>
+                `;
+
+                container.appendChild(stepDiv);
+            });
+
+            // Add copy functionality
+            document.querySelectorAll('.btn-copy').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const content = e.target.dataset.content;
+                    navigator.clipboard.writeText(content).then(() => {
+                        const originalText = e.target.textContent;
+                        e.target.textContent = 'Copied!';
+                        e.target.classList.add('copied');
+                        setTimeout(() => {
+                            e.target.textContent = originalText;
+                            e.target.classList.remove('copied');
+                        }, 2000);
+                    });
+                });
+            });
+        }
+
+        function displayError(error, message, step) {
+            const errorContainer = document.getElementById('error-container');
+            const errorMessage = document.getElementById('error-message');
+
+            errorMessage.innerHTML = `
+                <p><strong>Error:</strong> ${error}</p>
+                <p><strong>Message:</strong> ${message}</p>
+                <p><strong>Failed at:</strong> ${step}</p>
+            `;
+
+            errorContainer.style.display = 'block';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>

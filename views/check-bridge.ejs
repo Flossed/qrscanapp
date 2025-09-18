@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Check Bridge - QR Scanner</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">QR Scanner</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Scan</a>
+                <a href="/history" class="nav-link">History</a>
+                <a href="/check-bridge" class="nav-link active">Check Bridge</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="bridge-container">
+            <h1>Check Bridge</h1>
+            <p class="bridge-subtitle">Upload a JSON file to check certificates against EBSI resolver</p>
+
+            <div class="cache-section">
+                <h3>EBSI Cache Management</h3>
+                <div class="cache-controls">
+                    <div class="cache-stats" id="cache-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="cache-total">-</span>
+                            <span class="stat-label">Total Entries</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number success" id="cache-found">-</span>
+                            <span class="stat-label">Found in Bridge</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number warning" id="cache-missing">-</span>
+                            <span class="stat-label">Missing from Bridge</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number info" id="cache-hit-rate">-%</span>
+                            <span class="stat-label">Hit Rate</span>
+                        </div>
+                    </div>
+                    <div class="cache-buttons">
+                        <button id="refresh-cache" class="btn btn-primary">🔄 Refresh All Cache</button>
+                        <button id="clear-cache" class="btn btn-danger">🗑️ Clear Cache</button>
+                        <button id="load-cache-stats" class="btn btn-secondary">📊 Load Stats</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-section">
+                <h3>Upload Certificate File</h3>
+                <form id="upload-form" enctype="multipart/form-data">
+                    <div class="file-upload-area">
+                        <input type="file" id="certificate-file" name="certificateFile" accept=".json" required>
+                        <label for="certificate-file" class="file-upload-label">
+                            <span class="upload-icon">📁</span>
+                            <span class="upload-text">Choose JSON file or drag & drop</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Check Certificates</button>
+                </form>
+            </div>
+
+            <div id="loading" class="loading" style="display: none;">
+                <p>Processing certificates and checking bridge...</p>
+            </div>
+
+            <div id="debug-window" class="debug-window" style="display: none;">
+                <h3>Processing Debug Log</h3>
+                <div class="progress-section">
+                    <div class="progress-bar-container">
+                        <div id="progress-bar" class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <div id="progress-text" class="progress-text">0%</div>
+                    </div>
+                    <div id="progress-status" class="progress-status">Ready to start...</div>
+                </div>
+                <div id="debug-content" class="debug-content">
+                    <!-- Debug messages will be populated by JavaScript -->
+                </div>
+                <button id="toggle-debug" class="btn btn-small btn-secondary">Hide Debug</button>
+            </div>
+
+            <div id="error-container" class="error-container" style="display: none;">
+                <h3>Processing Error</h3>
+                <div id="error-message" class="error-message"></div>
+            </div>
+
+            <div id="results-container" class="results-container" style="display: none;">
+                <div class="results-header">
+                    <h2>Certificate Check Results</h2>
+                    <button id="export-markdown" class="btn btn-secondary">📄 Export as Markdown</button>
+                </div>
+
+                <div id="summary-section" class="summary-section">
+                    <!-- Summary will be populated by JavaScript -->
+                </div>
+
+                <div class="table-container">
+                    <table id="results-table" class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Official ID</th>
+                                <th>Country Code</th>
+                                <th>Name</th>
+                                <th>Certificate Thumbprint</th>
+                                <th>Found</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-tbody">
+                            <!-- Results will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 QR Scanner App</p>
+    </footer>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('certificate-file');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('certificateFile', file);
+
+            const loadingDiv = document.getElementById('loading');
+            const errorContainer = document.getElementById('error-container');
+            const resultsContainer = document.getElementById('results-container');
+            const debugWindow = document.getElementById('debug-window');
+
+            // Show loading and debug, hide others
+            loadingDiv.style.display = 'block';
+            debugWindow.style.display = 'block';
+            errorContainer.style.display = 'none';
+            resultsContainer.style.display = 'none';
+
+            // Initialize debug logging and progress
+            clearDebugLog();
+            resetProgress();
+            addDebugMessage('info', 'Starting certificate processing...');
+            addDebugMessage('info', `File selected: ${file.name} (${formatBytes(file.size)})`);
+
+            // Generate unique session ID for this upload
+            const sessionId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+
+            // Progress tracking variables
+            let totalCertificates = 0;
+            let processedCertificates = 0;
+            let currentStep = 'initializing';
+            let lastProgressTime = Date.now();
+            let progressTimeout = null;
+
+            // Set up timeout monitoring
+            function startProgressTimeout() {
+                clearTimeout(progressTimeout);
+                progressTimeout = setTimeout(() => {
+                    const timeSinceLastProgress = Date.now() - lastProgressTime;
+                    if (timeSinceLastProgress > 30000) { // 30 seconds
+                        addDebugMessage('warning', 'No progress for 30 seconds - processing may have stalled');
+                        updateProgress(null, 'Processing may have stalled', 'warning');
+                    }
+                }, 30000);
+            }
+
+            function resetProgressTimeout() {
+                lastProgressTime = Date.now();
+                startProgressTimeout();
+            }
+
+            // Set up Server-Sent Events for progress updates
+            const eventSource = new EventSource(`/api/check-bridge/progress/${sessionId}`);
+
+            eventSource.onmessage = function(event) {
+                try {
+                    resetProgressTimeout(); // Reset timeout on any message
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'connected') {
+                        addDebugMessage('info', 'Connected to progress stream');
+                        updateProgress(5, 'Connected to server', 'pulsing');
+                        startProgressTimeout(); // Start monitoring
+                    } else if (data.type === 'completed') {
+                        clearTimeout(progressTimeout); // Clear timeout on completion
+                        addDebugMessage('success', 'Processing completed successfully!');
+                        addDebugMessage('info', `Processed ${data.data?.certificates?.length || 0} certificates`);
+                        updateProgress(100, 'Processing completed', 'success');
+                        eventSource.close();
+                        loadingDiv.style.display = 'none';
+                        displayResults(data.data);
+                    } else {
+                        // Parse message to update progress
+                        updateProgressFromMessage(data.type, data.message);
+                        addDebugMessage(data.type, data.message);
+                    }
+                } catch (err) {
+                    console.error('Error parsing SSE data:', err);
+                    addDebugMessage('error', 'Error parsing progress data');
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                console.error('SSE Error:', error);
+                addDebugMessage('error', 'Connection to progress stream lost');
+                updateProgress(0, 'Connection lost', 'error');
+                eventSource.close();
+            };
+
+            // Add session ID to form data
+            formData.append('sessionId', sessionId);
+
+            try {
+                addDebugMessage('info', 'Uploading file to server...');
+                updateProgress(10, 'Uploading file...', 'pulsing');
+
+                const response = await fetch('/api/check-bridge-with-progress', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                addDebugMessage('info', `Server response received (${response.status})`);
+                updateProgress(15, 'File uploaded, starting processing...', 'pulsing');
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    eventSource.close();
+                    loadingDiv.style.display = 'none';
+                    updateProgress(0, 'Server error', 'error');
+                    addDebugMessage('error', `Server error: ${result.error || 'Unknown error'}`);
+                    displayError(result.error || 'Unknown error', result.message);
+                }
+            } catch (error) {
+                eventSource.close();
+                loadingDiv.style.display = 'none';
+                updateProgress(0, 'Network error', 'error');
+                addDebugMessage('error', `Network error: ${error.message}`);
+                displayError('Network Error', error.message);
+            }
+        });
+
+        function displayResults(data) {
+            const resultsContainer = document.getElementById('results-container');
+            const summarySection = document.getElementById('summary-section');
+            const tbody = document.getElementById('results-tbody');
+
+            // Display summary
+            summarySection.innerHTML = `
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">${data.summary.totalInFile}</span>
+                        <span class="stat-label">Certificates in File</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number success">${data.summary.foundInBridge}</span>
+                        <span class="stat-label">Found in Bridge</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number warning">${data.summary.missingFromBridge}</span>
+                        <span class="stat-label">Missing from Bridge</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number info">${data.summary.inBridgeNotInFile}</span>
+                        <span class="stat-label">Bridge Only</span>
+                    </div>
+                </div>
+            `;
+
+            // Display certificate results
+            tbody.innerHTML = '';
+            data.certificates.forEach(cert => {
+                const row = document.createElement('tr');
+                row.className = cert.found ? 'found-row' : 'not-found-row';
+
+                row.innerHTML = `
+                    <td>${cert.officialId}</td>
+                    <td>${cert.countryCode}</td>
+                    <td>${cert.name}</td>
+                    <td class="thumbprint-cell" title="${cert.thumbprint}">${cert.thumbprint.substring(0, 20)}...</td>
+                    <td class="found-cell">
+                        ${cert.found ?
+                            '<span class="found-icon">✅</span>' :
+                            '<span class="not-found-icon">❌</span>'
+                        }
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+            });
+
+            resultsContainer.style.display = 'block';
+
+            // Store data globally for export functionality
+            window.currentResultsData = data;
+
+            // Set up export button event listener
+            setupExportButton();
+        }
+
+        function displayError(error, message) {
+            const errorContainer = document.getElementById('error-container');
+            const errorMessage = document.getElementById('error-message');
+
+            errorMessage.innerHTML = `
+                <p><strong>Error:</strong> ${error}</p>
+                <p><strong>Message:</strong> ${message}</p>
+            `;
+
+            errorContainer.style.display = 'block';
+        }
+
+        // Set up export button functionality
+        function setupExportButton() {
+            const exportButton = document.getElementById('export-markdown');
+            if (exportButton && !exportButton.hasEventListener) {
+                exportButton.hasEventListener = true;
+                exportButton.addEventListener('click', async () => {
+                    if (!window.currentResultsData) {
+                        alert('No results data available for export');
+                        return;
+                    }
+
+                    try {
+                        addDebugMessage('info', 'Generating markdown report...');
+
+                        const fileInput = document.getElementById('certificate-file');
+                        const fileName = fileInput.files[0]?.name || 'Unknown';
+
+                        const metadata = {
+                            fileName: fileName,
+                            processingTime: 'Recently completed'
+                        };
+
+                        const response = await fetch('/api/generate-markdown-report', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                results: window.currentResultsData,
+                                metadata: metadata
+                            })
+                        });
+
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+
+                            // Get filename from Content-Disposition header
+                            const contentDisposition = response.headers.get('content-disposition');
+                            let filename = 'certificate-bridge-report.md';
+                            if (contentDisposition) {
+                                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                                if (filenameMatch) {
+                                    filename = filenameMatch[1];
+                                }
+                            }
+
+                            // Create download link
+                            const a = document.createElement('a');
+                            a.style.display = 'none';
+                            a.href = url;
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+
+                            // Cleanup
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+
+                            addDebugMessage('success', `Markdown report downloaded: ${filename}`);
+                        } else {
+                            const errorText = await response.text();
+                            addDebugMessage('error', `Export failed: ${errorText}`);
+                        }
+                    } catch (error) {
+                        console.error('Export error:', error);
+                        addDebugMessage('error', `Export failed: ${error.message}`);
+                    }
+                });
+            }
+        }
+
+        // Utility function to format bytes
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // File drag & drop functionality
+        const fileUploadArea = document.querySelector('.file-upload-area');
+        const fileInput = document.getElementById('certificate-file');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileUploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileUploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileUploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            fileUploadArea.classList.add('highlight');
+        }
+
+        function unhighlight(e) {
+            fileUploadArea.classList.remove('highlight');
+        }
+
+        fileUploadArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+
+            if (files.length > 0) {
+                fileInput.files = files;
+                updateFileLabel(files[0].name);
+            }
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                updateFileLabel(e.target.files[0].name);
+            }
+        });
+
+        function updateFileLabel(fileName) {
+            const uploadText = document.querySelector('.upload-text');
+            uploadText.textContent = fileName;
+        }
+
+        // Debug functionality
+        function addDebugMessage(type, message) {
+            const debugContent = document.getElementById('debug-content');
+            const timestamp = new Date().toLocaleTimeString();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `debug-message ${type}`;
+            messageDiv.innerHTML = `<span class="timestamp">[${timestamp}]</span><span class="message">${message}</span>`;
+
+            debugContent.appendChild(messageDiv);
+            debugContent.scrollTop = debugContent.scrollHeight;
+        }
+
+        function clearDebugLog() {
+            const debugContent = document.getElementById('debug-content');
+            debugContent.innerHTML = '';
+        }
+
+        // Progress bar functionality
+        function updateProgress(percentage, status, style = 'normal') {
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const progressStatus = document.getElementById('progress-status');
+
+            // Update progress bar (only if percentage is provided)
+            if (percentage !== null && percentage !== undefined) {
+                progressFill.style.width = percentage + '%';
+                progressText.textContent = Math.round(percentage) + '%';
+            }
+            progressStatus.textContent = status;
+
+            // Update style
+            progressFill.className = 'progress-fill';
+            if (style === 'pulsing') {
+                progressFill.classList.add('pulsing');
+            } else if (style === 'error') {
+                progressFill.classList.add('error');
+            } else if (style === 'warning') {
+                progressFill.classList.add('warning');
+            } else if (style === 'success') {
+                // Remove any warning/error styles for success
+                progressFill.classList.remove('error', 'warning', 'pulsing');
+            }
+        }
+
+        function resetProgress() {
+            updateProgress(0, 'Ready to start...');
+        }
+
+        function updateProgressFromMessage(type, message) {
+            // Parse message to determine progress
+            if (message.includes('Starting to process')) {
+                const match = message.match(/(\d+) certificates/);
+                if (match) {
+                    totalCertificates = parseInt(match[1]);
+                    updateProgress(20, `Found ${totalCertificates} certificates to process`, 'pulsing');
+                }
+            } else if (message.includes('Fetching current bridge data')) {
+                updateProgress(25, 'Fetching EBSI bridge data...', 'pulsing');
+            } else if (message.includes('Found') && message.includes('certificates in EBSI bridge')) {
+                updateProgress(30, 'Bridge data loaded, processing certificates...', 'pulsing');
+            } else if (message.includes('Processing certificate')) {
+                const match = message.match(/certificate (\d+)\/(\d+)/);
+                if (match) {
+                    const current = parseInt(match[1]);
+                    const total = parseInt(match[2]);
+                    const percentage = 30 + Math.round((current / total) * 60); // 30-90% for processing
+                    updateProgress(percentage, `Processing certificate ${current}/${total}`, 'pulsing');
+                }
+            } else if (message.includes('Processing complete')) {
+                updateProgress(95, 'Finalizing results...', 'pulsing');
+            } else if (type === 'error') {
+                updateProgress(0, 'Error occurred', 'error');
+            }
+        }
+
+        // Toggle debug window visibility
+        document.getElementById('toggle-debug').addEventListener('click', function() {
+            const debugContent = document.getElementById('debug-content');
+            const button = this;
+
+            if (debugContent.style.display === 'none') {
+                debugContent.style.display = 'block';
+                button.textContent = 'Hide Debug';
+            } else {
+                debugContent.style.display = 'none';
+                button.textContent = 'Show Debug';
+            }
+        });
+
+        // Cache management functionality
+        async function loadCacheStats() {
+            try {
+                const response = await fetch('/api/cache/stats');
+                if (response.ok) {
+                    const stats = await response.json();
+
+                    document.getElementById('cache-total').textContent = stats.total || 0;
+                    document.getElementById('cache-found').textContent = stats.found || 0;
+                    document.getElementById('cache-missing').textContent = stats.missing || 0;
+                    document.getElementById('cache-hit-rate').textContent = (stats.hitRate || 0) + '%';
+
+                    addDebugMessage('info', `Cache stats loaded: ${stats.total} total, ${stats.found} found, ${stats.missing} missing`);
+                } else {
+                    addDebugMessage('error', 'Failed to load cache statistics');
+                }
+            } catch (error) {
+                addDebugMessage('error', `Cache stats error: ${error.message}`);
+            }
+        }
+
+        // Cache refresh functionality
+        async function refreshCache() {
+            const refreshButton = document.getElementById('refresh-cache');
+            const originalText = refreshButton.textContent;
+
+            try {
+                refreshButton.disabled = true;
+                refreshButton.textContent = '🔄 Refreshing...';
+
+                addDebugMessage('info', 'Starting cache refresh...');
+
+                const response = await fetch('/api/cache/refresh-all', { method: 'POST' });
+                if (response.ok) {
+                    const result = await response.json();
+                    addDebugMessage('success', `Cache refresh initiated: ${result.entriesMarked} entries marked for refresh`);
+
+                    // Reload stats after a short delay
+                    setTimeout(loadCacheStats, 2000);
+                } else {
+                    const error = await response.json();
+                    addDebugMessage('error', `Cache refresh failed: ${error.error}`);
+                }
+            } catch (error) {
+                addDebugMessage('error', `Cache refresh error: ${error.message}`);
+            } finally {
+                refreshButton.disabled = false;
+                refreshButton.textContent = originalText;
+            }
+        }
+
+        // Cache clear functionality
+        async function clearCache() {
+            if (!confirm('Are you sure you want to clear all cache entries? This cannot be undone.')) {
+                return;
+            }
+
+            const clearButton = document.getElementById('clear-cache');
+            const originalText = clearButton.textContent;
+
+            try {
+                clearButton.disabled = true;
+                clearButton.textContent = '🗑️ Clearing...';
+
+                addDebugMessage('info', 'Clearing cache...');
+
+                const response = await fetch('/api/cache/clear', { method: 'POST' });
+                if (response.ok) {
+                    const result = await response.json();
+                    addDebugMessage('success', `Cache cleared: ${result.deletedCount} entries deleted`);
+                    loadCacheStats();
+                } else {
+                    const error = await response.json();
+                    addDebugMessage('error', `Cache clear failed: ${error.error}`);
+                }
+            } catch (error) {
+                addDebugMessage('error', `Cache clear error: ${error.message}`);
+            } finally {
+                clearButton.disabled = false;
+                clearButton.textContent = originalText;
+            }
+        }
+
+        // Set up cache management event listeners
+        document.getElementById('load-cache-stats').addEventListener('click', loadCacheStats);
+        document.getElementById('refresh-cache').addEventListener('click', refreshCache);
+        document.getElementById('clear-cache').addEventListener('click', clearCache);
+
+        // Load cache stats on page load
+        loadCacheStats();
+    </script>
+</body>
+</html>
