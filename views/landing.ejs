@@ -1,58 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>EHIC Verifier - Welcome</title>
-    <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="nav-brand" data-i18n-key="nav-brand">EHIC Verifier</a>
-            <div class="nav-menu">
-                <a href="/" class="nav-link active" data-i18n-key="nav-home">Home</a>
-                <a href="/scanner" class="nav-link" data-i18n-key="nav-scanner">Scanner</a>
-                <a href="/history" class="nav-link" data-i18n-key="nav-history">History</a>
-            </div>
-            <div class="language-selector-container">
-                <select id="languageSelector" class="language-selector">
-                    <option value="en">English</option>
-                    <option value="nl">Nederlands</option>
-                </select>
-            </div>
-        </div>
-    </nav>
-
-    <div class="breadcrumb-container">
-        <nav class="breadcrumb">
-            <span class="breadcrumb-item active">
-                <span class="step-number">1</span>
-                <span data-i18n-key="landing-breadcrumb-welcome">Welcome</span>
-            </span>
-            <span class="breadcrumb-separator">→</span>
-            <span class="breadcrumb-item disabled">
-                <span class="step-number">2</span>
-                <span data-i18n-key="landing-breadcrumb-treatment-date">Treatment Date</span>
-            </span>
-            <span class="breadcrumb-separator">→</span>
-            <span class="breadcrumb-item disabled">
-                <span class="step-number">3</span>
-                <span data-i18n-key="landing-breadcrumb-identity-check">Identity Check</span>
-            </span>
-            <span class="breadcrumb-separator">→</span>
-            <span class="breadcrumb-item disabled">
-                <span class="step-number">4</span>
-                <span data-i18n-key="landing-breadcrumb-qr-verification">QR Verification</span>
-            </span>
-            <span class="breadcrumb-separator">→</span>
-            <span class="breadcrumb-item disabled">
-                <span class="step-number">5</span>
-                <span data-i18n-key="landing-breadcrumb-results">Results</span>
-            </span>
-        </nav>
-    </div>
+<%- include('layouts/head', { titleKey: 'landing-title', title: 'EHIC Verifier - Welcome', includeQRScanner: false }) %>
+<body>    
+    <%- include('layouts/navbar') %>
+    <%- include('layouts/breadcrumb') %>
 
     <main class="main-content">
         <div class="landing-container">
@@ -84,11 +35,7 @@
         </div>
     </main>
 
-    <footer class="footer">
-        <p data-i18n-key="footer-copyright">&copy; 2024 EHIC Verifier App - Healthcare Provider Solution</p>
-    </footer>
+    <%- include('layouts/footer') %>
 
-
-    <script src="/js/manageLocale.js"></script>
 </body>
 </html>

@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "heroku-postbuild": "echo Build complete"
+    "heroku-postbuild": "echo Build complete",
+    "copy-vendor": "mkdir -p public/js/vendor && cp node_modules/html5-qrcode/html5-qrcode.min.js public/js/vendor/",
+    "postinstall": "npm run copy-vendor"
   },
   "engines": {
     "node": "20.x",
@@ -28,6 +30,7 @@
     "dotenv": "^16.3.1",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
+    "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
     "multer": "^1.4.5-lts.1",

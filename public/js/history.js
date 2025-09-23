@@ -1,3 +1,46 @@
+// History Page JavaScript
+
+// Translation helper function
+function getTranslatedText(key, fallback, replacements = {}) {
+    // Get current language from sessionStorage or default to 'en'
+    const currentLang = sessionStorage.getItem('usedLanguage') || 'en';
+
+    // Get cached translations from sessionStorage
+    const translations = JSON.parse(sessionStorage.getItem('actualTranslations') || '{}');
+
+    let text = translations[key] || fallback;
+
+    // Handle replacements like {count}
+    Object.keys(replacements).forEach(placeholder => {
+        text = text.replace(`{${placeholder}}`, replacements[placeholder]);
+    });
+
+    return text;
+}
+
+// Function to update placeholder texts
+function updatePlaceholders() {
+    const referenceInput = document.getElementById('reference-input');
+    if (referenceInput) {
+        referenceInput.placeholder = getTranslatedText('history-reference-placeholder', 'Enter reference QR code content for comparison...');
+    }
+}
+
+// Initialize translations when DOM is ready and when language changes
+function initializeTranslations() {
+    // Wait a bit to ensure translations are loaded
+    setTimeout(() => {
+        updatePlaceholders();
+    }, 200);
+}
+
+// Call initialization
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeTranslations);
+} else {
+    initializeTranslations();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const copyButtons = document.querySelectorAll('.btn-copy');
     const deleteButtons = document.querySelectorAll('.btn-danger');
@@ -8,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const content = e.target.dataset.content;
             navigator.clipboard.writeText(content).then(() => {
                 const originalText = e.target.textContent;
-                e.target.textContent = 'Copied!';
+                e.target.textContent = getTranslatedText('history-copy', 'Copied!');
                 e.target.classList.add('copied');
                 setTimeout(() => {
                     e.target.textContent = originalText;
@@ -22,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     deleteButtons.forEach(button => {
         button.addEventListener('click', async (e) => {
-            if (!confirm('Are you sure you want to delete this scan?')) {
+            if (!confirm(getTranslatedText('history-delete-confirm', 'Are you sure you want to delete this scan?'))) {
                 return;
             }
 
@@ -43,11 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }, 300);
                 } else {
-                    alert('Error deleting scan');
+                    alert(getTranslatedText('history-delete-error', 'Error deleting scan'));
                 }
             } catch (error) {
                 console.error('Error deleting scan:', error);
-                alert('Error deleting scan');
+                alert(getTranslatedText('history-delete-error', 'Error deleting scan'));
             }
         });
     });
