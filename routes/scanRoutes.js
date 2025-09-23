@@ -462,14 +462,21 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Add PRC Certificate header with translation
         const userLanguage = language || 'en';
-        doc.fontSize(16).text(getTranslation('pdf-title1', userLanguage), { align: 'center' });
-        doc.fontSize(14).text(getTranslation('pdf-title2', userLanguage), { align: 'center' });
-        doc.fontSize(16).text(getTranslation('pdf-title3', userLanguage), { align: 'center' });
-        doc.moveDown();
 
-        doc.fontSize(10).text(getTranslation('pdf-subtitle1', userLanguage), { align: 'center' });
+        // Move up to reduce top margin before main title
+        doc.moveUp(2.5);
+
+        // Main titles: Arial 12pt Bold
+        doc.font('Helvetica-Bold').fontSize(12)
+           .text(getTranslation('pdf-title1', userLanguage), { align: 'center' });
+        doc.text(getTranslation('pdf-title2', userLanguage), { align: 'center' });
+        doc.text(getTranslation('pdf-title3', userLanguage), { align: 'center' });
+
+        // Subtitles: Arial 9pt Italics
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-subtitle1', userLanguage), { align: 'center' });
         doc.text(getTranslation('pdf-subtitle2', userLanguage), { align: 'center' });
-        doc.moveDown(2);
+        doc.moveDown(1); // Add some margin between subtitle and next section
 
         // STATUS SYMBOLS - to be used later
         const statusSymbol = (status) => status ? '✅' : '❌';
@@ -542,15 +549,18 @@ router.post('/api/send-verification-email', async (req, res) => {
 
             if (cert) {
 
-                // Construct institution ID from ii and in fields (concatenated with -)
-                let institutionId = 'N/A';
-                if (cert.ii && cert.in) {
-                    institutionId = `${cert.ii} - ${cert.in}`;
-                } else if (cert.ii) {
-                    institutionId = cert.ii;
-                } else if (cert.in) {
-                    institutionId = cert.in;
-                }
+                // Debug: Log all certificate fields to see what's available
+                logger.info('Certificate fields available:', Object.keys(cert));
+                logger.info('Certificate institution fields:', {
+                    ii: cert.ii,
+                    in: cert.in,
+                    raw_cert: JSON.stringify(cert)
+                });
+
+                // Institution fields - ii is the ID, in is the name
+                // According to EHIC spec, field 7 should show the institution ID (ii)
+                let institutionId = cert.ii || 'N/A';
+                let institutionName = cert.in || 'N/A';
 
                 prcData = {
                     issuingMemberState: cert.ic || payload.iss?.split('/').pop() || 'N/A',  // 2. Issuing Member State
@@ -558,8 +568,8 @@ router.post('/api/send-verification-email', async (req, res) => {
                     cardHolderGivenName: cert.gn || 'N/A',                                   // 4. Given name(s)
                     dateOfBirth: cert.dob ? formatDate(cert.dob) : 'N/A',                   // 5. Date of birth
                     personalIdNumber: cert.hi || 'N/A',                                      // 6. Personal identification number
-                    institutionId: institutionId,                                            // 7. Institution ID (ii - in)
-                    institutionName: cert.in || 'N/A',                                       // Institution name (separate field)
+                    institutionId: institutionId,                                            // 7. Institution ID (ii field)
+                    institutionName: institutionName,                                        // Institution name (in field)
                     cardId: cert.ci || 'N/A',                                                // 8. Card ID (not in mapping but keeping)
                     expiryDate: cert.xd ? formatDate(cert.xd) : 'N/A',                     // 9. Expiry date (not in mapping but keeping)
                     validityStart: cert.sd ? formatDate(cert.sd) : 'N/A',                   // (a). Certificate validity period From
@@ -608,15 +618,9 @@ router.post('/api/send-verification-email', async (req, res) => {
                             certKeys: Object.keys(cert)
                         });
 
-                        // Construct institution ID from ii and in fields (concatenated with -)
-                        let institutionId = 'N/A';
-                        if (cert.ii && cert.in) {
-                            institutionId = `${cert.ii} - ${cert.in}`;
-                        } else if (cert.ii) {
-                            institutionId = cert.ii;
-                        } else if (cert.in) {
-                            institutionId = cert.in;
-                        }
+                        // Institution fields - ii is the ID, in is the name
+                        let institutionId = cert.ii || 'N/A';
+                        let institutionName = cert.in || 'N/A';
 
                         prcData = {
                             issuingMemberState: cert.ic || 'N/A',
@@ -625,7 +629,7 @@ router.post('/api/send-verification-email', async (req, res) => {
                             dateOfBirth: cert.dob ? formatDate(cert.dob) : 'N/A',
                             personalIdNumber: cert.hi || 'N/A',
                             institutionId: institutionId,
-                            institutionName: cert.in || 'N/A',
+                            institutionName: institutionName,
                             cardId: cert.ci || 'N/A',
                             expiryDate: cert.xd ? formatDate(cert.xd) : 'N/A',
                             validityStart: cert.sd ? formatDate(cert.sd) : 'N/A',
@@ -675,15 +679,9 @@ router.post('/api/send-verification-email', async (req, res) => {
                                 certKeys: Object.keys(cert)
                             });
 
-                            // Construct institution ID from ii and in fields (concatenated with -)
-                            let institutionId = 'N/A';
-                            if (cert.ii && cert.in) {
-                                institutionId = `${cert.ii} - ${cert.in}`;
-                            } else if (cert.ii) {
-                                institutionId = cert.ii;
-                            } else if (cert.in) {
-                                institutionId = cert.in;
-                            }
+                            // Institution fields - ii is the ID, in is the name
+                            let institutionId = cert.ii || 'N/A';
+                            let institutionName = cert.in || 'N/A';
 
                             prcData = {
                                 issuingMemberState: cert.ic || 'N/A',
@@ -692,7 +690,7 @@ router.post('/api/send-verification-email', async (req, res) => {
                                 dateOfBirth: cert.dob ? formatDate(cert.dob) : 'N/A',
                                 personalIdNumber: cert.hi || 'N/A',
                                 institutionId: institutionId,
-                                institutionName: cert.in || 'N/A',
+                                institutionName: institutionName,
                                 cardId: cert.ci || 'N/A',
                                 expiryDate: cert.xd ? formatDate(cert.xd) : 'N/A',
                                 validityStart: cert.sd ? formatDate(cert.sd) : 'N/A',
@@ -741,112 +739,360 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // PRC Certificate sections - exact template format
 
-        // Issuing Member State section
-        doc.fontSize(12).text(getTranslation('pdf-issuing-member-state', userLanguage), { underline: true });
-        doc.text('1.', { continued: true }).text(`                                                  2. ${prcData.issuingMemberState}`);
-        doc.moveDown();
+        // Calculate true page dimensions for left-aligned boxes
+        const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        const leftMargin = doc.page.margins.left;  // True left edge
+        const fullPageWidth = doc.page.width - leftMargin - doc.page.margins.right;  // Full width from true left
 
-        // Card holder-related information
-        doc.text(getTranslation('pdf-card-holder-info', userLanguage), { underline: true });
-        doc.text(`3. ${getTranslation('pdf-name-field', userLanguage)} ${prcData.cardHolderName}`);
-        doc.text(`4. ${getTranslation('pdf-given-name-field', userLanguage)} ${prcData.cardHolderGivenName}`);
-        doc.text(`5. ${getTranslation('pdf-date-of-birth-field', userLanguage)} ${prcData.dateOfBirth}`);
-        doc.text(`6. ${getTranslation('pdf-personal-id-field', userLanguage)} ${prcData.personalIdNumber}`);
-        doc.moveDown();
-
-        // Competent institution-related information
-        doc.text(getTranslation('pdf-competent-institution-info', userLanguage), { underline: true });
-        doc.text(`7. ${getTranslation('pdf-institution-id-field', userLanguage)}`);
-        doc.text(`    ${prcData.institutionId}`);
-        if (prcData.institutionName && prcData.institutionName !== 'N/A') {
-            doc.text(`    ${getTranslation('pdf-institution-name-field', userLanguage)} ${prcData.institutionName}`);
+        // Ensure pageWidth is valid
+        if (!pageWidth || isNaN(pageWidth) || pageWidth <= 0) {
+            logger.error('Invalid page width calculated', { pageWidth, docPageWidth: doc.page.width });
+            throw new Error('Invalid page dimensions for PDF generation');
         }
-        doc.moveDown();
 
-        // Card-related information
-        doc.text(getTranslation('pdf-card-info', userLanguage), { underline: true });
-        doc.text(`8. ${getTranslation('pdf-card-id-field', userLanguage)} ${prcData.cardId}`);
-        doc.text(`9. ${getTranslation('pdf-expiry-date-field', userLanguage)} ${prcData.expiryDate}`);
-        doc.moveDown();
+        // Right-aligned section header: Arial 9pt italics
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-issuing-member-state', userLanguage), { align: 'right' });
+        doc.moveDown(0.5);
 
-        // Certificate validity period
-        doc.text(getTranslation('pdf-certificate-validity-period', userLanguage), { underline: true });
-        doc.text(`(a). ${getTranslation('pdf-from-field', userLanguage)} ${prcData.validityStart}`);
-        doc.text(`(b). ${getTranslation('pdf-to-field', userLanguage)} ${prcData.validityEnd}`);
-        doc.moveDown();
+        // Create bordered text boxes for fields 1 and 2
+        const currentY = doc.y;
+        const boxHeight = 30;
+        const box1Width = pageWidth * 0.48;  // 48% of page width
+        const box2Width = pageWidth * 0.48;  // 48% of page width
+        const box2X = doc.x + pageWidth * 0.52; // Start at 52% to leave 2% gap
 
-        // Certificate delivery date
-        doc.text(getTranslation('pdf-certificate-delivery-date', userLanguage), { underline: true });
-        doc.text(`(c). ${prcData.deliveryDate}`);
-        doc.moveDown();
+        // Validate coordinates
+        if (isNaN(currentY) || isNaN(box1Width) || isNaN(box2Width) || isNaN(box2X)) {
+            logger.error('Invalid coordinates calculated', {
+                currentY, box1Width, box2Width, box2X, docX: doc.x, docY: doc.y
+            });
+            throw new Error('Invalid coordinates for PDF box generation');
+        }
+
+        // Box 1: "1." (0% to 48%) - Arial 9pt, reduced border weight
+        doc.lineWidth(0.5); // Reduce border weight by 50%
+        doc.rect(doc.x, currentY, box1Width, boxHeight).stroke();
+        doc.font('Helvetica').fontSize(9).text('1.', doc.x + 5, currentY + 10);
+
+        // Box 2: "2. [Country]" (52% to 100%) - Arial 9pt, reduced border weight
+        doc.rect(box2X, currentY, box2Width, boxHeight).stroke();
+        doc.text(`2. ${prcData.issuingMemberState}`, box2X + 5, currentY + 10);
+
+        // Move cursor below the boxes
+        doc.y = currentY + boxHeight + 10;
+
+        // Card holder-related information - truly left-aligned header, Arial 9pt italics
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-card-holder-info', userLanguage), leftMargin, doc.y);
+        doc.moveDown(0.5);
+
+        // Create grouped box for fields 3-6 - positioned at true left edge
+        let fieldY = doc.y;
+
+        // Validate fieldY
+        if (isNaN(fieldY)) {
+            logger.error('Invalid fieldY at field 3', { fieldY, docY: doc.y });
+            fieldY = 300; // Set a safe starting position
+        }
+
+        const groupBoxHeight = 80; // Reduced height for tighter spacing (20px each)
+
+        // Draw the outer group box from true left edge with reduced border weight
+        doc.lineWidth(0.5); // Reduce border weight by 50%
+        doc.rect(leftMargin, fieldY, fullPageWidth, groupBoxHeight).stroke();
+
+        // Define consistent left margin for all fields (from true left edge)
+        const fieldLeftMargin = leftMargin + 5;
+
+        // Field 3: Name - Arial 9pt, truly left-aligned within box
+        doc.font('Helvetica').fontSize(9)
+           .text(`3. ${getTranslation('pdf-name-field', userLanguage)} ${prcData.cardHolderName}`,
+                  fieldLeftMargin, fieldY + 8);
+
+        // Field 4: Given name(s) - aligned exactly under field 3 with reduced spacing
+        doc.text(`4. ${getTranslation('pdf-given-name-field', userLanguage)} ${prcData.cardHolderGivenName}`,
+                 fieldLeftMargin, fieldY + 28);
+
+        // Field 5: Date of birth - aligned exactly under field 4 with reduced spacing
+        doc.text(`5. ${getTranslation('pdf-date-of-birth-field', userLanguage)} ${prcData.dateOfBirth}`,
+                 fieldLeftMargin, fieldY + 48);
+
+        // Field 6: Personal identification number - aligned exactly under field 5 with reduced spacing
+        doc.text(`6. ${getTranslation('pdf-personal-id-field', userLanguage)} ${prcData.personalIdNumber}`,
+                 fieldLeftMargin, fieldY + 68);
+
+        // Move cursor below the group box
+        const newDocY = fieldY + groupBoxHeight + 10;
+        if (isNaN(newDocY)) {
+            logger.error('Invalid doc.y calculation after card holder section', { fieldY, newDocY });
+            doc.y = 400; // Safe fallback
+        } else {
+            doc.y = newDocY;
+        }
+
+        // Competent institution-related information - Arial 9pt italics, truly left-aligned
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-competent-institution-info', userLanguage), leftMargin, doc.y);
+        doc.moveDown(0.5);
+
+        // Field 7: Institution information (larger box for multi-line content) - at true left edge
+        fieldY = doc.y;
+
+        // Validate fieldY for institution section
+        if (isNaN(fieldY)) {
+            logger.error('Invalid fieldY at institution section', { fieldY, docY: doc.y });
+            fieldY = 450; // Set a safe position
+        }
+
+        const institutionBoxHeight = 35; // Increased to accommodate multi-line text
+        doc.lineWidth(0.5); // Reduce border weight by 50%
+        doc.rect(leftMargin, fieldY, fullPageWidth, institutionBoxHeight).stroke();
+
+        // Institution ID and name content - render label and data separately for precise spacing control
+        doc.font('Helvetica').fontSize(9);
+
+        // Render the label first
+        doc.text(`7. ${getTranslation('pdf-institution-id-field', userLanguage)}`, leftMargin + 5, fieldY + 5);
+
+        // Move down by 0.35 line height (approximately 3.15 pixels for 9pt font)
+        const lineSpacing = 3.15; // 0.35 * 9pt
+
+        // Render the concatenated institution data with indentation
+        let institutionData = "";
+        if (prcData.institutionId !== 'N/A' && prcData.institutionName !== 'N/A') {
+            institutionData = `    ${prcData.institutionId} - ${prcData.institutionName}`;
+        } else if (prcData.institutionId !== 'N/A') {
+            institutionData = `    ${prcData.institutionId}`;
+        } else if (prcData.institutionName !== 'N/A') {
+            institutionData = `    ${prcData.institutionName}`;
+        } else {
+            institutionData = `    N/A`;
+        }
+
+        // Debug: Log what we're trying to render
+        logger.info('Rendering institution text in PDF:', {
+            institutionId: prcData.institutionId,
+            institutionName: prcData.institutionName,
+            institutionData: institutionData
+        });
+
+        // Render the institution data at the calculated position with 0.35 line spacing
+        // 9pt font has approximately 12 pixels line height, so 0.35 * 12 = 4.2 pixels
+        doc.text(institutionData, leftMargin + 5, fieldY + 5 + 12 + lineSpacing, {
+            width: fullPageWidth - 10
+        });
+        doc.moveDown(0.5);
+
+        // Move cursor below the box
+        doc.y = fieldY + institutionBoxHeight + 10;
+
+        // Card-related information - Arial 9pt italics, truly left-aligned
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-card-info', userLanguage), leftMargin, doc.y);
+        doc.moveDown(0.5);
+
+        // Fields 8 and 9: Combined in one box - Arial 9pt, at true left edge with reduced border weight
+        fieldY = doc.y;
+        const combinedBoxHeight = 45; // Height for both fields combined
+        doc.lineWidth(0.5); // Reduce border weight by 50%
+        doc.rect(leftMargin, fieldY, fullPageWidth, combinedBoxHeight).stroke();
+        doc.font('Helvetica').fontSize(9)
+           .text(`8. ${getTranslation('pdf-card-id-field', userLanguage)} ${prcData.cardId}`, leftMargin + 5, fieldY + 8);
+        doc.text(`9. ${getTranslation('pdf-expiry-date-field', userLanguage)} ${prcData.expiryDate}`, leftMargin + 5, fieldY + 28);
+
+        // Move cursor below the combined box
+        doc.y = fieldY + combinedBoxHeight + 10;
+
+        // Certificate validity period and delivery date - side by side layout
+        // Calculate split box dimensions like the first section
+        const validityBoxWidth = fullPageWidth * 0.48;  // 48% of page width
+        const deliveryBoxWidth = fullPageWidth * 0.48;  // 48% of page width
+        const deliveryBoxX = leftMargin + fullPageWidth * 0.52; // Start at 52% to leave 2% gap
+        const splitBoxHeight = 50; // Height for both fields (a) and (b)
+
+        // Save Y position for headers on same line
+        const headerY = doc.y;
+
+        // Certificate validity period header - left-aligned
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-certificate-validity-period', userLanguage), leftMargin, headerY);
+
+        // Certificate delivery date header - right-aligned at same Y position
+        doc.text(getTranslation('pdf-certificate-delivery-date', userLanguage), deliveryBoxX, headerY);
+        doc.moveDown(0.5);
+
+        // Create split boxes at same Y level
+        fieldY = doc.y;
+
+        // Left box: Certificate validity period (48% width) with reduced border weight
+        doc.lineWidth(0.5); // Reduce border weight by 50% (default is 1)
+        doc.rect(leftMargin, fieldY, validityBoxWidth, splitBoxHeight).stroke();
+
+        // Right box: Certificate delivery date (48% width, starting at 52%) with reduced border weight
+        doc.rect(deliveryBoxX, fieldY, deliveryBoxWidth, splitBoxHeight).stroke();
+
+        // Content for left box - Certificate validity period
+        doc.font('Helvetica').fontSize(9)
+           .text(`(a). ${getTranslation('pdf-from-field', userLanguage)} ${prcData.validityStart}`,
+                  leftMargin + 5, fieldY + 8);
+        doc.text(`(b). ${getTranslation('pdf-to-field', userLanguage)} ${prcData.validityEnd}`,
+                 leftMargin + 5, fieldY + 28);
+
+        // Content for right box - Certificate delivery date
+        doc.text(`(c). ${prcData.deliveryDate}`, deliveryBoxX + 5, fieldY + 18);
+
+        // Move cursor below the split boxes
+        doc.y = fieldY + splitBoxHeight + 10;
 
         // Add signature section with QR code in signature box
-        doc.text(getTranslation('pdf-signature-stamp', userLanguage));
+        // Validate current Y position
+        if (isNaN(doc.y)) {
+            logger.error('Invalid doc.y before signature section', { docY: doc.y });
+            doc.y = 500; // Set a safe fallback position
+        }
+
+        // Position "Signature and stamp of the institution" at 50% of page width
+        const signatureHeaderX = leftMargin + (pageWidth * 0.52);
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-signature-stamp', userLanguage), signatureHeaderX, doc.y);
         doc.moveDown();
 
-        // Create signature box with QR code inside
+        // Create signature box with QR code inside - positioned at 50% of page width (increased by 15%)
         const signatureBoxY = doc.y;
-        const signatureBoxHeight = 150;
-        const signatureBoxWidth = 400;
+        const signatureBoxHeight = 160; // 150 * 1.15 = 172.5 ≈ 173
+        const signatureBoxWidth = pageWidth * 0.35; // 48% * 1.15 ≈ 55% width
+        const signatureBoxX = leftMargin + (pageWidth * 0.52); // Start at 52% to accommodate larger width
 
-        // Draw signature box border
-        doc.rect(doc.x, signatureBoxY, signatureBoxWidth, signatureBoxHeight).stroke();
+        // Validate signature box coordinates
+        if (isNaN(signatureBoxY) || isNaN(signatureBoxHeight) || isNaN(signatureBoxWidth)) {
+            logger.error('Invalid signature box coordinates', {
+                signatureBoxY, signatureBoxHeight, signatureBoxWidth
+            });
+            throw new Error('Invalid signature box coordinates');
+        }
 
-        // Add QR code in the center of signature box
+        // Draw signature box border with reduced weight
+        doc.lineWidth(0.5); // Reduce border weight by 50%
+        doc.rect(signatureBoxX, signatureBoxY, signatureBoxWidth, signatureBoxHeight).stroke();
+
+        // Add optimal QR code in the center of signature box
         if (verificationData) {
             try {
-                const qrCodeDataUrl = await QRCode.toDataURL(verificationData, {
-                    width: 120,
-                    margin: 1,
-                    color: {
-                        dark: '#000000',
-                        light: '#FFFFFF'
-                    }
-                });
-                const qrCodeBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64');
+                // Generate optimal QR code with Q or H error correction and SVG output
+                const optimalQR = await generateOptimalQRCodeForPDF(verificationData);
 
-                // Center QR code in signature box
-                const qrCodeSize = 120;
-                const qrCodeX = doc.x + (signatureBoxWidth - qrCodeSize) / 2;
-                const qrCodeY = signatureBoxY + (signatureBoxHeight - qrCodeSize) / 2;
+                if (optimalQR.success) {
+                    // Calculate optimal size based on module count (increased by 15%)
+                    const baseSize = 150; // 120 * 1.15 = 138
+                    const scaleFactor = Math.max(1, Math.min(2, baseSize / optimalQR.moduleCount));
+                    const qrCodeSize = Math.min(150, optimalQR.moduleCount * scaleFactor); // 130 * 1.15 ≈ 150
 
-                doc.image(qrCodeBuffer, qrCodeX, qrCodeY, { width: qrCodeSize });
+                    // Center QR code in signature box
+                    const qrCodeX = signatureBoxX + (signatureBoxWidth - qrCodeSize) / 2;
+                    const qrCodeY = signatureBoxY + (signatureBoxHeight - qrCodeSize) / 2;
 
-                // QR code label below the QR code
-                doc.fontSize(8);
-                doc.text(getTranslation('pdf-original-qr-code', userLanguage),
-                    qrCodeX + (qrCodeSize / 2) - 30, qrCodeY + qrCodeSize + 5);
+                    
+
+                    // Convert SVG to high-quality PNG buffer for PDF
+                    const sharp = require('sharp');
+                    const svgBuffer = Buffer.from(optimalQR.svgString);
+
+                    // Convert SVG to PNG at high resolution for crisp rendering
+                    const pngBuffer = await sharp(svgBuffer)
+                        .png({
+                            quality: 100,
+                            compressionLevel: 0
+                        })
+                        .resize(qrCodeSize * 3, qrCodeSize * 3) // 3x resolution for crisp output
+                        .toBuffer();
+
+                    // Add high-resolution PNG to PDF
+                    doc.image(pngBuffer, qrCodeX, qrCodeY, {
+                        width: qrCodeSize,
+                        height: qrCodeSize,
+                        fit: [qrCodeSize, qrCodeSize]
+                    });
+
+                    // QR code label removed - provides no added value
+
+                    logger.info('Optimal QR code generated for PDF', {
+                        requestedVersion: optimalQR.requestedVersion,
+                        actualVersion: optimalQR.actualVersion,
+                        version: optimalQR.version,
+                        errorCorrection: optimalQR.errorCorrectionLevel,
+                        moduleCount: optimalQR.moduleCount,
+                        utilization: optimalQR.capacityUtilization,
+                        dataLength: optimalQR.dataLength,
+                        requestedCapacity: optimalQR.requestedCapacity,
+                        optimizationNote: optimalQR.optimizationNote
+                    });
+                } else {
+                    throw new Error(optimalQR.error);
+                }
             } catch (qrError) {
-                logger.error('Failed to generate QR code for PDF', { error: qrError.message });
-                // If QR code fails, add placeholder text in signature box
-                doc.fontSize(10);
-                doc.text('QR Code Generation Failed', doc.x + 20, signatureBoxY + 70);
+                logger.error('Failed to generate optimal QR code for PDF', { error: qrError.message });
+                // If QR code fails, add detailed error info in signature box
+                doc.fontSize(9);
+                doc.text('QR Code Generation Failed', signatureBoxX + 20, signatureBoxY + 60);
+                doc.fontSize(7);
+                doc.text(`Error: ${qrError.message}`, signatureBoxX + 20, signatureBoxY + 80);
+                doc.text(`Data length: ${verificationData.length} chars`, signatureBoxX + 20, signatureBoxY + 95);
             }
         }
 
-        // Move past signature box
-        doc.y = signatureBoxY + signatureBoxHeight + 10;
+        // Move past signature box with extra spacing for QR code label
+        const newY = signatureBoxY + signatureBoxHeight + 15;
 
-        // Add notes section
-        doc.text(getTranslation('pdf-notes-title', userLanguage), { underline: true });
-        doc.fontSize(10).text(getTranslation('pdf-notes-text', userLanguage));
-        doc.moveDown(2);
+        // Validate the new Y position
+        if (isNaN(newY)) {
+            logger.error('Invalid Y position after signature box', {
+                signatureBoxY, signatureBoxHeight, calculatedY: newY
+            });
+            doc.y = 700; // Set a safe fallback position
+        } else {
+            doc.y = newY;
+        }
+
+        // Add horizontal ruler after signature section
+        doc.moveTo(leftMargin, doc.y)
+           .lineTo(leftMargin + pageWidth, doc.y)
+           .lineWidth(0.5)
+           .stroke();
+        doc.moveDown(0.5);
+        
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-notes-title', userLanguage), leftMargin, doc.y);
+        doc.moveDown(0.3);
+        doc.font('Helvetica').fontSize(9)
+           .text(getTranslation('pdf-notes-text', userLanguage), leftMargin, doc.y, {
+            width: pageWidth,
+            align: 'justify'
+        });
+        
+
+        
+
+        
 
         // === PAGE 2: VERIFICATION STATUS ===
         // Add new page for verification status
         doc.addPage();
 
-        // Add verification header on page 2
+        // Add verification header on page 2 - Arial fonts
         const overallStatus = verificationStatus?.overall ? getTranslation('email-successful', userLanguage) : getTranslation('email-failed', userLanguage);
-        doc.fontSize(14).text(`${getTranslation('pdf-verification-status', userLanguage)} ${statusSymbol(verificationStatus?.overall)} ${overallStatus}`, { align: 'center' });
-        doc.fontSize(10).text(`${getTranslation('pdf-reference', userLanguage)} ${referenceNumber} | ${getTranslation('pdf-treatment-date', userLanguage)} ${treatmentDate}`, { align: 'center' });
+        doc.font('Helvetica-Bold').fontSize(12)
+           .text(`${getTranslation('pdf-verification-status', userLanguage)} ${statusSymbol(verificationStatus?.overall)} ${overallStatus}`, { align: 'center' });
+        doc.font('Helvetica').fontSize(9)
+           .text(`${getTranslation('pdf-reference', userLanguage)} ${referenceNumber} | ${getTranslation('pdf-treatment-date', userLanguage)} ${treatmentDate}`, { align: 'center' });
         doc.text(`${getTranslation('pdf-verified', userLanguage)} ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
         doc.moveDown(2);
 
-        // Add verification results section
-        doc.fontSize(12).text(getTranslation('pdf-verification-results', userLanguage), { underline: true, align: 'center' });
+        // Add verification results section - Arial 9pt italics header, Arial 9pt content
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-verification-results', userLanguage), { align: 'center' });
         doc.moveDown();
-        doc.fontSize(10);
+        doc.font('Helvetica').fontSize(9);
         const passedText = getTranslation('email-passed', userLanguage);
         const failedText = getTranslation('email-failed', userLanguage);
         doc.text(`${statusSymbol(verificationStatus?.steps?.base45Decode)} ${getTranslation('email-base45-decoding', userLanguage)}: ${verificationStatus?.steps?.base45Decode ? passedText : failedText}`);
@@ -857,12 +1103,13 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.moveDown(2);
 
         // === PDF DIGITAL SIGNATURE SECTION (at end of document) ===
-        // Add separation and digital signature section
-        doc.fontSize(12).text(getTranslation('pdf-digital-signature', userLanguage), { underline: true });
+        // Add separation and digital signature section - Arial 9pt italics header
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-digital-signature', userLanguage));
         doc.moveDown();
 
-        // Digital signature information
-        doc.fontSize(10);
+        // Digital signature information - Arial 9pt
+        doc.font('Helvetica').fontSize(9);
         doc.text(getTranslation('pdf-digitally-signed-by', userLanguage));
         doc.text('EHIC/PRC Verification System');
         doc.text(`${getTranslation('pdf-institution', userLanguage)} ${prcData.institutionName !== 'N/A' ? prcData.institutionName : 'Healthcare Provider'}`);
@@ -1209,8 +1456,286 @@ async function updateScanVerification(content, result, error) {
     }
 }
 
+// QR Code Analysis Function - Determines Exact Properties
+async function analyzeQRCodeData(data) {
+    const QRCode = require('qrcode');
+    const qrGenerator = require('qrcode-generator');
+
+    try {
+        const dataLength = data.length;
+
+        // Test different error correction levels to find the optimal one
+        const errorLevels = ['L', 'M', 'Q', 'H'];
+        let actualProperties = null;
+
+        // Try each error correction level to find what actually works
+        for (const errorLevel of errorLevels) {
+            try {
+                // Use qrcode-generator to get exact version information
+                const typeNumber = 0; // Auto-detect type number
+                const qr = qrGenerator(typeNumber, errorLevel);
+                qr.addData(data);
+                qr.make();
+
+                // Get the actual properties from the generated QR code
+                const moduleCount = qr.getModuleCount();
+                const version = Math.floor((moduleCount - 17) / 4);
+
+                actualProperties = {
+                    version: version,
+                    moduleCount: moduleCount,
+                    moduleDimensions: `${moduleCount}x${moduleCount}`,
+                    errorCorrectionLevel: errorLevel,
+                    actualDataLength: dataLength,
+                    qrCodeSvg: qr.createSvgTag(4, 0),
+                    detectionMethod: 'qrcode-generator exact analysis'
+                };
+                break; // Use the first working error correction level
+            } catch (levelError) {
+                // Continue to next error level if this one fails
+                continue;
+            }
+        }
+
+        // If no error correction level worked, provide detailed error info
+        if (!actualProperties) {
+            throw new Error(`Data too large for QR code generation. Length: ${dataLength} characters`);
+        }
+
+        // Also generate with different library for cross-validation
+        let qrCodeBuffer = null;
+        let generationError = null;
+        try {
+            qrCodeBuffer = await QRCode.toBuffer(data, {
+                errorCorrectionLevel: actualProperties.errorCorrectionLevel,
+                type: 'png',
+                width: 300,
+                margin: 2
+            });
+        } catch (genError) {
+            generationError = genError.message;
+        }
+
+        const capacityInfo = getMaxCapacityForVersion(actualProperties.version, actualProperties.errorCorrectionLevel);
+
+        return {
+            dataCharacteristics: {
+                originalDataLength: dataLength,
+                dataType: 'BASE45 Encoded EHIC Data',
+                startsWithHC1: data.startsWith('HC1:'),
+                dataPrefix: data.substring(0, 30),
+                dataEncoding: 'Alphanumeric'
+            },
+            actualQRProperties: {
+                version: actualProperties.version,
+                moduleCount: actualProperties.moduleCount,
+                moduleDimensions: actualProperties.moduleDimensions,
+                errorCorrectionLevel: actualProperties.errorCorrectionLevel,
+                detectionMethod: actualProperties.detectionMethod,
+                dataCapacityUsed: `${dataLength} characters`,
+                maxCapacityAtThisLevel: capacityInfo.capacity,
+                capacityUtilization: `${Math.round((dataLength / capacityInfo.capacity) * 100)}%`
+            },
+            completeQRVersionTable: getQRCodeVersionTable(),
+            generatedQRInfo: {
+                bufferSize: qrCodeBuffer ? qrCodeBuffer.length : null,
+                imageFormat: qrCodeBuffer ? 'PNG' : null,
+                generationSuccess: qrCodeBuffer !== null,
+                generationError: generationError,
+                generatedAt: new Date().toISOString()
+            },
+            analysisMetadata: {
+                analysisVersion: '4.0',
+                detectionMethod: 'BASE45 alphanumeric QR code optimization',
+                librariesUsed: ['qrcode-generator', 'qrcode'],
+                note: 'Alphanumeric capacity table for BASE45 data (Versions 1-40)',
+                tableDescription: 'Each version shows: modules, alphanumeric capacity (L/M/Q/H) for BASE45 encoding'
+            }
+        };
+    } catch (error) {
+        throw new Error(`QR Code analysis failed: ${error.message}`);
+    }
+}
+
+// Helper function to detect data encoding type
+function detectDataEncoding(data) {
+    // Check for numeric only
+    if (/^[0-9]+$/.test(data)) return 'Numeric';
+
+    // Check for QR code alphanumeric mode characters
+    // Alphanumeric mode: 0-9, A-Z, space, $, %, *, +, -, ., /, :
+    if (/^[0-9A-Z $%*+\-./:]+$/.test(data)) return 'Alphanumeric';
+
+    // If it contains any other characters, it must use binary mode
+    return 'Binary/UTF-8';
+}
+
+// QR Code Version Table - Alphanumeric Capacity Only (for BASE45 data)
+function getQRCodeVersionTable() {
+    return {
+        1: { modules: 21, alphanumeric: { L: 25, M: 20, Q: 16, H: 10 } },
+        2: { modules: 25, alphanumeric: { L: 47, M: 38, Q: 29, H: 20 } },
+        3: { modules: 29, alphanumeric: { L: 77, M: 61, Q: 47, H: 35 } },
+        4: { modules: 33, alphanumeric: { L: 114, M: 90, Q: 67, H: 50 } },
+        5: { modules: 37, alphanumeric: { L: 154, M: 122, Q: 87, H: 64 } },
+        6: { modules: 41, alphanumeric: { L: 195, M: 154, Q: 108, H: 84 } },
+        7: { modules: 45, alphanumeric: { L: 224, M: 178, Q: 125, H: 93 } },
+        8: { modules: 49, alphanumeric: { L: 279, M: 221, Q: 157, H: 122 } },
+        9: { modules: 53, alphanumeric: { L: 335, M: 262, Q: 189, H: 143 } },
+        10: { modules: 57, alphanumeric: { L: 395, M: 311, Q: 221, H: 174 } },
+        11: { modules: 61, alphanumeric: { L: 468, M: 366, Q: 259, H: 200 } },
+        12: { modules: 65, alphanumeric: { L: 535, M: 419, Q: 296, H: 227 } },
+        13: { modules: 69, alphanumeric: { L: 619, M: 483, Q: 352, H: 259 } },
+        14: { modules: 73, alphanumeric: { L: 667, M: 528, Q: 376, H: 283 } },
+        15: { modules: 77, alphanumeric: { L: 758, M: 600, Q: 426, H: 321 } },
+        16: { modules: 81, alphanumeric: { L: 854, M: 656, Q: 470, H: 365 } },
+        17: { modules: 85, alphanumeric: { L: 938, M: 734, Q: 531, H: 408 } },
+        18: { modules: 89, alphanumeric: { L: 1046, M: 816, Q: 574, H: 452 } },
+        19: { modules: 93, alphanumeric: { L: 1153, M: 909, Q: 644, H: 493 } },
+        20: { modules: 97, alphanumeric: { L: 1249, M: 970, Q: 702, H: 557 } },
+        21: { modules: 101, alphanumeric: { L: 1352, M: 1035, Q: 742, H: 587 } },
+        22: { modules: 105, alphanumeric: { L: 1460, M: 1134, Q: 823, H: 640 } },
+        23: { modules: 109, alphanumeric: { L: 1588, M: 1248, Q: 890, H: 672 } },
+        24: { modules: 113, alphanumeric: { L: 1704, M: 1326, Q: 963, H: 744 } },
+        25: { modules: 117, alphanumeric: { L: 1853, M: 1451, Q: 1041, H: 779 } },
+        26: { modules: 121, alphanumeric: { L: 1990, M: 1542, Q: 1094, H: 864 } },
+        27: { modules: 125, alphanumeric: { L: 2132, M: 1637, Q: 1172, H: 910 } },
+        28: { modules: 129, alphanumeric: { L: 2223, M: 1732, Q: 1263, H: 958 } },
+        29: { modules: 133, alphanumeric: { L: 2369, M: 1839, Q: 1322, H: 1016 } },
+        30: { modules: 137, alphanumeric: { L: 2520, M: 1994, Q: 1429, H: 1080 } },
+        31: { modules: 141, alphanumeric: { L: 2677, M: 2113, Q: 1499, H: 1150 } },
+        32: { modules: 145, alphanumeric: { L: 2840, M: 2238, Q: 1618, H: 1226 } },
+        33: { modules: 149, alphanumeric: { L: 3009, M: 2369, Q: 1700, H: 1307 } },
+        34: { modules: 153, alphanumeric: { L: 3183, M: 2506, Q: 1787, H: 1394 } },
+        35: { modules: 157, alphanumeric: { L: 3351, M: 2632, Q: 1867, H: 1431 } },
+        36: { modules: 161, alphanumeric: { L: 3537, M: 2780, Q: 1966, H: 1530 } },
+        37: { modules: 165, alphanumeric: { L: 3729, M: 2894, Q: 2071, H: 1591 } },
+        38: { modules: 169, alphanumeric: { L: 3927, M: 3054, Q: 2181, H: 1658 } },
+        39: { modules: 173, alphanumeric: { L: 4087, M: 3220, Q: 2298, H: 1774 } },
+        40: { modules: 177, alphanumeric: { L: 4296, M: 3391, Q: 2420, H: 1852 } }
+    };
+}
+
+// Helper function to get alphanumeric capacity for a QR version and error correction level
+function getMaxCapacityForVersion(version, errorLevel) {
+    const versionTable = getQRCodeVersionTable();
+    const versionData = versionTable[version];
+
+    if (!versionData) {
+        return `Version ${version} not in table (max 40)`;
+    }
+
+    return {
+        capacity: versionData.alphanumeric[errorLevel],
+        modules: versionData.modules
+    };
+}
+
+// Optimal QR Code Generator for PDF - Uses proper qrcode library with Q or H error correction
+async function generateOptimalQRCodeForPDF(data) {
+    const QRCode = require('qrcode');
+
+    const dataLength = data.length;
+    const versionTable = getQRCodeVersionTable();
+
+    // Try all error correction levels: L (lowest) for smallest size, then M, Q, H
+    const errorLevels = ['L', 'M', 'Q', 'H'];
+
+    for (const errorLevel of errorLevels) {
+        // Find the smallest version that can fit the data with this error level
+        for (let version = 1; version <= 40; version++) {
+            const versionData = versionTable[version];
+            if (!versionData) continue;
+
+            // BASE45 is always alphanumeric
+            const capacity = versionData.alphanumeric[errorLevel];
+
+            // If this version can fit the data, use it
+            if (capacity >= dataLength) {
+                try {
+                    // Force specific version and error correction level
+                    const svgString = await QRCode.toString(data, {
+                        type: 'svg',
+                        version: version,
+                        errorCorrectionLevel: errorLevel,
+                        margin: 2,
+                        width: 300,
+                        color: {
+                            dark: '#000000',
+                            light: '#ffffff'
+                        }
+                    });
+
+                    // Calculate actual module count for this version
+                    const actualModuleCount = 17 + version * 4;
+
+                    return {
+                        success: true,
+                        requestedVersion: version,
+                        actualVersion: version,
+                        version: version,
+                        errorCorrectionLevel: errorLevel,
+                        moduleCount: actualModuleCount,
+                        moduleDimensions: `${actualModuleCount}x${actualModuleCount}`,
+                        dataEncoding: 'Alphanumeric',
+                        dataLength: dataLength,
+                        requestedCapacity: capacity,
+                        capacityUsed: capacity,
+                        capacityUtilization: `${Math.round((dataLength / capacity) * 100)}%`,
+                        svgString: svgString,
+                        svgSize: svgString.length,
+                        optimizationNote: `Successfully used V${version}-${errorLevel} (capacity: ${capacity}, utilization: ${Math.round((dataLength / capacity) * 100)}%)`
+                    };
+                } catch (generateError) {
+                    // Continue to next version if generation fails
+                    continue;
+                }
+            }
+        }
+    }
+
+    // If no version worked, return error info
+    return {
+        success: false,
+        error: `Data too large for QR code generation. Length: ${dataLength} characters`,
+        dataLength: dataLength,
+        dataEncoding: 'Alphanumeric',
+        maxSupportedLength: versionTable[40].alphanumeric.H // Largest possible
+    };
+}
+
 async function processVerificationData(originalData) {
     const steps = [];
+
+    // Step 1-1: QR Code Analysis
+    try {
+        const QRCode = require('qrcode');
+
+        // Analyze QR code characteristics by generating it and examining properties
+        const qrAnalysis = await analyzeQRCodeData(originalData);
+        const analysisSize = Buffer.byteLength(JSON.stringify(qrAnalysis), 'utf8');
+
+        steps.push({
+            name: 'QR Code Analysis (Step 1-1)',
+            data: JSON.stringify(qrAnalysis, null, 2),
+            size: analysisSize,
+            percentage: 100
+        });
+    } catch (qrError) {
+        // If QR analysis fails, add error info
+        const errorInfo = {
+            error: 'QR Code analysis failed',
+            message: qrError.message,
+            dataLength: originalData.length,
+            dataPreview: originalData.substring(0, 100) + '...'
+        };
+        steps.push({
+            name: 'QR Code Analysis (Step 1-1) - Error',
+            data: JSON.stringify(errorInfo, null, 2),
+            size: Buffer.byteLength(JSON.stringify(errorInfo), 'utf8'),
+            percentage: 100
+        });
+    }
 
     // Step 1: Original BASE45 data
     const originalSize = Buffer.byteLength(originalData, 'utf8');
