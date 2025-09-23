@@ -44,5 +44,39 @@
     "treatment-next-step2": "Scan QR code on PRC card",
     "treatment-next-step3": "Complete verification process",
 
+    "identity-title": "Identity Check",
+    "identity-subtitle": "Verify patient identity before proceeding with QR code scanning",
+    "identity-verification-required": "Identity Verification Required",
+    "identity-instruction-text": "Please request the patient to show his identity card. The Identity needs to match the name, firstname, date of birth on the PRC, and date stored in the QR code. Please make a copy for your records.",
+    "identity-checklist-title": "Verification Checklist",
+    "identity-checklist-name": "Name matches PRC and QR code data",
+    "identity-checklist-firstname": "First name matches PRC and QR code data",
+    "identity-checklist-dob": "Date of birth matches PRC and QR code data",
+    "identity-checklist-copy": "Copy made for records",
+    "identity-button-continue": "Continue to Scanning the QR Code",
+
+    "identity-why-title": "Why Identity Verification?",
+    "identity-why-text": "Identity verification ensures:",
+    "identity-why-item1": "Patient authenticity",
+    "identity-why-item2": "Fraud prevention",
+    "identity-why-item3": "Compliance with regulations",
+    "identity-why-item4": "Accurate treatment records",
+
+    "identity-next-title": "Next Steps",
+    "identity-next-step1": "Scan QR code on PRC card",
+    "identity-next-step2": "Validate QR code authenticity",
+    "identity-next-step3": "Complete verification process",
+
+    "scan-title": "Scan QR Code",
+    "scan-start-scanner": "Start Scanner",
+    "scan-stop-scanner": "Stop Scanner",
+    "scan-result-title": "Scan Result",
+    "scan-verify-qr": "Verify QR Code",
+    "scan-show-results": "Show Verification Results",
+    "scan-again": "Scan Again",
+    "scan-version-simple": "Simple",
+    "scan-version-debug": "Debug",
+    "scan-version-original": "Original",
+
     "footer-copyright": "© 2024 EHIC Verifier App - Healthcare Provider Solution"
 }

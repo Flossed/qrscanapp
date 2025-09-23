@@ -178,7 +178,7 @@ router.get('/', (req, res) => {
 
 // Scanner page (moved from root)
 router.get('/scanner', (req, res) => {
-    res.render('index');
+    res.render('scan');
 });
 
 router.get('/history', async (req, res) => {

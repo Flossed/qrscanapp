@@ -44,5 +44,39 @@
     "treatment-next-step2": "Scan QR-code op PRC-kaart",
     "treatment-next-step3": "Voltooi verificatieproces",
 
+    "identity-title": "Identiteitscontrole",
+    "identity-subtitle": "Verifieer patiënt identiteit voordat u doorgaat met QR code scannen",
+    "identity-verification-required": "Identiteitsverificatie Vereist",
+    "identity-instruction-text": "Vraag de patiënt om zijn identiteitskaart te tonen. De identiteit moet overeenkomen met de naam, voornaam, geboortedatum op de PRC, en de datum opgeslagen in de QR code. Maak een kopie voor uw administratie.",
+    "identity-checklist-title": "Verificatie Checklist",
+    "identity-checklist-name": "Naam komt overeen met PRC en QR code gegevens",
+    "identity-checklist-firstname": "Voornaam komt overeen met PRC en QR code gegevens",
+    "identity-checklist-dob": "Geboortedatum komt overeen met PRC en QR code gegevens",
+    "identity-checklist-copy": "Kopie gemaakt voor administratie",
+    "identity-button-continue": "Ga door naar Scannen van de QR Code",
+
+    "identity-why-title": "Waarom Identiteitsverificatie?",
+    "identity-why-text": "Identiteitsverificatie zorgt voor:",
+    "identity-why-item1": "Patiënt authenticiteit",
+    "identity-why-item2": "Fraudepreventie",
+    "identity-why-item3": "Naleving van regelgeving",
+    "identity-why-item4": "Nauwkeurige behandelingsgegevens",
+
+    "identity-next-title": "Volgende Stappen",
+    "identity-next-step1": "Scan QR code op PRC kaart",
+    "identity-next-step2": "Valideer QR code authenticiteit",
+    "identity-next-step3": "Voltooi verificatieproces",
+
+    "scan-title": "QR Code Scannen",
+    "scan-start-scanner": "Start Scanner",
+    "scan-stop-scanner": "Stop Scanner",
+    "scan-result-title": "Scan Resultaat",
+    "scan-verify-qr": "Verifieer QR Code",
+    "scan-show-results": "Toon Verificatie Resultaten",
+    "scan-again": "Scan Opnieuw",
+    "scan-version-simple": "Eenvoudig",
+    "scan-version-debug": "Debug",
+    "scan-version-original": "Origineel",
+
     "footer-copyright": "© 2024 EHIC Verificatie App - Zorgverlener Oplossing"
 }

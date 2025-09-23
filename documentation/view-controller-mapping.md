@@ -19,7 +19,7 @@ This document maps all views to their corresponding routes/controllers and docum
 | `/landing` | GET | `landing.ejs` | `scanRoutes.js:161` | Landing page (alternative route) |
 | `/treatment-date` | GET | `treatment-date.ejs` | `scanRoutes.js:166` | Treatment date input page |
 | `/identity-check` | GET | `identity-check.ejs` | `scanRoutes.js:171` | Identity verification checklist |
-| `/scanner` | GET | `index.ejs` | `scanRoutes.js:180` | QR code scanner interface |
+| `/scanner` | GET | `scan.ejs` | `scanRoutes.js:180` | QR code scanner interface |
 | `/results` | GET | `results.ejs` | `scanRoutes.js:378` | Verification results display |
 | `/finalization` | GET | `finalization.ejs` | `scanRoutes.js:383` | Final verification summary |
 | `/history` | GET | `history.ejs` | `scanRoutes.js:184` | Scan history with database query |
@@ -68,7 +68,7 @@ This document maps all views to their corresponding routes/controllers and docum
   - Breadcrumb navigation to previous steps
 - **Features**: Interactive checkbox validation
 
-#### 4. `index.ejs` - Scanner Interface
+#### 4. `scan.ejs` - Scanner Interface
 - **Purpose**: QR code scanning functionality
 - **Breadcrumb Position**: Step 4 (QR Verification)
 - **Internal Links**:
@@ -121,7 +121,13 @@ This document maps all views to their corresponding routes/controllers and docum
 - **Internal Links**: Basic navigation structure
 - **Features**: Common CSS/JS includes
 
-## Navigation Flow Diagram
+## Navigation Overview
+
+The application supports multiple navigation patterns to accommodate different user workflows and access patterns.
+
+### Primary Workflow Navigation
+
+The main verification workflow follows a linear progression through breadcrumb navigation:
 
 ```
 ┌─────────────┐    Continue     ┌─────────────────┐    Continue     ┌──────────────────┐
@@ -137,46 +143,154 @@ This document maps all views to their corresponding routes/controllers and docum
 └─────────────┘                 └─────────────────┘                 └──────────────────┘
 ```
 
-## Breadcrumb Navigation System
+### Global Navigation Bar Flows
 
-The application uses a consistent breadcrumb system across the main workflow:
+The navbar provides direct access to key sections, allowing users to break from the linear workflow:
 
-| Step | Page | Route | Status Classes |
-|------|------|-------|----------------|
-| 1 | Welcome | `/` | `active` (on landing), `completed` (after) |
-| 2 | Treatment Date | `/treatment-date` | `active` (on page), `completed` (after) |
-| 3 | Identity Check | `/identity-check` | `active` (on page), `completed` (after) |
-| 4 | QR Verification | `/scanner` | `active` (on page), `completed` (after) |
-| 5 | Results | `/results` | `active` (on page), `completed` (after) |
-| 6 | Finalization | `/finalization` | `active` (on page) |
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ [EHIC Verifier] [Home] [Scanner] [History] [Check Bridge] [🌐]  │
+└─────────────────────────────────────────────────────────────────┘
+        │         │        │         │           │            │
+        │         │        │         │           │            └─ Language Selector
+        │         │        │         │           └─ Bridge Testing (/check-bridge)
+        │         │        │         └─ Scan History (/history)
+        │         │        └─ Direct Scanner Access (/scanner)
+        │         └─ Restart Workflow (/)
+        └─ Brand Link (/)
+```
 
-### Breadcrumb CSS Classes
+#### Navigation Bar Flow Patterns:
+
+1. **Home Navigation**: Returns user to landing page, clears session workflow
+2. **Direct Scanner Access**: Bypasses treatment date and identity check
+3. **History Review**: View previous scans and verification results
+4. **Bridge Testing**: Standalone utility for connection testing
+
+### Scanner Page Workflow Variations
+
+The scanner page (`/scanner`) supports three different scanning implementations, each affecting the user experience:
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        Scanner Page                              │
+│                                                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐   │
+│  │   Simple    │  │    Debug    │  │       Original          │   │
+│  │ (?scanner=  │  │ (?scanner=  │  │    (?scanner=           │   │
+│  │   simple)   │  │   debug)    │  │     original)           │   │
+│  └─────────────┘  └─────────────┘  └─────────────────────────┘   │
+│         │               │                      │                 │
+│         ▼               ▼                      ▼                 │
+│  [scanner-simple.js] [scanner-debug.js] [scanner.js]            │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+#### Scanner Implementation Differences:
+
+1. **Simple Scanner** (`?scanner=simple` or default):
+   - Streamlined interface
+   - Basic QR code detection
+   - Minimal debugging information
+
+2. **Debug Scanner** (`?scanner=debug`):
+   - Enhanced logging and error reporting
+   - Real-time scanning feedback
+   - Developer-oriented diagnostic information
+
+3. **Original Scanner** (`?scanner=original`):
+   - Legacy implementation
+   - Full feature set
+   - Backward compatibility
+
+### Breadcrumb Navigation System
+
+The breadcrumb system provides contextual navigation within the main workflow:
+
+| Step | Page | Route | Status Classes | Clickable When |
+|------|------|-------|----------------|----------------|
+| 1 | Welcome | `/` | `active` (on landing), `completed` (after) | Always |
+| 2 | Treatment Date | `/treatment-date` | `active` (on page), `completed` (after) | After visiting |
+| 3 | Identity Check | `/identity-check` | `active` (on page), `completed` (after) | After visiting |
+| 4 | QR Verification | `/scanner` | `active` (on page), `completed` (after) | After visiting |
+| 5 | Results | `/results` | `active` (on page), `completed` (after) | After visiting |
+| 6 | Finalization | `/finalization` | `active` (on page) | Never (final step) |
+
+#### Breadcrumb CSS Classes:
 - `.breadcrumb-item.active` - Current step (blue highlight)
 - `.breadcrumb-item.completed` - Completed step (green, clickable)
 - `.breadcrumb-item.disabled` - Future step (grey, non-clickable)
 
-## Global Navigation Menu
+### Navigation State Management
 
-All pages include a consistent navigation menu:
+The application manages navigation state through multiple mechanisms:
 
-| Menu Item | Route | Available On |
-|-----------|-------|--------------|
-| Home | `/` | All pages |
-| Scanner | `/scanner` | All pages |
-| History | `/history` | All pages |
-| Check Bridge | `/check-bridge` | All pages |
+1. **SessionStorage Variables**:
+   - `treatmentData` - Treatment date and notes
+   - `identityVerification` - Identity check completion status
+   - `verificationData` - QR scan results
+   - `usedLanguage` - Language preference
+
+2. **URL Parameters**:
+   - `?scanner=simple|debug|original` - Scanner implementation selection
+
+3. **Breadcrumb State**:
+   - Dynamically updated based on workflow progression
+   - Persistent across page refreshes within session
+
+### Cross-Navigation Scenarios
+
+#### Scenario 1: Direct Scanner Access
+```
+User clicks "Scanner" in navbar → `/scanner` → Bypasses treatment date/identity check
+```
+
+#### Scenario 2: History Review
+```
+User clicks "History" → `/history` → View past scans → Can return to any workflow step
+```
+
+#### Scenario 3: Bridge Testing
+```
+User clicks "Check Bridge" → `/check-bridge` → Standalone testing → Independent of verification workflow
+```
+
+#### Scenario 4: Breadcrumb Navigation
+```
+User in step 4 (Scanner) → Clicks step 2 breadcrumb → Returns to Treatment Date → Can modify data
+```
+
+### Global Navigation Menu
+
+All pages include consistent navigation access:
+
+| Menu Item | Route | Purpose | Available On |
+|-----------|-------|---------|--------------|
+| Home | `/` | Restart verification workflow | All pages |
+| Scanner | `/scanner` | Direct QR scanning access | All pages |
+| History | `/history` | Review past verifications | All pages |
+| Check Bridge | `/check-bridge` | Test bridge connections | All pages |
+| Language Selector | N/A | Switch interface language | All translated pages |
 
 ## Language Support
 
 ### Translation-Enabled Views
-- ✅ `landing.ejs` - Full translation support
-- ⏳ Other views - Pending translation implementation
+- ✅ `landing.ejs` - Full translation support with externalized styles
+- ✅ `treatment-date.ejs` - Full translation support with externalized styles and JavaScript
+- ✅ `identity-check.ejs` - Full translation support with externalized styles and JavaScript
+- ✅ `scan.ejs` - Full translation support with externalized styles and JavaScript
+- ⏳ `results.ejs` - Pending translation implementation
+- ⏳ `finalization.ejs` - Pending translation implementation
+- ⏳ `history.ejs` - Pending translation implementation
+- ⏳ `verify.ejs` - Pending translation implementation
+- ⏳ `check-bridge.ejs` - Pending translation implementation
 
 ### Translation System
 - **Script**: `/js/manageLocale.js`
 - **Language Files**: `/lang/en.json`, `/lang/nl.json`
-- **Key Format**: `view-description` (e.g., `landing-title`, `nav-home`)
-- **Selector**: Dropdown in navigation header
+- **Key Format**: `view-description` (e.g., `landing-title`, `treatment-date-label`, `identity-why-title`, `scan-title`)
+- **Selector**: Dropdown in navigation header (available on all translated pages)
+- **Session Storage**: Language preference persisted across page navigation
 
 ## Session and State Management
 
@@ -199,10 +313,10 @@ All pages include a consistent navigation menu:
 
 ```
 views/
-├── landing.ejs           # Welcome page (/)
-├── treatment-date.ejs    # Treatment date input (/treatment-date)
-├── identity-check.ejs    # Identity verification (/identity-check)
-├── index.ejs            # Scanner interface (/scanner)
+├── landing.ejs           # Welcome page (/) - ✅ Translated + Externalized
+├── treatment-date.ejs    # Treatment date input (/treatment-date) - ✅ Translated + Externalized
+├── identity-check.ejs    # Identity verification (/identity-check) - ✅ Translated + Externalized
+├── scan.ejs             # Scanner interface (/scanner) - ✅ Translated + Externalized
 ├── results.ejs          # Verification results (/results)
 ├── finalization.ejs     # Final summary (/finalization)
 ├── history.ejs          # Scan history (/history)
@@ -214,17 +328,27 @@ routes/
 └── scanRoutes.js        # All route definitions and controllers
 
 public/
-├── css/style.css        # Global styles (includes breadcrumb, language selector)
-├── js/manageLocale.js   # Translation system
+├── css/
+│   └── style.css        # Global styles (includes all page-specific styles)
+├── js/
+│   ├── manageLocale.js  # Translation system
+│   ├── treatment-date.js # Treatment date page logic
+│   ├── identity-check.js # Identity verification logic
+│   ├── scan.js          # Scanner page logic and version selection
+│   ├── scanner-simple.js # Simple scanner implementation
+│   ├── scanner-debug.js  # Debug scanner implementation
+│   ├── scanner.js       # Original scanner implementation
+│   ├── history.js       # History page functionality
+│   └── reference.js     # Reference data management
 └── lang/
-    ├── en.json          # English translations
-    └── nl.json          # Dutch translations
+    ├── en.json          # English translations (comprehensive)
+    └── nl.json          # Dutch translations (comprehensive)
 ```
 
 ## Special Features
 
 ### Dynamic Script Loading (Scanner)
-The scanner page (`index.ejs`) dynamically loads different scanner implementations based on URL parameters:
+The scanner page (`scan.ejs`) dynamically loads different scanner implementations based on URL parameters:
 - `?scanner=simple` → `scanner-simple.js`
 - `?scanner=debug` → `scanner-debug.js`
 - `?scanner=original` → `scanner-original.js`
@@ -242,7 +366,36 @@ All views are mobile-responsive with:
 - Mobile-optimized form layouts
 - Touch-friendly button sizing
 
+## Architectural Improvements
+
+### Code Organization
+- **Separation of Concerns**: All inline styles and JavaScript have been externalized
+- **Modular JavaScript**: Each page has its own dedicated JS file for page-specific logic
+- **Centralized Styling**: All styles consolidated in `/css/style.css` with organized sections
+- **Translation System**: Complete i18n implementation with session persistence
+
+### Page-Specific JavaScript Files
+- `treatment-date.js` - Date validation, form handling, and navigation
+- `identity-check.js` - Checkbox validation and verification state management
+- `scan.js` - Scanner version selection and dynamic script loading
+- `manageLocale.js` - Language switching and translation management
+
+### CSS Architecture
+- **Global Styles**: Navigation, buttons, forms, breadcrumbs
+- **Page-Specific Sections**:
+  - Landing page styles
+  - Treatment date page styles
+  - Identity check page styles
+  - Scan page styles
+- **Responsive Design**: Mobile-first approach with media queries
+
+### Translation Coverage
+- **English (en.json)**: 82 translation keys covering all implemented pages
+- **Dutch (nl.json)**: 82 translation keys with complete translations
+- **Key Naming**: Structured with page prefixes (`landing-`, `treatment-`, `identity-`, `scan-`)
+- **Dynamic Content**: Scanner version indicators and form placeholders
+
 ---
 
-*Last Updated: 2024*
-*Generated from: EHIC Verifier Application Analysis*
+*Last Updated: September 2024*
+*Generated from: EHIC Verifier Application Analysis - Post Translation Implementation*
