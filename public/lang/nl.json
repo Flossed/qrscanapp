@@ -1,0 +1,48 @@
+{
+    "language-name": "Nederlands",
+    "language-selector": "Selecteer Taal",
+
+    "nav-brand": "EHIC Verificatie",
+    "nav-home": "Home",
+    "nav-scanner": "Scanner",
+    "nav-history": "Geschiedenis",
+    "nav-check-bridge": "Controleer Bridge",
+
+    "landing-breadcrumb-welcome": "Welkom",
+    "landing-breadcrumb-treatment-date": "Behandeldatum",
+    "landing-breadcrumb-identity-check": "Identiteitscontrole",
+    "landing-breadcrumb-qr-verification": "QR Verificatie",
+    "landing-breadcrumb-results": "Resultaten",
+
+    "landing-title": "PRC Verificatie",
+    "landing-welcome-text": "Welkom bij de verificatie-app voor EHIC-attesten. Start de verificatie door optioneel de behandeldatum toe te voegen. Als u twijfelt over de behandeldatum, ga dan verder met de verificatie.",
+    "landing-identity-text": "We beginnen met het vragen naar een geldig paspoort of identiteitsbewijs van de klant. De identiteit moet overeenkomen met de PRC, anders kan de vergoeding van de behandeling worden geweigerd.",
+    "landing-scan-text": "Scan vervolgens de QR-code op de PRC als deze aanwezig is, om de geldigheid van het document te waarborgen. De verificatie-app zal enkele controles uitvoeren om te verzekeren dat de klant vergoed kan worden voor de behandeling.",
+    "landing-result-text": "Eenmaal geverifieerd, kan het resultaat van de verificatie worden bekeken en kan het bewijs naar uw HCP-administratieve account worden verzonden.",
+    "landing-thank-you": "Hartelijk dank",
+
+    "landing-button-continue": "Ga door naar Behandeldatum",
+
+    "treatment-title": "Behandeldatum",
+    "treatment-subtitle": "Geef de datum op waarop de behandeling plaatsvond (standaard vandaag)",
+    "treatment-date-label": "Behandeldatum",
+    "treatment-date-optional": "(Optioneel)",
+    "treatment-date-help": "Standaard vandaag. Klik om een andere datum te selecteren (tot 30 dagen in de toekomst)",
+    "treatment-notes-label": "Aanvullende Opmerkingen",
+    "treatment-notes-optional": "(Optioneel)",
+    "treatment-notes-placeholder": "Eventuele aanvullende informatie over de behandeling...",
+    "treatment-button-continue": "Ga door naar Identiteitscontrole",
+
+    "treatment-why-title": "Waarom Behandeldatum?",
+    "treatment-why-text": "De behandeldatum helpt te zorgen voor:",
+    "treatment-why-item1": "Nauwkeurige vergoedingsberekeningen",
+    "treatment-why-item2": "Juiste dekking validatie",
+    "treatment-why-item3": "Administratieve compliance",
+
+    "treatment-next-title": "Volgende Stappen",
+    "treatment-next-step1": "Verifieer patiënt identiteitsdocument",
+    "treatment-next-step2": "Scan QR-code op PRC-kaart",
+    "treatment-next-step3": "Voltooi verificatieproces",
+
+    "footer-copyright": "© 2024 EHIC Verificatie App - Zorgverlener Oplossing"
+}

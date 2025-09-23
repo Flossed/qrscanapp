@@ -1,0 +1,48 @@
+{
+    "language-name": "English",
+    "language-selector": "Select Language",
+
+    "nav-brand": "EHIC Verifier",
+    "nav-home": "Home",
+    "nav-scanner": "Scanner",
+    "nav-history": "History",
+    "nav-check-bridge": "Check Bridge",
+
+    "landing-breadcrumb-welcome": "Welcome",
+    "landing-breadcrumb-treatment-date": "Treatment Date",
+    "landing-breadcrumb-identity-check": "Identity Check",
+    "landing-breadcrumb-qr-verification": "QR Verification",
+    "landing-breadcrumb-results": "Results",
+
+    "landing-title": "PRC Verifier",
+    "landing-welcome-text": "Welcome to the verifier-app of EHIC attestations. Please start the verification by optionally adding the treatment date. If you are unsure about the treatment date please proceed with the verification.",
+    "landing-identity-text": "We will start by asking the customer for a valid passport or identity card. The identity will need to match with the PRC, else the reimbursement of the treatment might be refused.",
+    "landing-scan-text": "Then please scan the QR code on the PRC if there is one, to assure the validity of the document. The verifier app will then do some checks to assure the customer can be reimbursed for treatment.",
+    "landing-result-text": "Once verified, the result of the verification can be seen, and the evidence can be sent to your HCP administrative account.",
+    "landing-thank-you": "Thank you very much",
+
+    "landing-button-continue": "Continue to Treatment Date",
+
+    "treatment-title": "Treatment Date",
+    "treatment-subtitle": "Please specify the date when the treatment occurred (defaults to today)",
+    "treatment-date-label": "Treatment Date",
+    "treatment-date-optional": "(Optional)",
+    "treatment-date-help": "Defaults to today. Click to select a different date (up to 30 days in the future)",
+    "treatment-notes-label": "Additional Notes",
+    "treatment-notes-optional": "(Optional)",
+    "treatment-notes-placeholder": "Any additional information about the treatment...",
+    "treatment-button-continue": "Continue to Identity Check",
+
+    "treatment-why-title": "Why Treatment Date?",
+    "treatment-why-text": "The treatment date helps ensure:",
+    "treatment-why-item1": "Accurate reimbursement calculations",
+    "treatment-why-item2": "Proper coverage validation",
+    "treatment-why-item3": "Administrative compliance",
+
+    "treatment-next-title": "Next Steps",
+    "treatment-next-step1": "Verify patient identity document",
+    "treatment-next-step2": "Scan QR code on PRC card",
+    "treatment-next-step3": "Complete verification process",
+
+    "footer-copyright": "© 2024 EHIC Verifier App - Healthcare Provider Solution"
+}

@@ -10,12 +10,18 @@
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <a href="/" class="nav-brand">EHIC Verifier</a>
+            <a href="/" class="nav-brand" data-i18n-key="nav-brand">EHIC Verifier</a>
             <div class="nav-menu">
-                <a href="/" class="nav-link active">Home</a>
-                <a href="/scanner" class="nav-link">Scanner</a>
-                <a href="/history" class="nav-link">History</a>
-                <a href="/check-bridge" class="nav-link">Check Bridge</a>
+                <a href="/" class="nav-link active" data-i18n-key="nav-home">Home</a>
+                <a href="/scanner" class="nav-link" data-i18n-key="nav-scanner">Scanner</a>
+                <a href="/history" class="nav-link" data-i18n-key="nav-history">History</a>
+                <a href="/check-bridge" class="nav-link" data-i18n-key="nav-check-bridge">Check Bridge</a>
+            </div>
+            <div class="language-selector-container">
+                <select id="languageSelector" class="language-selector">
+                    <option value="en">English</option>
+                    <option value="nl">Nederlands</option>
+                </select>
             </div>
         </div>
     </nav>
@@ -24,27 +30,27 @@
         <nav class="breadcrumb">
             <span class="breadcrumb-item active">
                 <span class="step-number">1</span>
-                Welcome
+                <span data-i18n-key="landing-breadcrumb-welcome">Welcome</span>
             </span>
             <span class="breadcrumb-separator">→</span>
             <span class="breadcrumb-item disabled">
                 <span class="step-number">2</span>
-                Treatment Date
+                <span data-i18n-key="landing-breadcrumb-treatment-date">Treatment Date</span>
             </span>
             <span class="breadcrumb-separator">→</span>
             <span class="breadcrumb-item disabled">
                 <span class="step-number">3</span>
-                Identity Check
+                <span data-i18n-key="landing-breadcrumb-identity-check">Identity Check</span>
             </span>
             <span class="breadcrumb-separator">→</span>
             <span class="breadcrumb-item disabled">
                 <span class="step-number">4</span>
-                QR Verification
+                <span data-i18n-key="landing-breadcrumb-qr-verification">QR Verification</span>
             </span>
             <span class="breadcrumb-separator">→</span>
             <span class="breadcrumb-item disabled">
                 <span class="step-number">5</span>
-                Results
+                <span data-i18n-key="landing-breadcrumb-results">Results</span>
             </span>
         </nav>
     </div>
@@ -52,25 +58,25 @@
     <main class="main-content">
         <div class="landing-container">
             <div class="welcome-header">
-                <h1>PRC Verifier</h1>
+                <h1 data-i18n-key="landing-title">PRC Verifier</h1>
             </div>
 
             <div class="welcome-content">
                 <div class="welcome-text">
-                    <p>Welcome to the verifier-app of EHIC attestations. Please start the verification by optionally adding the treatment date. If you are unsure about the treatment date please proceed with the verification.</p>
+                    <p data-i18n-key="landing-welcome-text">Welcome to the verifier-app of EHIC attestations. Please start the verification by optionally adding the treatment date. If you are unsure about the treatment date please proceed with the verification.</p>
 
-                    <p>We will start by asking the customer for a valid passport or identity card. The identity will need to match with the PRC, else the reimbursement of the treatment might be refused.</p>
+                    <p data-i18n-key="landing-identity-text">We will start by asking the customer for a valid passport or identity card. The identity will need to match with the PRC, else the reimbursement of the treatment might be refused.</p>
 
-                    <p>Then please scan the QR code on the PRC if there is one, to assure the validity of the document. The verifier app will then do some checks to assure the customer can be reimbursed for treatment.</p>
+                    <p data-i18n-key="landing-scan-text">Then please scan the QR code on the PRC if there is one, to assure the validity of the document. The verifier app will then do some checks to assure the customer can be reimbursed for treatment.</p>
 
-                    <p>Once verified, the result of the verification can be seen, and the evidence can be sent to your HCP administrative account.</p>
+                    <p data-i18n-key="landing-result-text">Once verified, the result of the verification can be seen, and the evidence can be sent to your HCP administrative account.</p>
 
-                    <p class="thank-you">Thank you very much</p>
+                    <p class="thank-you" data-i18n-key="landing-thank-you">Thank you very much</p>
                 </div>
 
                 <div class="action-buttons">
                     <button onclick="window.location.href='/treatment-date'" class="btn btn-primary btn-large">
-                        Continue to Treatment Date
+                        <span data-i18n-key="landing-button-continue">Continue to Treatment Date</span>
                         <span class="btn-arrow">→</span>
                     </button>
                 </div>
@@ -80,230 +86,10 @@
     </main>
 
     <footer class="footer">
-        <p>&copy; 2024 EHIC Verifier App - Healthcare Provider Solution</p>
+        <p data-i18n-key="footer-copyright">&copy; 2024 EHIC Verifier App - Healthcare Provider Solution</p>
     </footer>
 
-    <style>
-        .breadcrumb-container {
-            background: #fff;
-            border-bottom: 1px solid #e9ecef;
-            padding: 1.5rem 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        }
 
-        .breadcrumb {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            padding: 0 2rem;
-        }
-
-        .breadcrumb-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            text-decoration: none;
-            color: #6c757d;
-            min-width: 80px;
-            max-width: 100px;
-            text-align: center;
-            line-height: 1.2;
-        }
-
-        .breadcrumb-item.active {
-            color: #667eea;
-        }
-
-        .breadcrumb-item.completed {
-            color: #28a745;
-            cursor: pointer;
-        }
-
-        .breadcrumb-item.completed:hover {
-            color: #218838;
-        }
-
-        .breadcrumb-item.disabled {
-            color: #ced4da;
-            cursor: default;
-        }
-
-        .breadcrumb-item .step-number {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0;
-            transition: all 0.3s ease;
-            border: 2px solid #ced4da;
-            background: #ced4da;
-        }
-
-        .breadcrumb-item.active .step-number {
-            background: #667eea;
-            border-color: #667eea;
-            transform: scale(1.2);
-        }
-
-        .breadcrumb-item.completed .step-number {
-            background: #28a745;
-            border-color: #28a745;
-        }
-
-        .breadcrumb-item.completed:hover .step-number {
-            background: #218838;
-            border-color: #218838;
-            transform: scale(1.1);
-        }
-
-        .breadcrumb-item.disabled .step-number {
-            background: #f8f9fa;
-            border-color: #ced4da;
-        }
-
-        .breadcrumb-separator {
-            color: #ced4da;
-            font-size: 1.5rem;
-            margin: 0 0.5rem;
-            font-weight: bold;
-        }
-
-        @media (max-width: 768px) {
-            .breadcrumb {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 0.5rem;
-                padding: 0 1rem;
-            }
-
-            .breadcrumb-item {
-                padding: 0.3rem;
-                font-size: 0.75rem;
-                min-width: 60px;
-                max-width: 80px;
-            }
-
-            .breadcrumb-item .step-number {
-                width: 12px;
-                height: 12px;
-            }
-
-            .breadcrumb-separator {
-                font-size: 1.2rem;
-                margin: 0 0.25rem;
-            }
-        }
-
-        .landing-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem;
-            text-align: center;
-        }
-
-        .welcome-header {
-            margin-bottom: 3rem;
-        }
-
-        .welcome-header h1 {
-            color: #2c3e50;
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            font-weight: 300;
-        }
-
-
-        .welcome-content {
-            background: #fff;
-            border-radius: 12px;
-            padding: 2.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            margin-bottom: 3rem;
-        }
-
-        .welcome-text {
-            text-align: left;
-            line-height: 1.8;
-            color: #555;
-            font-size: 1.1rem;
-        }
-
-        .welcome-text p {
-            margin-bottom: 1.5rem;
-        }
-
-        .thank-you {
-            font-weight: 600;
-            color: #2c3e50;
-            text-align: center;
-            font-size: 1.2rem;
-            margin-top: 2rem !important;
-        }
-
-        .action-buttons {
-            margin-top: 2.5rem;
-        }
-
-        .btn-large {
-            font-size: 1.3rem;
-            padding: 1rem 2.5rem;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .btn-large:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-arrow {
-            font-size: 1.1rem;
-            transition: transform 0.3s ease;
-        }
-
-        .btn-large:hover .btn-arrow {
-            transform: translateX(3px);
-        }
-
-
-        @media (max-width: 768px) {
-            .landing-container {
-                padding: 1rem;
-            }
-
-            .welcome-header h1 {
-                font-size: 2rem;
-            }
-
-            .welcome-content {
-                padding: 1.5rem;
-            }
-
-
-            .btn-large {
-                font-size: 1.1rem;
-                padding: 0.8rem 2rem;
-            }
-        }
-    </style>
+    <script src="/js/manageLocale.js"></script>
 </body>
 </html>
