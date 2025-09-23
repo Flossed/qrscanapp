@@ -24,7 +24,6 @@ This document maps all views to their corresponding routes/controllers and docum
 | `/finalization` | GET | `finalization.ejs` | `scanRoutes.js:383` | Final verification summary |
 | `/history` | GET | `history.ejs` | `scanRoutes.js:184` | Scan history with database query |
 | `/verify` | GET | `verify.ejs` | `scanRoutes.js:373` | Manual verification interface |
-| `/check-bridge` | GET | `check-bridge.ejs` | `scanRoutes.js:748` | Bridge connection testing |
 
 ### API Routes (No Views)
 
@@ -35,7 +34,6 @@ This document maps all views to their corresponding routes/controllers and docum
 | `/api/scans/recent` | GET | `scanRoutes.js:276` | Get recent scans |
 | `/api/verify` | POST | `scanRoutes.js:1051` | Process QR verification |
 | `/api/send-verification-email` | POST | `scanRoutes.js:388` | Send verification email with PDF |
-| `/api/check-bridge` | POST | `scanRoutes.js:759` | File upload and bridge check |
 | `/api/reference` | GET/POST | `scanRoutes.js:321/299` | Reference data operations |
 
 ## View Files Analysis
@@ -48,7 +46,6 @@ This document maps all views to their corresponding routes/controllers and docum
 - **Breadcrumb Position**: Step 1 (Welcome)
 - **Internal Links**:
   - Continue button → `/treatment-date`
-  - Navigation menu → `/scanner`, `/history`, `/check-bridge`
 - **Features**: Language selector, translation system
 
 #### 2. `treatment-date.ejs` - Treatment Date Input
@@ -110,9 +107,7 @@ This document maps all views to their corresponding routes/controllers and docum
   - Redirect if no data → `/`
 - **Features**: Step-by-step verification display
 
-#### 9. `check-bridge.ejs` - Bridge Testing
 - **Purpose**: Test bridge connections and file uploads
-- **API Integration**: `/api/check-bridge` for file processing
 - **Internal Links**: Navigation menu only
 - **Features**: File upload, progress tracking
 
@@ -153,7 +148,6 @@ The navbar provides direct access to key sections, allowing users to break from 
 └─────────────────────────────────────────────────────────────────┘
         │         │        │         │           │            │
         │         │        │         │           │            └─ Language Selector
-        │         │        │         │           └─ Bridge Testing (/check-bridge)
         │         │        │         └─ Scan History (/history)
         │         │        └─ Direct Scanner Access (/scanner)
         │         └─ Restart Workflow (/)
@@ -252,7 +246,6 @@ User clicks "History" → `/history` → View past scans → Can return to any w
 
 #### Scenario 3: Bridge Testing
 ```
-User clicks "Check Bridge" → `/check-bridge` → Standalone testing → Independent of verification workflow
 ```
 
 #### Scenario 4: Breadcrumb Navigation
@@ -269,7 +262,6 @@ All pages include consistent navigation access:
 | Home | `/` | Restart verification workflow | All pages |
 | Scanner | `/scanner` | Direct QR scanning access | All pages |
 | History | `/history` | Review past verifications | All pages |
-| Check Bridge | `/check-bridge` | Test bridge connections | All pages |
 | Language Selector | N/A | Switch interface language | All translated pages |
 
 ## Language Support
@@ -283,7 +275,6 @@ All pages include consistent navigation access:
 - ⏳ `finalization.ejs` - Pending translation implementation
 - ⏳ `history.ejs` - Pending translation implementation
 - ⏳ `verify.ejs` - Pending translation implementation
-- ⏳ `check-bridge.ejs` - Pending translation implementation
 
 ### Translation System
 - **Script**: `/js/manageLocale.js`
@@ -321,7 +312,6 @@ views/
 ├── finalization.ejs     # Final summary (/finalization)
 ├── history.ejs          # Scan history (/history)
 ├── verify.ejs           # Manual verification (/verify)
-├── check-bridge.ejs     # Bridge testing (/check-bridge)
 └── layout.ejs           # Base template
 
 routes/

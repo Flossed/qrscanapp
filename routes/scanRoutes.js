@@ -754,9 +754,6 @@ router.post('/api/send-verification-email', async (req, res) => {
     }
 });
 
-router.get('/check-bridge', (req, res) => {
-    res.render('check-bridge');
-});
 
 // Set up multer for file uploads
 const upload = multer({
@@ -764,53 +761,7 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-// API endpoint for checking certificates against bridge
-router.post('/api/check-bridge', upload.single('certificateFile'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
 
-        const fileContent = req.file.buffer.toString('utf8');
-        const certificates = JSON.parse(fileContent);
-
-        if (!Array.isArray(certificates)) {
-            return res.status(400).json({ error: 'File must contain a JSON array' });
-        }
-
-        const results = await processCertificatesWithProgress(certificates, null);
-        res.json(results);
-    } catch (error) {
-        console.error('Bridge check error:', error);
-        res.status(500).json({
-            error: 'Failed to process certificates',
-            message: error.message
-        });
-    }
-});
-
-// SSE endpoint for real-time progress updates
-router.get('/api/check-bridge/progress/:sessionId', (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-
-    const sessionId = req.params.sessionId;
-
-    // Store the response object for this session
-    if (!global.progressSessions) {
-        global.progressSessions = new Map();
-    }
-    global.progressSessions.set(sessionId, res);
-
-    req.on('close', () => {
-        global.progressSessions.delete(sessionId);
-    });
-
-    // Send initial connection message
-    res.write(`data: ${JSON.stringify({ type: 'connected', message: 'Progress stream connected' })}\n\n`);
-});
 
 // Enhanced endpoint for checking certificates with progress updates
 // Cache management endpoints
@@ -964,97 +915,6 @@ router.post('/api/generate-markdown-report', async (req, res) => {
     logger.trace(applicationName + ':generateMarkdownReport:Completed');
 });
 
-router.post('/api/check-bridge-with-progress', upload.single('certificateFile'), async (req, res) => {
-    logger.trace(applicationName + ':checkBridgeWithProgress:Started');
-
-    const requestId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    logger.info('Certificate check request started', {
-        requestId: requestId,
-        sessionId: req.body.sessionId,
-        fileSize: req.file ? req.file.size : 'no file',
-        timestamp: new Date().toISOString()
-    });
-
-    try {
-        if (!req.file) {
-            logger.warn('No file uploaded in request', { requestId });
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-
-        const sessionId = req.body.sessionId || Date.now().toString();
-        logger.debug('Processing uploaded file', {
-            requestId: requestId,
-            sessionId: sessionId,
-            fileSize: req.file.size,
-            mimeType: req.file.mimetype
-        });
-
-        const fileContent = req.file.buffer.toString('utf8');
-        const certificates = JSON.parse(fileContent);
-
-        if (!Array.isArray(certificates)) {
-            logger.error('Invalid file format - not an array', {
-                requestId: requestId,
-                fileType: typeof certificates,
-                fileContent: typeof certificates === 'object' ? Object.keys(certificates) : 'not object'
-            });
-            return res.status(400).json({ error: 'File must contain a JSON array' });
-        }
-
-        logger.info('File parsed successfully', {
-            requestId: requestId,
-            certificateCount: certificates.length
-        });
-
-        // Send progress function
-        const sendProgress = (type, message, data = null) => {
-            if (global.progressSessions && global.progressSessions.has(sessionId)) {
-                const progressRes = global.progressSessions.get(sessionId);
-                try {
-                    progressRes.write(`data: ${JSON.stringify({ type, message, data })}\n\n`);
-                    logger.debug('Progress sent', { requestId, sessionId, type, message });
-                } catch (error) {
-                    logger.error('Error sending progress', { requestId, sessionId, error: error.message });
-                    console.error('Error sending progress:', error);
-                }
-            }
-        };
-
-        logger.info('Starting certificate processing', {
-            requestId: requestId,
-            sessionId: sessionId,
-            certificateCount: certificates.length
-        });
-
-        const results = await processCertificatesWithProgress(certificates, sendProgress);
-
-        logger.info('Certificate processing completed successfully', {
-            requestId: requestId,
-            sessionId: sessionId,
-            totalProcessed: results.certificates.length,
-            foundInBridge: results.summary.foundInBridge,
-            missingFromBridge: results.summary.missingFromBridge
-        });
-
-        // Send final results
-        sendProgress('completed', 'Processing completed', results);
-
-        res.json(results);
-        logger.trace(applicationName + ':checkBridgeWithProgress:Completed');
-    } catch (error) {
-        logger.error('Bridge check request failed', {
-            requestId: requestId,
-            error: error.message,
-            stack: error.stack
-        });
-        console.error('Bridge check error:', error);
-        res.status(500).json({
-            error: 'Failed to process certificates',
-            message: error.message
-        });
-        logger.trace(applicationName + ':checkBridgeWithProgress:Failed');
-    }
-});
 
 // API endpoint for verification processing
 router.post('/api/verify', async (req, res) => {
