@@ -67,6 +67,37 @@ function getTranslatedElement ( key )
    return tempLocaleObj[key];
 }
 
+// Helper function for server-side compatibility - can be used from server via Node.js require
+function getTranslatedText(key, language = 'en', replacements = {}) {
+    // This function can be used for server-side translation access
+    // For client-side, use the existing getTranslatedElement function
+    if (typeof sessionStorage !== 'undefined') {
+        // Client-side environment
+        const currentLang = sessionStorage.getItem('usedLanguage') || language;
+        const translations = JSON.parse(sessionStorage.getItem('actualTranslations') || '{}');
+        let text = translations[key] || key;
+
+        // Handle replacements like {referenceNumber}, {status}, etc.
+        Object.keys(replacements).forEach(placeholder => {
+            text = text.replace(new RegExp(`{${placeholder}}`, 'g'), replacements[placeholder]);
+        });
+
+        return text;
+    } else {
+        // Server-side environment - return key for fallback
+        // Server should use the utils/translations.js module instead
+        return key;
+    }
+}
+
+// Export for Node.js server-side usage
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        getTranslatedText,
+        getTranslatedElement
+    };
+}
+
 
 
 function translateLabels ()
