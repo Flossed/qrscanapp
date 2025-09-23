@@ -18,6 +18,29 @@ function getTranslatedText(key, fallback, replacements = {}) {
     return text;
 }
 
+// Function to update placeholder texts
+function updatePlaceholders() {
+    const emailInput = document.getElementById('email-address');
+    if (emailInput) {
+        emailInput.placeholder = getTranslatedText('finalization-enter-email', 'Enter email address');
+    }
+}
+
+// Initialize translations when DOM is ready and when language changes
+function initializeTranslations() {
+    // Wait a bit to ensure translations are loaded
+    setTimeout(() => {
+        updatePlaceholders();
+    }, 200);
+}
+
+// Call initialization
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeTranslations);
+} else {
+    initializeTranslations();
+}
+
 // Generate reference number
 function generateReferenceNumber() {
     const date = new Date();
@@ -89,7 +112,8 @@ document.getElementById('send-email').addEventListener('click', async () => {
         treatmentDate: document.getElementById('treatment-date-summary').textContent,
         verificationData: sessionStorage.getItem('verificationData') || '',
         verificationStatus: verificationStatus,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        language: sessionStorage.getItem('usedLanguage') || 'en'
     };
 
     try {

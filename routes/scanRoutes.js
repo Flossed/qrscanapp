@@ -3,6 +3,7 @@ const router = express.Router();
 const Scan = require('../models/Scan');
 const Reference = require('../models/Reference');
 const EbsiCache = require('../models/EbsiCache');
+const { getEmailTranslation } = require('../lang/email-templates');
 const base45 = require('base45');
 const pako = require('pako');
 const jwt = require('jsonwebtoken');
@@ -387,7 +388,7 @@ router.get('/finalization', (req, res) => {
 // Email verification summary endpoint
 router.post('/api/send-verification-email', async (req, res) => {
     try {
-        const { email, referenceNumber, treatmentDate, verificationData, verificationStatus, timestamp } = req.body;
+        const { email, referenceNumber, treatmentDate, verificationData, verificationStatus, timestamp, language } = req.body;
 
         // Validate email
         if (!email || !email.includes('@')) {
@@ -459,22 +460,23 @@ router.post('/api/send-verification-email', async (req, res) => {
         // Stream to file
         doc.pipe(fs.createWriteStream(pdfPath));
 
-        // Add PRC Certificate header
-        doc.fontSize(16).text('PROVISIONAL REPLACEMENT CERTIFICATE', { align: 'center' });
-        doc.fontSize(14).text('OF THE', { align: 'center' });
-        doc.fontSize(16).text('EUROPEAN HEALTH INSURANCE CARD', { align: 'center' });
+        // Add PRC Certificate header with translation
+        const userLanguage = language || 'en';
+        doc.fontSize(16).text(getEmailTranslation(userLanguage, 'pdfTitle1'), { align: 'center' });
+        doc.fontSize(14).text(getEmailTranslation(userLanguage, 'pdfTitle2'), { align: 'center' });
+        doc.fontSize(16).text(getEmailTranslation(userLanguage, 'pdfTitle3'), { align: 'center' });
         doc.moveDown();
 
-        doc.fontSize(10).text('as defined in Annex 2 to Decision No S2', { align: 'center' });
-        doc.text('concerning the technical specifications of the European Health Insurance Card', { align: 'center' });
+        doc.fontSize(10).text(getEmailTranslation(userLanguage, 'pdfSubtitle1'), { align: 'center' });
+        doc.text(getEmailTranslation(userLanguage, 'pdfSubtitle2'), { align: 'center' });
         doc.moveDown();
 
         // Add verification header
         const statusSymbol = (status) => status ? '✅' : '❌';
-        const overallStatus = verificationStatus?.overall ? 'VERIFIED' : 'FAILED';
-        doc.fontSize(12).text(`VERIFICATION STATUS: ${statusSymbol(verificationStatus?.overall)} ${overallStatus}`, { align: 'center' });
-        doc.text(`Reference: ${referenceNumber} | Treatment Date: ${treatmentDate}`, { align: 'center' });
-        doc.text(`Verified: ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
+        const overallStatus = verificationStatus?.overall ? getEmailTranslation(userLanguage, 'successful') : getEmailTranslation(userLanguage, 'failed');
+        doc.fontSize(12).text(`${getEmailTranslation(userLanguage, 'pdfVerificationStatus')} ${statusSymbol(verificationStatus?.overall)} ${overallStatus}`, { align: 'center' });
+        doc.text(`${getEmailTranslation(userLanguage, 'pdfReference')} ${referenceNumber} | ${getEmailTranslation(userLanguage, 'pdfTreatmentDate')} ${treatmentDate}`, { align: 'center' });
+        doc.text(`${getEmailTranslation(userLanguage, 'pdfVerified')} ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
         doc.moveDown();
 
         // Extract EHIC/PRC data from JWT payload
@@ -534,46 +536,46 @@ router.post('/api/send-verification-email', async (req, res) => {
         // PRC Certificate sections - exact template format
 
         // Issuing Member State section
-        doc.fontSize(12).text('Issuing Member State', { underline: true });
+        doc.fontSize(12).text(getEmailTranslation(userLanguage, 'pdfIssuingMemberState'), { underline: true });
         doc.text('1.', { continued: true }).text(`                                                  2. ${prcData.issuingMemberState}`);
         doc.moveDown();
 
         // Card holder-related information
-        doc.text('Card holder-related information', { underline: true });
-        doc.text(`3. Name: ${prcData.cardHolderName}`);
-        doc.text(`4. Given name(s): ${prcData.cardHolderGivenName}`);
-        doc.text(`5. Date of birth: ${prcData.dateOfBirth}`);
-        doc.text(`6. Personal identification number: ${prcData.personalIdNumber}`);
+        doc.text(getEmailTranslation(userLanguage, 'pdfCardHolderInfo'), { underline: true });
+        doc.text(`3. ${getEmailTranslation(userLanguage, 'pdfNameField')} ${prcData.cardHolderName}`);
+        doc.text(`4. ${getEmailTranslation(userLanguage, 'pdfGivenNameField')} ${prcData.cardHolderGivenName}`);
+        doc.text(`5. ${getEmailTranslation(userLanguage, 'pdfDateOfBirthField')} ${prcData.dateOfBirth}`);
+        doc.text(`6. ${getEmailTranslation(userLanguage, 'pdfPersonalIdField')} ${prcData.personalIdNumber}`);
         doc.moveDown();
 
         // Competent institution-related information
-        doc.text('Competent institution-related information', { underline: true });
-        doc.text(`7. Identification number of the institution:`);
+        doc.text(getEmailTranslation(userLanguage, 'pdfCompetentInstitutionInfo'), { underline: true });
+        doc.text(`7. ${getEmailTranslation(userLanguage, 'pdfInstitutionIdField')}`);
         doc.text(`    ${prcData.institutionId}`);
         if (prcData.institutionName && prcData.institutionName !== 'N/A') {
-            doc.text(`    Institution name: ${prcData.institutionName}`);
+            doc.text(`    ${getEmailTranslation(userLanguage, 'pdfInstitutionNameField')} ${prcData.institutionName}`);
         }
         doc.moveDown();
 
         // Card-related information
-        doc.text('Card-related information', { underline: true });
-        doc.text(`8. Identification number of the card: ${prcData.cardId}`);
-        doc.text(`9. Expiry date: ${prcData.expiryDate}`);
+        doc.text(getEmailTranslation(userLanguage, 'pdfCardInfo'), { underline: true });
+        doc.text(`8. ${getEmailTranslation(userLanguage, 'pdfCardIdField')} ${prcData.cardId}`);
+        doc.text(`9. ${getEmailTranslation(userLanguage, 'pdfExpiryDateField')} ${prcData.expiryDate}`);
         doc.moveDown();
 
         // Certificate validity period
-        doc.text('Certificate validity period', { underline: true });
-        doc.text(`(a). From: ${prcData.validityStart}`);
-        doc.text(`(b). To: ${prcData.validityEnd}`);
+        doc.text(getEmailTranslation(userLanguage, 'pdfCertificateValidityPeriod'), { underline: true });
+        doc.text(`(a). ${getEmailTranslation(userLanguage, 'pdfFromField')} ${prcData.validityStart}`);
+        doc.text(`(b). ${getEmailTranslation(userLanguage, 'pdfToField')} ${prcData.validityEnd}`);
         doc.moveDown();
 
         // Certificate delivery date
-        doc.text('Certificate delivery date', { underline: true });
+        doc.text(getEmailTranslation(userLanguage, 'pdfCertificateDeliveryDate'), { underline: true });
         doc.text(`(c). ${prcData.deliveryDate}`);
         doc.moveDown();
 
         // Add signature section
-        doc.text('Signature and stamp of the institution');
+        doc.text(getEmailTranslation(userLanguage, 'pdfSignatureStamp'));
         doc.moveDown();
 
         // Add signature box and QR code side by side
@@ -581,12 +583,12 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Left side - Signature information
         doc.fontSize(10);
-        doc.text('Digitally signed by:', doc.x, startY);
+        doc.text(getEmailTranslation(userLanguage, 'pdfDigitallySignedBy'), doc.x, startY);
         doc.text('EHIC/PRC Verification System', doc.x, doc.y + 5);
-        doc.text(`Institution: ${prcData.institutionName !== 'N/A' ? prcData.institutionName : 'Healthcare Provider'}`, doc.x, doc.y + 5);
-        doc.text(`Institution ID: ${prcData.institutionId}`, doc.x, doc.y + 5);
-        doc.text(`Signed on: ${new Date(timestamp).toLocaleDateString('en-GB')}`, doc.x, doc.y + 5);
-        doc.text(`Time: ${new Date(timestamp).toLocaleTimeString('en-GB')}`, doc.x, doc.y + 5);
+        doc.text(`${getEmailTranslation(userLanguage, 'pdfInstitution')} ${prcData.institutionName !== 'N/A' ? prcData.institutionName : 'Healthcare Provider'}`, doc.x, doc.y + 5);
+        doc.text(`${getEmailTranslation(userLanguage, 'pdfInstitutionIdSignature')} ${prcData.institutionId}`, doc.x, doc.y + 5);
+        doc.text(`${getEmailTranslation(userLanguage, 'pdfSignedOn')} ${new Date(timestamp).toLocaleDateString('en-GB')}`, doc.x, doc.y + 5);
+        doc.text(`${getEmailTranslation(userLanguage, 'pdfTime')} ${new Date(timestamp).toLocaleTimeString('en-GB')}`, doc.x, doc.y + 5);
 
         // Add verification hash/fingerprint
         const verificationHash = require('crypto')
@@ -596,13 +598,13 @@ router.post('/api/send-verification-email', async (req, res) => {
             .substring(0, 16)
             .toUpperCase();
 
-        doc.text(`Verification Hash: ${verificationHash}`, doc.x, doc.y + 10);
+        doc.text(`${getEmailTranslation(userLanguage, 'pdfVerificationHash')} ${verificationHash}`, doc.x, doc.y + 10);
 
         // Add signature line
         doc.moveTo(doc.x, doc.y + 20)
            .lineTo(doc.x + 180, doc.y + 20)
            .stroke();
-        doc.text('Digital Signature', doc.x + 50, doc.y + 25);
+        doc.text(getEmailTranslation(userLanguage, 'pdfDigitalSignature'), doc.x + 50, doc.y + 25);
 
         // Right side - Add QR code
         if (verificationData) {
@@ -620,7 +622,7 @@ router.post('/api/send-verification-email', async (req, res) => {
 
                 // QR code label
                 doc.fontSize(8);
-                doc.text('Original QR Code', doc.x + 240, startY + 125);
+                doc.text(getEmailTranslation(userLanguage, 'pdfOriginalQrCode'), doc.x + 240, startY + 125);
             } catch (qrError) {
                 logger.error('Failed to generate QR code for PDF', { error: qrError.message });
             }
@@ -629,19 +631,21 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.moveDown(10); // Space for signature area
 
         // Add notes section
-        doc.text('Notes and information', { underline: true });
-        doc.fontSize(10).text('All norms applicable to the eye-readable data included in the European card and related to the description, values, length and remarks of the data fields, are applicable to the certificate.');
+        doc.text(getEmailTranslation(userLanguage, 'pdfNotesTitle'), { underline: true });
+        doc.fontSize(10).text(getEmailTranslation(userLanguage, 'pdfNotesText'));
         doc.moveDown();
 
         // Add verification results section
-        doc.fontSize(12).text('VERIFICATION RESULTS', { underline: true, align: 'center' });
+        doc.fontSize(12).text(getEmailTranslation(userLanguage, 'pdfVerificationResults'), { underline: true, align: 'center' });
         doc.moveDown();
         doc.fontSize(10);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.base45Decode)} BASE45 Decoding: ${verificationStatus?.steps?.base45Decode ? 'PASSED' : 'FAILED'}`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.zlibDecompression)} ZLIB Decompression: ${verificationStatus?.steps?.zlibDecompression ? 'PASSED' : 'FAILED'}`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.jwtParsing)} JWT Structure Validation: ${verificationStatus?.steps?.jwtParsing ? 'PASSED' : 'FAILED'}`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.certificateAuthority)} Certificate Authority Verification: ${verificationStatus?.steps?.certificateAuthority ? 'PASSED' : 'FAILED'}`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.signatureVerification)} Digital Signature Validation: ${verificationStatus?.steps?.signatureVerification ? 'PASSED' : 'FAILED'}`);
+        const passedText = getEmailTranslation(userLanguage, 'passed');
+        const failedText = getEmailTranslation(userLanguage, 'failed');
+        doc.text(`${statusSymbol(verificationStatus?.steps?.base45Decode)} ${getEmailTranslation(userLanguage, 'base45Decoding')}: ${verificationStatus?.steps?.base45Decode ? passedText : failedText}`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.zlibDecompression)} ${getEmailTranslation(userLanguage, 'zlibDecompression')}: ${verificationStatus?.steps?.zlibDecompression ? passedText : failedText}`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.jwtParsing)} ${getEmailTranslation(userLanguage, 'jwtValidation')}: ${verificationStatus?.steps?.jwtParsing ? passedText : failedText}`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.certificateAuthority)} ${getEmailTranslation(userLanguage, 'certificateVerification')}: ${verificationStatus?.steps?.certificateAuthority ? passedText : failedText}`);
+        doc.text(`${statusSymbol(verificationStatus?.steps?.signatureVerification)} ${getEmailTranslation(userLanguage, 'signatureValidation')}: ${verificationStatus?.steps?.signatureVerification ? passedText : failedText}`);
 
         // Finalize PDF
         doc.end();
@@ -652,41 +656,43 @@ router.post('/api/send-verification-email', async (req, res) => {
         // Determine overall status
         const overallSuccess = verificationStatus?.overall || false;
         const statusIcon = overallSuccess ? '✅' : '❌';
-        const statusText = overallSuccess ? 'SUCCESSFUL' : 'FAILED';
 
-        // Email HTML content with actual verification status
+        // Get translated status text
+        const statusText = getEmailTranslation(userLanguage, overallSuccess ? 'successful' : 'failed');
+
+        // Email HTML content with translated text
         const emailHTML = `
-            <h2>EHIC/PRC Verification Summary - ${statusText}</h2>
-            <p><strong>Reference Number:</strong> ${referenceNumber}</p>
-            <p><strong>Treatment Date:</strong> ${treatmentDate}</p>
-            <p><strong>Verification Time:</strong> ${new Date(timestamp).toLocaleString()}</p>
+            <h2>${getEmailTranslation(userLanguage, 'title', { status: statusText })}</h2>
+            <p><strong>${getEmailTranslation(userLanguage, 'referenceNumber')}</strong> ${referenceNumber}</p>
+            <p><strong>${getEmailTranslation(userLanguage, 'treatmentDate')}</strong> ${treatmentDate}</p>
+            <p><strong>${getEmailTranslation(userLanguage, 'verificationTime')}</strong> ${new Date(timestamp).toLocaleString()}</p>
             <hr>
-            <h3>Verification Status: ${statusIcon} ${statusText}</h3>
+            <h3>${getEmailTranslation(userLanguage, 'verificationStatus', { icon: statusIcon, status: statusText })}</h3>
             <ul>
-                <li>${statusSymbol(verificationStatus?.steps?.base45Decode)} BASE45 Decoding</li>
-                <li>${statusSymbol(verificationStatus?.steps?.zlibDecompression)} ZLIB Decompression</li>
-                <li>${statusSymbol(verificationStatus?.steps?.jwtParsing)} JWT Structure Validation</li>
-                <li>${statusSymbol(verificationStatus?.steps?.certificateAuthority)} Certificate Authority Verification</li>
-                <li>${statusSymbol(verificationStatus?.steps?.signatureVerification)} Digital Signature Validation</li>
+                <li>${statusSymbol(verificationStatus?.steps?.base45Decode)} ${getEmailTranslation(userLanguage, 'base45Decoding')}</li>
+                <li>${statusSymbol(verificationStatus?.steps?.zlibDecompression)} ${getEmailTranslation(userLanguage, 'zlibDecompression')}</li>
+                <li>${statusSymbol(verificationStatus?.steps?.jwtParsing)} ${getEmailTranslation(userLanguage, 'jwtValidation')}</li>
+                <li>${statusSymbol(verificationStatus?.steps?.certificateAuthority)} ${getEmailTranslation(userLanguage, 'certificateVerification')}</li>
+                <li>${statusSymbol(verificationStatus?.steps?.signatureVerification)} ${getEmailTranslation(userLanguage, 'signatureValidation')}</li>
             </ul>
             <hr>
-            <h3>PRC Certificate Information</h3>
+            <h3>${getEmailTranslation(userLanguage, 'prcCertificateInfo')}</h3>
             <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 5px; font-weight: bold;">Name:</td><td style="padding: 5px;">${prcData.cardHolderName}</td></tr>
-                <tr><td style="padding: 5px; font-weight: bold;">Given Name:</td><td style="padding: 5px;">${prcData.cardHolderGivenName}</td></tr>
-                <tr><td style="padding: 5px; font-weight: bold;">Date of Birth:</td><td style="padding: 5px;">${prcData.dateOfBirth}</td></tr>
-                <tr><td style="padding: 5px; font-weight: bold;">Personal ID:</td><td style="padding: 5px;">${prcData.personalIdNumber}</td></tr>
-                <tr><td style="padding: 5px; font-weight: bold;">Issuing State:</td><td style="padding: 5px;">${prcData.issuingMemberState}</td></tr>
-                <tr><td style="padding: 5px; font-weight: bold;">Institution ID:</td><td style="padding: 5px;">${prcData.institutionId}</td></tr>
-                <tr><td style="padding: 5px; font-weight: bold;">Card ID:</td><td style="padding: 5px;">${prcData.cardId}</td></tr>
-                <tr><td style="padding: 5px; font-weight: bold;">Valid From:</td><td style="padding: 5px;">${prcData.validityStart}</td></tr>
-                <tr><td style="padding: 5px; font-weight: bold;">Valid To:</td><td style="padding: 5px;">${prcData.validityEnd}</td></tr>
-                <tr><td style="padding: 5px; font-weight: bold;">Expiry Date:</td><td style="padding: 5px;">${prcData.expiryDate}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">${getEmailTranslation(userLanguage, 'name')}</td><td style="padding: 5px;">${prcData.cardHolderName}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">${getEmailTranslation(userLanguage, 'givenName')}</td><td style="padding: 5px;">${prcData.cardHolderGivenName}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">${getEmailTranslation(userLanguage, 'dateOfBirth')}</td><td style="padding: 5px;">${prcData.dateOfBirth}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">${getEmailTranslation(userLanguage, 'personalId')}</td><td style="padding: 5px;">${prcData.personalIdNumber}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">${getEmailTranslation(userLanguage, 'issuingState')}</td><td style="padding: 5px;">${prcData.issuingMemberState}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">${getEmailTranslation(userLanguage, 'institutionId')}</td><td style="padding: 5px;">${prcData.institutionId}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">${getEmailTranslation(userLanguage, 'cardId')}</td><td style="padding: 5px;">${prcData.cardId}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">${getEmailTranslation(userLanguage, 'validFrom')}</td><td style="padding: 5px;">${prcData.validityStart}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">${getEmailTranslation(userLanguage, 'validTo')}</td><td style="padding: 5px;">${prcData.validityEnd}</td></tr>
+                <tr><td style="padding: 5px; font-weight: bold;">${getEmailTranslation(userLanguage, 'expiryDate')}</td><td style="padding: 5px;">${prcData.expiryDate}</td></tr>
             </table>
             <hr>
-            <p><strong>Note:</strong> A detailed PDF evidence document is attached to this email.</p>
-            <p>This is an automated verification summary from the EHIC/PRC Verification System.</p>
-            <p>Please keep this email and attachment for your records.</p>
+            <p><strong>${getEmailTranslation(userLanguage, 'noteLabel')}</strong> ${getEmailTranslation(userLanguage, 'noteText')}</p>
+            <p>${getEmailTranslation(userLanguage, 'automatedMessage')}</p>
+            <p>${getEmailTranslation(userLanguage, 'keepRecords')}</p>
         `;
 
         // Read PDF file for attachment
@@ -696,7 +702,10 @@ router.post('/api/send-verification-email', async (req, res) => {
         await transporter.sendMail({
             from: '"EHIC Verifier" <noreply@ehic-verifier.com>',
             to: email,
-            subject: `Verification Summary - Reference: ${referenceNumber} - ${overallSuccess ? 'PASSED' : 'FAILED'}`,
+            subject: getEmailTranslation(userLanguage, 'subject', {
+                referenceNumber: referenceNumber,
+                status: statusText
+            }),
             html: emailHTML,
             attachments: [
                 {
