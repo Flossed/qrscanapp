@@ -1,0 +1,14 @@
+Export of the data to the HCP : Quid ? KHAN Daniel (EMPL-EXT) will make a description/document on that; these were ideas during the meeting
+Verifier = idenified with emailaddress
+Export can contain (in json and/or on a pdf to be created)
+the qr itself
+the contents of the qr : jwt content (payload of the PRC etc)
+result of the verification : 
+point in time when verification was done
+whether revocation was verified
+result of the verification
+maybe this package can also be included in a signed document (?)
+result can be sent to the verifiers email address
+
+
+# export of data to the Healthcare provider. 

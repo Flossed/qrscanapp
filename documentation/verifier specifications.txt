@@ -1,0 +1,153 @@
+Verifier Process
+
+1. Get TreatmentDate :
+
+	- if present validate <= current date
+		=> Unhappy : Red output "Treatmentdate invalid"
+		
+	- if not present : get current date
+	
+2. Read JWT present in QR (from camera or image file)
+
+	- read QR to base45
+		=> Unhappy : Red output "QR invalid"
+		
+	- uncompress (zlib) to encoded JWT
+		=> Unhappy : Red output "QR invalid"
+		
+	- decode JWT to
+		* header :
+			{
+			  "typ": "JWT",
+			  "alg": "RS256",														-- ES256 or RS256
+			  "kid": "EESSi:x5t#S256:LuP3d6tynGGqfoSUlqpNxVd6Qq1W32706znU35R10Cw" 	-- pattern: "^EESSI:(x5t#S256|jkt):[A-Za-z0-9_-]+$")
+			}
+		* payload : 
+			{
+			  "sid": "eessi:prc:1.0",												-- version of JSON Schema pattern: "^eessi:prc:\\d+\\.\\d+$"
+			  "jti": "49f095e2-2dbf-4525-99b9-3c8956083e97",						-- optional JTI given by issuer
+			  "rid": "https://example.org/revocation/list",							-- optional revocation list
+			  "prc": {
+				"ic": "BE",
+				"fn": "Doe",
+				"gn": "John",
+				"dob": "2011-11-11",
+				"hi": "11111111111",
+				"in": "CM",
+				"ii": "0128",														-- institution ID 
+				"ci": "12345678910111213141",
+				"sd": "2025-07-01",													-- start date of PRC
+				"ed": "2025-09-30",													-- end date of PRC
+				"xd": "2025-12-31",													-- expire date of EHIC which the PRC replaces
+				"di": "2025-07-01"													-- date of issuance of the PRC
+			  }	
+			}
+		* signature
+		=> Unhappy : Red output "QR invalid"
+		
+3. Do schema validation on the JWT header and payload
+
+	- Resolve the schema mentioned in payload/sid
+		=> Unhappy : Red output "QR invalid"
+		
+	- Validate header and payload to the schema mentioned in payload/sid
+		=> Unhappy : Red output "QR invalid"
+		
+4. Resolve public key and verify signature (NOTICE that in this stage we presume the resolver will only return the KEY for the official ID in question being the authentic source!)
+
+	- Resolve Key with Resolver API ebsi using params : 
+		* header/kid part after x5t#S256 = x509Thumbprint
+		* payload/prc/ic = countryCode
+		* payload/prc/ii = officialId
+
+        For example :
+
+        GET https://resolver-test.ebsi.eu/api/v1/issuers?x509Thumbprint=LuP3d6tynGGqfoSUlqpNxVd6Qq1W32706znU35R10Cw&countryCode=BE&officialId=0128
+		
+	- Resolver should return the single KEY for the given input + accreditation periods for EHIC for the officialID, like this:
+
+        For example on the above call : 
+
+        "results": [
+            {
+                "officialId": "0128",
+                "countryCode": "BE",
+                "name": "ACC_Christian health insurance fund-Hainaut Oriental",
+                "did": "did:ebsi:zua9gwP4zT9s6Aow9XdtK6K",
+                "publicKeys": [
+                    {
+                        "kty": "RSA",
+                        "n": "uJsGldHo_7HbaIGRznG3FoI3Wq4U95tsZtkObD6fTK8IVfyhfsPAfeNZ4lWc3a379YHJkQfxYJOq0tAt8p8zylJod9-0c5YMIbxrSjG6h5lFfi5XkXGFvX-yjUeX3FOBddfdz3H3FGxr7WqGudtjek-kz6ZIZm_2OTkNDUSvupBIMb4m7QL0Y4VapxrIR12HEjCjbjzDhWH6XB3JJOz0Np4T33C9xU_qnTrWT3ofy8AzsloX-yEfKhPtaTSRf75_nUGRb23dn01XirFfSau7jJGBFefJa7MMAWHm0YDzsXKyXj2EpLNwBIAcESvT5BAlIfvhmC8JONNq4GNb-5p4HQ",
+                        "e": "AQAB",
+                        "x5t#S256": "LuP3d6tynGGqfoSUlqpNxVd6Qq1W32706znU35R10Cw"
+                    }
+                ],
+                "certificates": [
+                     {
+                        "x5t#S256": "LuP3d6tynGGqfoSUlqpNxVd6Qq1W32706znU35R10Cw",
+                        "validFrom" : "2023-08-14T02:00:00GMT+0200",
+                        "validUntil" : "2024-08-14T01:59:59GMT+0200",
+                        "certificate" : "-----BEGIN CERTIFICATE-----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-----END CERTIFICATE-----"
+                    }  
+                ],
+                "accredidationPeriods": [
+                    {
+                        "portableDocument" : "EHIC",
+                        "validFrom" : "2004-01-01T00:00:00Z",
+                        "validUntil" : "2005-01-01T00:00:00Z"
+                    },
+                    {
+                        "portableDocument" : "EHIC",
+                        "validFrom" : "2020-01-01T00:00:00Z"
+                    }
+                ]
+            }
+        ]
+
+	- Verify the single issuer is correctly returned for officialId / countryCode given in input
+		=> Unhappy (no issuer found) : Red output "QR invalid"	
+		=> Unhappy (multiple issuer found) : Black output "Internal Error Resolving issuer"
+		=> Unhappy (officialid or countrycode in the returned issuer is not equal to officialid/countrycode requested) : Black output "Internal Error Resolving issuer"
+
+	- Verify the single issuer contains a certificate for the requested hash
+		=> Unhappy (no certificate found with x5t#S256 hash equal to the x509Thumbprint requested) : Black output "Internal Error Resolving issuer"
+	
+	- Use the public key found to verify the JWT signature
+		=> Unhappy (JWT invalid) : Red output "QR invalid"	
+
+5. Do business validations on the payload
+
+	- Public key must be valid on payload/prc/di
+		Notice that the validity period of the certificate is expressed in datetimes, while the payload/prc/di is only a local date. Since this causes that we cannot know at what time the issuance was done a choice is made to verify the payload/prc/di against the local date parts of the validity period of the certificate. So in the certificate of the example above ( "validFrom" : "2023-08-14T02:00:00GMT+0200", "validUntil" : "2024-08-14T01:59:59GMT+0200" ) any payload/prc/di in the interval [2023-08-14, 2024-08-14] should be considered ok.	
+	
+	- Institution must be accredited for EHIC on payload/prc/di
+		Notice that the validity period of the accredidationPeriods is expressed in datetimes, while the payload/prc/di is only a local date. Since this causes that we cannot know at what time the issuance was done a choice is made to verify the payload/prc/di against the local date parts of the accredidationPeriods. So in the accredidationPeriods of the example above ( "validFrom" : "2004-01-01T00:00:00Z", "validUntil" : "2005-01-01T00:00:00Z" + "validFrom" : "2020-01-01T00:00:00Z" ) any payload/prc/di in the intervals [2004-01-01, 2005-01-01] and [2020-01-01,∞[ should be considered ok.	
+	
+	- payload/prc/sd must be <= payload/prc/ed 						logical period sd-ed
+	- payload/prc/sd must be >= payload/prc/dob 					not being 'insured' before even being born; consider dob with '00' yyyy-00-00, yyyy-mm-00 as '01')
+	- payload/prc/di must be >= payload/prc/sd						date of issuance must lie in period [sd, ed]
+	- payload/prc/ed must be >= payload/prc/di						date of issuance must lie in period [sd, ed]
+	- if payload/prc/xd is present it must be >= payload/prc/ed		expirydate must lie in period [ed,..[
+	
+		=> Unhappy (Business validation fails) : Red output "QR invalid"
+		
+	- confirm length payload/prc/ii + payload/prc/in = max 25 		
+	- confirm payload/prc/ci contains only digits
+	
+		=> Mediocre Happy (Confirmation validation fails) : you remain happy, but if output is Green in the end you add these as 'warnings'.
+
+6. [out of scope of demo] Check revocation if payload/jti and payload/rid are present
+
+	- verify that payload/jti is not present on the revocation list exposed on payload/rid
+	
+		=> Unhappy (PRC not valid) : Red output "PRC revoked"
+		
+7. Do actual validation of treatment date
+
+	- verify treatment date lies in period [payload/prc/sd, payload/prc/ed] (NOTICE that we do NOT consider payload/prc/xd !!)
+
+		=> Unhappy (PRC not valid) : Red output "PRC not valid on treatment date"
+
+8. Output result
+
+	=> Happy (PRC  valid) : Green output "PRC valid on treatment date" + show all payload data visible + export the data in some machine format (also including the verification result)
