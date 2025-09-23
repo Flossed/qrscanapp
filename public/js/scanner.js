@@ -1,6 +1,24 @@
 let html5QrcodeScanner = null;
 let lastDecodedText = null;
 
+// Translation helper function
+function getTranslatedText(key, fallback, replacements = {}) {
+    // Get current language from sessionStorage or default to 'en'
+    const currentLang = sessionStorage.getItem('usedLanguage') || 'en';
+
+    // Get cached translations from sessionStorage
+    const translations = JSON.parse(sessionStorage.getItem('actualTranslations') || '{}');
+
+    let text = translations[key] || fallback;
+
+    // Handle replacements like {count}
+    Object.keys(replacements).forEach(placeholder => {
+        text = text.replace(`{${placeholder}}`, replacements[placeholder]);
+    });
+
+    return text;
+}
+
 const startButton = document.getElementById('start-scanner');
 const stopButton = document.getElementById('stop-scanner');
 const resultContainer = document.getElementById('result-container');
@@ -37,7 +55,7 @@ function onScanFailure(error) {
 function startScanner() {
     // Check if camera API is available
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        showMessage('Camera not available. Please use HTTPS or check browser compatibility.', 'error');
+        showMessage(getTranslatedText('scan-camera-not-available', 'Camera not available. Please use HTTPS or check browser compatibility.'), 'error');
         console.error('getUserMedia not supported. Make sure you are using HTTPS.');
         return;
     }

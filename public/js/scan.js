@@ -3,19 +3,38 @@
 const urlParams = new URLSearchParams(window.location.search);
 const scannerVersion = urlParams.get('scanner') || 'simple';
 
-// Load appropriate scanner
-const script = document.createElement('script');
-if (scannerVersion === 'debug') {
-    script.src = '/js/scanner-debug.js';
-    console.log('Using DEBUG scanner');
-} else if (scannerVersion === 'original') {
-    script.src = '/js/scanner.js';
-    console.log('Using ORIGINAL scanner');
-} else {
-    script.src = '/js/scanner-simple.js';
-    console.log('Using SIMPLE scanner (default)');
+// Wait for translations to be loaded before loading scanner
+function loadScannerWhenReady() {
+    // Check if translations are available
+    const translations = sessionStorage.getItem('actualTranslations');
+
+    if (!translations) {
+        // Wait a bit more for translations to load
+        setTimeout(loadScannerWhenReady, 100);
+        return;
+    }
+
+    // Load appropriate scanner
+    const script = document.createElement('script');
+    if (scannerVersion === 'debug') {
+        script.src = '/js/scanner-debug.js';
+        console.log('Using DEBUG scanner');
+    } else if (scannerVersion === 'original') {
+        script.src = '/js/scanner.js';
+        console.log('Using ORIGINAL scanner');
+    } else {
+        script.src = '/js/scanner-simple.js';
+        console.log('Using SIMPLE scanner (default)');
+    }
+    document.body.appendChild(script);
 }
-document.body.appendChild(script);
+
+// Start loading when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadScannerWhenReady);
+} else {
+    loadScannerWhenReady();
+}
 
 // Add version indicator
 window.addEventListener('load', () => {
