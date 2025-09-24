@@ -745,6 +745,17 @@ router.post('/api/send-verification-email', async (req, res) => {
         // STATUS SYMBOLS - to be used later
         const statusSymbol = (status) => status ? '✅' : '❌';
 
+        // Helper function to get validation status (used by both PDF and email)
+        const validationData = verificationStatus?.validationSummary || verificationStatus?.steps || {};
+        const getValidationStatus = (key, fallbackKey) => {
+            const validation = validationData[key];
+            if (validation && typeof validation === 'object') {
+                return validation.status === 'success';
+            }
+            // Fallback to old boolean format
+            return validationData[fallbackKey] || false;
+        };
+
         // Extract EHIC/PRC data from JWT payload
         let prcData = {
             issuingMemberState: 'N/A',
@@ -1344,9 +1355,10 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.addPage();
 
         // Add verification header on page 2 - Arial fonts
-        const overallStatus = verificationStatus?.overall ? getTranslation('email-successful', userLanguage) : getTranslation('email-failed', userLanguage);
+        const pdfOverallSuccess = verificationStatus?.overall || verificationStatus?.overallStatus === 'success';
+        const pdfOverallStatusText = pdfOverallSuccess ? getTranslation('email-successful', userLanguage) : getTranslation('email-failed', userLanguage);
         doc.font('Helvetica-Bold').fontSize(12)
-           .text(`${getTranslation('pdf-verification-status', userLanguage)} ${statusSymbol(verificationStatus?.overall)} ${overallStatus}`, { align: 'center' });
+           .text(`${getTranslation('pdf-verification-status', userLanguage)} ${statusSymbol(pdfOverallSuccess)} ${pdfOverallStatusText}`, { align: 'center' });
         doc.font('Helvetica').fontSize(9)
            .text(`${getTranslation('pdf-reference', userLanguage)} ${referenceNumber} | ${getTranslation('pdf-treatment-date', userLanguage)} ${treatmentDate}`, { align: 'center' });
         doc.text(`${getTranslation('pdf-verified', userLanguage)} ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
@@ -1359,11 +1371,19 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.font('Helvetica').fontSize(9);
         const passedText = getTranslation('email-passed', userLanguage);
         const failedText = getTranslation('email-failed', userLanguage);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.base45Decode)} ${getTranslation('email-base45-decoding', userLanguage)}: ${verificationStatus?.steps?.base45Decode ? passedText : failedText}`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.zlibDecompression)} ${getTranslation('email-zlib-decompression', userLanguage)}: ${verificationStatus?.steps?.zlibDecompression ? passedText : failedText}`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.jwtParsing)} ${getTranslation('email-jwt-validation', userLanguage)}: ${verificationStatus?.steps?.jwtParsing ? passedText : failedText}`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.certificateAuthority)} ${getTranslation('email-certificate-verification', userLanguage)}: ${verificationStatus?.steps?.certificateAuthority ? passedText : failedText}`);
-        doc.text(`${statusSymbol(verificationStatus?.steps?.signatureVerification)} ${getTranslation('email-signature-validation', userLanguage)}: ${verificationStatus?.steps?.signatureVerification ? passedText : failedText}`);
+
+        // Use the helper function defined above for consistency
+
+        doc.text(`${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} ${getTranslation('pdf-qr-analysis', userLanguage) || 'QR Code Analysis'}: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} ${getTranslation('email-base45-decoding', userLanguage)}: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ${getTranslation('email-zlib-decompression', userLanguage)}: ${getValidationStatus('zlibDecompress', 'zlibDecompression') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} ${getTranslation('email-jwt-validation', userLanguage)}: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} ${getTranslation('pdf-schema-file-check', userLanguage) || 'Schema File Check'}: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} ${getTranslation('pdf-schema-validation', userLanguage) || 'Schema Validation'}: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} ${getTranslation('pdf-signature-retrieval', userLanguage) || 'Signature Retrieval'}: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} ${getTranslation('pdf-signature-count', userLanguage) || 'Signature Count Validation'}: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} ${getTranslation('pdf-country-code', userLanguage) || 'Country Code Validation'}: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', userLanguage)}: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
         doc.moveDown(2);
 
         // === PDF DIGITAL SIGNATURE SECTION (at end of document) ===
@@ -1398,7 +1418,7 @@ router.post('/api/send-verification-email', async (req, res) => {
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Determine overall status
-        const overallSuccess = verificationStatus?.overall || false;
+        const overallSuccess = verificationStatus?.overall || verificationStatus?.overallStatus === 'success';
         const statusIcon = overallSuccess ? '✅' : '❌';
 
         // Get translated status text
@@ -1413,11 +1433,16 @@ router.post('/api/send-verification-email', async (req, res) => {
             <hr>
             <h3>${getTranslation('email-verification-status', userLanguage, { icon: statusIcon, status: statusText })}</h3>
             <ul>
-                <li>${statusSymbol(verificationStatus?.steps?.base45Decode)} ${getTranslation('email-base45-decoding', userLanguage)}</li>
-                <li>${statusSymbol(verificationStatus?.steps?.zlibDecompression)} ${getTranslation('email-zlib-decompression', userLanguage)}</li>
-                <li>${statusSymbol(verificationStatus?.steps?.jwtParsing)} ${getTranslation('email-jwt-validation', userLanguage)}</li>
-                <li>${statusSymbol(verificationStatus?.steps?.certificateAuthority)} ${getTranslation('email-certificate-verification', userLanguage)}</li>
-                <li>${statusSymbol(verificationStatus?.steps?.signatureVerification)} ${getTranslation('email-signature-validation', userLanguage)}</li>
+                <li>${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} ${getTranslation('email-qr-analysis', userLanguage) || 'QR Code Analysis'}</li>
+                <li>${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} ${getTranslation('email-base45-decoding', userLanguage)}</li>
+                <li>${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ${getTranslation('email-zlib-decompression', userLanguage)}</li>
+                <li>${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} ${getTranslation('email-jwt-validation', userLanguage)}</li>
+                <li>${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} ${getTranslation('email-schema-file-check', userLanguage) || 'Schema File Check'}</li>
+                <li>${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} ${getTranslation('email-schema-validation', userLanguage) || 'Schema Validation'}</li>
+                <li>${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} ${getTranslation('email-signature-retrieval', userLanguage) || 'Signature Retrieval'}</li>
+                <li>${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} ${getTranslation('email-signature-count', userLanguage) || 'Signature Count Validation'}</li>
+                <li>${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} ${getTranslation('email-country-code', userLanguage) || 'Country Code Validation'}</li>
+                <li>${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', userLanguage)}</li>
             </ul>
             <hr>
             <h3>${getTranslation('email-prc-certificate-info', userLanguage)}</h3>
