@@ -2756,7 +2756,7 @@ async function processVerificationData(originalData) {
 
     return {
         steps,
-        success: true,
+        success: overallStatus === 'success',
         validationSummary,
         overallStatus
     };

@@ -41,7 +41,7 @@ async function processVerification() {
         loadingDiv.style.display = 'none';
 
         if (response.ok && result.success) {
-            displayVerificationResults(result.steps);
+            displayVerificationResults(result.steps, result.validationSummary, result.overallStatus);
             actionButtons.style.display = 'block';
         } else {
             displayError(result.error || 'Unknown error', result.message, result.step);
@@ -54,21 +54,26 @@ async function processVerification() {
     }
 }
 
-function displayVerificationResults(steps) {
+function displayVerificationResults(steps, validationSummary, overallStatus) {
     const resultsContainer = document.getElementById('verification-results');
-    const overallStatus = document.getElementById('overall-status');
+    const overallStatusDiv = document.getElementById('overall-status');
 
-    // Create verification status object for saving
+    // Use the validation summary from the backend instead of manually parsing steps
+    const allStepsSuccessful = overallStatus === 'success';
+
+    // Create verification status object for saving (maintaining backward compatibility)
     const verificationStatus = {
-        overall: true,
+        overall: allStepsSuccessful,
         steps: {
-            base45Decode: false,
-            zlibDecompression: false,
-            jwtParsing: false,
-            signatureVerification: false,
-            certificateAuthority: false
+            base45Decode: validationSummary?.base45Decode?.status === 'success',
+            zlibDecompression: validationSummary?.zlibDecompress?.status === 'success',
+            jwtParsing: validationSummary?.jwtParsing?.status === 'success',
+            signatureVerification: validationSummary?.jwtSignatureValidation?.status === 'success',
+            certificateAuthority: validationSummary?.signatureVerification?.status === 'success'
         },
-        details: {}
+        details: {},
+        validationSummary: validationSummary,
+        overallStatus: overallStatus
     };
 
     // Process each step and update verification status
@@ -108,18 +113,14 @@ function displayVerificationResults(steps) {
         }
     });
 
-    // Determine overall success
-    const allStepsSuccessful = Object.values(verificationStatus.steps).every(status => status === true);
-    verificationStatus.overall = allStepsSuccessful;
-
     // Save verification status to sessionStorage
     sessionStorage.setItem('verificationResults', JSON.stringify(verificationStatus));
 
-    // Display overall status
-    overallStatus.className = `overall-status ${allStepsSuccessful ? 'success' : 'failure'}`;
-    overallStatus.innerHTML = `
+    // Display overall status using the backend validation result
+    overallStatusDiv.className = `overall-status ${allStepsSuccessful ? 'success' : 'failure'}`;
+    overallStatusDiv.innerHTML = `
         <span class="status-icon">${allStepsSuccessful ? '✅' : '❌'}</span>
-        <div data-i18n-key="${allStepsSuccessful ? 'results-verification-successful' : 'results-verification-failed'}">${allStepsSuccessful ? 'Verification Successful' : 'Verification Failed'}</div>
+        <span data-i18n-key="${allStepsSuccessful ? 'results-verification-successful' : 'results-verification-failed'}">${allStepsSuccessful ? 'Verification Successful' : 'Verification Failed'}</span>
     `;
 
     // Display each verification step - using translation keys

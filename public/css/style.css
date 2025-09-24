@@ -2066,6 +2066,10 @@ body {
    =============================== */
 
 .overall-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     padding: 2rem;
     margin-bottom: 2rem;
@@ -2089,7 +2093,11 @@ body {
 .overall-status .status-icon {
     font-size: 3rem;
     margin-bottom: 1rem;
-    display: block;
+}
+
+.overall-status span:not(.status-icon) {
+    font-size: 1.2rem;
+    font-weight: bold;
 }
 
 .verification-results {
