@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-09-24
+
+### Changed
+- **Identity Check Flow**: Moved identity verification to occur after QR verification results instead of before
+- **Optional Identity Verification**: Identity check is now optional with single checkbox instead of 4 required checkboxes
+- **Visual Verification**: Renamed "Identity Check" to "Visual Verification" for better clarity
+- **PRC Data Display**: Identity check page now shows actual PRC certificate data extracted from verified QR code
+- **Warning System**: Added warnings in finalization, email, and PDF when identity verification is skipped
+
+### Fixed
+- **Flow Sequence**: Updated breadcrumb navigation to reflect new flow: Treatment Date → QR Verification → Results → Visual Verification → Finalization
+- **Button Navigation**: Fixed all navigation buttons to follow the correct flow sequence
+- **Translation Updates**: Updated all translation keys to reflect new terminology and flow
+- **JWT Field Mapping**: Fixed PRC data extraction to use correct JWT field mappings from PDF generation
+- **PDF Warning**: Fixed identity verification warning in PDF with proper highlighting and removed encoding issues
+
+### Improved
+- **User Experience**: More logical flow where users can see verification results before deciding on identity check
+- **Data Consistency**: PRC data display uses same mapping as email and PDF generation
+- **Visual Clarity**: Enhanced warning display in PDF with highlighted warning box
+
 ## [0.3.0] - 2025-01-24
 
 ### Added

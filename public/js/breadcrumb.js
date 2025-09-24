@@ -6,10 +6,10 @@ class BreadcrumbManager {
             '/': 1,
             '/landing': 1,
             '/treatment-date': 2,
-            '/identity-check': 3,
-            '/scanner': 4,
-            '/scan': 4,
-            '/results': 5,
+            '/scanner': 3,
+            '/scan': 3,
+            '/results': 4,
+            '/identity-check': 5,
             '/finalization': 6
         };
 

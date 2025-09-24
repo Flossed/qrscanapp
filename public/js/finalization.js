@@ -54,6 +54,23 @@ function generateReferenceNumber() {
 // Set reference number
 document.getElementById('reference-number').textContent = generateReferenceNumber();
 
+// Update identity verification status
+const identityVerificationData = sessionStorage.getItem('identityVerification');
+const identityStatusElement = document.getElementById('identity-verification-status');
+
+if (identityVerificationData) {
+    try {
+        const identityData = JSON.parse(identityVerificationData);
+        if (identityData.identitySkipped) {
+            identityStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ <span data-i18n-key="finalization-identity-skipped">Identity verification skipped</span></span>';
+        } else if (identityData.identityVerified) {
+            identityStatusElement.innerHTML = '<span data-i18n-key="finalization-confirmed">✅ Confirmed</span>';
+        }
+    } catch (e) {
+        console.error('Could not parse identity verification data');
+    }
+}
+
 // Get treatment date from sessionStorage if available
 const treatmentDate = sessionStorage.getItem('treatmentDate');
 if (treatmentDate) {
@@ -112,6 +129,7 @@ document.getElementById('send-email').addEventListener('click', async () => {
         treatmentDate: document.getElementById('treatment-date-summary').textContent,
         verificationData: sessionStorage.getItem('verificationData') || '',
         verificationStatus: verificationStatus,
+        identityVerification: sessionStorage.getItem('identityVerification'),
         timestamp: new Date().toISOString(),
         language: sessionStorage.getItem('usedLanguage') || 'en'
     };

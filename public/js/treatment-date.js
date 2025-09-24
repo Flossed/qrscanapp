@@ -52,6 +52,6 @@ document.getElementById('treatmentDateForm').addEventListener('submit', function
 
     sessionStorage.setItem('treatmentData', JSON.stringify(formData));
 
-    // Navigate to identity check page
-    window.location.href = '/identity-check';
+    // Navigate to scanner page
+    window.location.href = '/scanner';
 });

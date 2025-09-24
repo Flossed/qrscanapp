@@ -10,13 +10,13 @@ if (!originalData) {
 // Start verification process immediately
 processVerification();
 
-// Handle finalize verification button
+// Handle continue to identity check button
 document.addEventListener('DOMContentLoaded', () => {
-    const finalizeBtn = document.getElementById('finalize-verification');
-    if (finalizeBtn) {
-        finalizeBtn.addEventListener('click', () => {
-            // Navigate to the finalization page
-            window.location.href = '/finalization';
+    const identityBtn = document.getElementById('continue-identity-check');
+    if (identityBtn) {
+        identityBtn.addEventListener('click', () => {
+            // Navigate to the identity check page
+            window.location.href = '/identity-check';
         });
     }
 });
