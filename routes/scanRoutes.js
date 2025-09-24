@@ -158,6 +158,270 @@ function normalizeThumbprintForEbsi(thumbprint) {
     }
 }
 
+// Schema lookup table - maps JWT SID to schema file names
+const fs = require('fs');
+const path = require('path');
+
+// SID to schema version mapping
+const sidSchemaMapping = {
+    'eessi:prc:1.0': 'schema-prc-jws-v1.json'
+};
+
+// Schema retrieval endpoint - uses JWT SID to find correct schema
+router.post('/api/schema', async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                error: 'Missing token',
+                message: 'JWT token is required in request body'
+            });
+        }
+
+        let sid = null;
+        let payload = null;
+
+        try {
+            // Decode JWT without verification to get payload and SID
+            const parts = token.split('.');
+            if (parts.length === 3) {
+                payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+                sid = payload.sid || null;
+            }
+        } catch (decodeError) {
+            logger.error('Failed to decode JWT:', decodeError);
+            return res.status(400).json({
+                error: 'Invalid token',
+                message: 'Failed to decode JWT token'
+            });
+        }
+
+        logger.info('Schema requested for SID:', { sid });
+
+        // Determine which schema file to use based on SID
+        let schemaFileName = sidSchemaMapping[sid];
+
+        if (!schemaFileName) {
+            return res.status(404).json({
+                success: false,
+                error: 'Schema mapping not found',
+                message: `No schema mapping found for SID: ${sid}`,
+                availableSids: Object.keys(sidSchemaMapping)
+            });
+        }
+
+        // If there's a specific mapping for this SID's pattern, use it
+        // For example, if SID contains version info
+        if (sid && sid.includes('v2')) {
+            schemaFileName = 'ehic-v2.0.json';
+        } else if (sid && sid.includes('v1')) {
+            schemaFileName = 'ehic-v1.0.json';
+        }
+
+        // Build path to schema file
+        const schemaPath = path.join(__dirname, '..', 'schemas', schemaFileName);
+
+        // Check if schema file exists
+        if (!fs.existsSync(schemaPath)) {
+            logger.warn('Schema file not found:', { schemaPath, sid });
+            return res.status(404).json({
+                error: 'Schema not found',
+                message: `No schema file found: ${schemaFileName}`,
+                sid: sid
+            });
+        }
+
+        // Read and parse schema file
+        const schemaContent = fs.readFileSync(schemaPath, 'utf8');
+        const schema = JSON.parse(schemaContent);
+
+        // Return the schema
+        logger.info('Schema retrieved successfully:', {
+            sid,
+            schemaFile: schemaFileName
+        });
+
+        res.json({
+            sid: sid,
+            schemaVersion: schemaFileName.replace('.json', ''),
+            schema: schema,
+            retrieved: new Date().toISOString()
+        });
+
+    } catch (error) {
+        logger.error('Error retrieving schema:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+            message: 'Failed to retrieve schema'
+        });
+    }
+});
+
+// Schema validation endpoint - validates JWT payload against retrieved schema
+router.post('/api/validate-jwt-with-schema', async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                error: 'Missing token',
+                message: 'JWT token is required in request body'
+            });
+        }
+
+        let sid = null;
+        let payload = null;
+        let cert = null;
+
+        try {
+            // Decode JWT to get payload, SID, and certificate data
+            const parts = token.split('.');
+            if (parts.length === 3) {
+                payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+                sid = payload.sid || null;
+                cert = payload.prc || payload.cert || null;
+            }
+        } catch (decodeError) {
+            logger.error('Failed to decode JWT:', decodeError);
+            return res.status(400).json({
+                error: 'Invalid token',
+                message: 'Failed to decode JWT token'
+            });
+        }
+
+        if (!cert) {
+            return res.status(400).json({
+                error: 'No certificate data',
+                message: 'JWT does not contain certificate data (prc or cert field)'
+            });
+        }
+
+        // Determine which schema file to use based on SID
+        let schemaFileName = sidSchemaMapping[sid];
+
+        if (!schemaFileName) {
+            return res.status(404).json({
+                success: false,
+                error: 'Schema mapping not found',
+                message: `No schema mapping found for SID: ${sid}`,
+                availableSids: Object.keys(sidSchemaMapping)
+            });
+        }
+
+        if (sid && sid.includes('v2')) {
+            schemaFileName = 'ehic-v2.0.json';
+        } else if (sid && sid.includes('v1')) {
+            schemaFileName = 'ehic-v1.0.json';
+        }
+
+        // Build path to schema file
+        const schemaPath = path.join(__dirname, '..', 'schemas', schemaFileName);
+
+        // Check if schema file exists
+        if (!fs.existsSync(schemaPath)) {
+            return res.status(404).json({
+                error: 'Schema not found',
+                message: `No schema file found: ${schemaFileName}`,
+                sid: sid
+            });
+        }
+
+        // Read and parse schema file
+        const schemaContent = fs.readFileSync(schemaPath, 'utf8');
+        const schema = JSON.parse(schemaContent);
+
+        // Perform validation
+        const validationErrors = [];
+
+        // Check required fields
+        if (schema.required) {
+            for (const field of schema.required) {
+                if (!cert[field]) {
+                    validationErrors.push({
+                        field: field,
+                        error: 'Required field missing',
+                        value: cert[field]
+                    });
+                }
+            }
+        }
+
+        // Check property types and patterns
+        if (schema.properties) {
+            for (const [key, rules] of Object.entries(schema.properties)) {
+                if (cert[key] !== undefined && cert[key] !== null) {
+                    // Pattern check for strings
+                    if (rules.pattern && typeof cert[key] === 'string') {
+                        const pattern = new RegExp(rules.pattern);
+                        if (!pattern.test(cert[key])) {
+                            validationErrors.push({
+                                field: key,
+                                error: `Value does not match pattern ${rules.pattern}`,
+                                value: cert[key]
+                            });
+                        }
+                    }
+
+                    // String length checks
+                    if (typeof cert[key] === 'string') {
+                        if (rules.minLength && cert[key].length < rules.minLength) {
+                            validationErrors.push({
+                                field: key,
+                                error: `Minimum length is ${rules.minLength}`,
+                                value: cert[key],
+                                actualLength: cert[key].length
+                            });
+                        }
+                        if (rules.maxLength && cert[key].length > rules.maxLength) {
+                            validationErrors.push({
+                                field: key,
+                                error: `Maximum length is ${rules.maxLength}`,
+                                value: cert[key],
+                                actualLength: cert[key].length
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Log validation result
+        logger.info('Schema validation completed:', {
+            sid: sid,
+            schemaVersion: schemaFileName,
+            valid: validationErrors.length === 0,
+            errorCount: validationErrors.length
+        });
+
+        // Return validation result
+        if (validationErrors.length > 0) {
+            return res.status(422).json({
+                valid: false,
+                sid: sid,
+                schemaVersion: schemaFileName.replace('.json', ''),
+                errors: validationErrors,
+                validated: new Date().toISOString()
+            });
+        }
+
+        res.json({
+            valid: true,
+            sid: sid,
+            schemaVersion: schemaFileName.replace('.json', ''),
+            message: 'Certificate data is valid according to schema',
+            validated: new Date().toISOString()
+        });
+
+    } catch (error) {
+        logger.error('Error validating JWT data:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+            message: 'Failed to validate data'
+        });
+    }
+});
+
 // Landing page route
 router.get('/landing', (req, res) => {
     res.render('landing');
@@ -1837,6 +2101,18 @@ async function generateOptimalQRCodeForPDF(data) {
 
 async function processVerificationData(originalData) {
     const steps = [];
+    const validationSummary = {
+        qrCodeAnalysis: { status: 'pending', message: '' },
+        base45Decode: { status: 'pending', message: '' },
+        zlibDecompress: { status: 'pending', message: '' },
+        jwtParsing: { status: 'pending', message: '' },
+        schemaFileCheck: { status: 'pending', message: '' },
+        schemaValidation: { status: 'pending', message: '' },
+        signatureVerification: { status: 'pending', message: '' },
+        signatureCountValidation: { status: 'pending', message: '' },
+        countryCodeValidation: { status: 'pending', message: '' },
+        jwtSignatureValidation: { status: 'pending', message: '' }
+    };
 
     // Step 1-1: QR Code Analysis
     try {
@@ -1852,6 +2128,11 @@ async function processVerificationData(originalData) {
             size: analysisSize,
             percentage: 100
         });
+
+        validationSummary.qrCodeAnalysis = {
+            status: 'success',
+            message: `QR Code analyzed - Version ${qrAnalysis.version}, Error Level ${qrAnalysis.errorCorrectionLevel}`
+        };
     } catch (qrError) {
         // If QR analysis fails, add error info
         const errorInfo = {
@@ -1866,6 +2147,11 @@ async function processVerificationData(originalData) {
             size: Buffer.byteLength(JSON.stringify(errorInfo), 'utf8'),
             percentage: 100
         });
+
+        validationSummary.qrCodeAnalysis = {
+            status: 'error',
+            message: `QR Code analysis failed: ${qrError.message}`
+        };
     }
 
     // Step 1: Original BASE45 data
@@ -1888,6 +2174,11 @@ async function processVerificationData(originalData) {
             percentage: Math.round((base45Size / originalSize) * 100)
         });
 
+        validationSummary.base45Decode = {
+            status: 'success',
+            message: `BASE45 decoded successfully (${base45Size} bytes)`
+        };
+
         try {
             // Step 3: ZLIB decompress to get JWT
             const zlibDecompressed = pako.inflate(base45Decoded, { to: 'string' });
@@ -1898,6 +2189,7 @@ async function processVerificationData(originalData) {
                 size: zlibSize,
                 percentage: Math.round((zlibSize / base45Size) * 100)
             });
+            validationSummary.zlibDecompress = { status: 'success', message: 'ZLIB decompressed successfully' };
 
             try {
                 // Step 4: Parse JWT
@@ -1912,17 +2204,463 @@ async function processVerificationData(originalData) {
                         percentage: Math.round((jwtSize / zlibSize) * 100)
                     });
 
+                    validationSummary.jwtParsing = {
+                        status: 'success',
+                        message: 'JWT parsed successfully'
+                    };
+
+                    // Step 4.1: Schema Validation
+                    try {
+                        logger.info('Starting schema validation for JWT');
+
+                        // Extract SID from JWT payload
+                        const payload = jwtDecoded.payload;
+                        const sid = payload?.sid || null;
+
+                        // For JWS validation, we need to match the JWS structure
+                        // The schema expects "protected" (base64url encoded header) not "header"
+                        // Get the original JWT parts from the zlibDecompressed string
+                        const jwtParts = zlibDecompressed.split('.');
+
+                        // Check if we have all three parts of a JWT
+                        if (jwtParts.length !== 3) {
+                            throw new Error(`Invalid JWT structure: expected 3 parts, got ${jwtParts.length}`);
+                        }
+
+                        // Preprocess the header to fix Base64 to Base64URL encoding in kid
+                        const processedHeader = { ...jwtDecoded.header };
+                        if (processedHeader.kid && typeof processedHeader.kid === 'string') {
+                            // Convert Base64 to Base64URL by replacing + with - and / with _
+                            // and removing any padding = characters
+                            const originalKid = processedHeader.kid;
+
+                            // Extract the parts of the kid
+                            const kidMatch = originalKid.match(/^(EESSI:(?:x5t#S256|jkt):)(.+)$/);
+                            if (kidMatch) {
+                                const prefix = kidMatch[1];
+                                const base64Part = kidMatch[2];
+
+                                // Convert Base64 to Base64URL
+                                const base64UrlPart = base64Part
+                                    .replace(/\+/g, '-')
+                                    .replace(/\//g, '_')
+                                    .replace(/=/g, '');
+
+                                processedHeader.kid = prefix + base64UrlPart;
+
+                                logger.info('Converted kid to Base64URL format:', {
+                                    original: originalKid,
+                                    converted: processedHeader.kid
+                                });
+                            }
+                        }
+
+                        // Check what format the schema expects
+                        // If schema expects 'protected' as an object, use decoded header
+                        // If schema expects 'protected' as a string, use encoded header
+                        const jwtToValidate = {
+                            protected: processedHeader, // Use processed header with Base64URL kid
+                            payload: jwtDecoded.payload, // Decoded payload object
+                            signature: jwtParts[2] // Base64URL signature
+                        };
+
+                        logger.info('JWT parts for validation:', {
+                            hasProtected: !!jwtParts[0],
+                            protectedLength: jwtParts[0]?.length || 0,
+                            hasPayload: !!jwtDecoded.payload,
+                            hasSignature: !!jwtParts[2],
+                            signatureLength: jwtParts[2]?.length || 0
+                        });
+
+                        logger.info('Schema validation context:', {
+                            sid: sid,
+                            jwtFields: Object.keys(jwtToValidate),
+                            payloadFields: payload ? Object.keys(payload) : []
+                        });
+
+                        // Determine which schema file to use based on SID
+                        let schemaFileName = sidSchemaMapping[sid];
+
+                        if (!schemaFileName) {
+                            // Schema mapping not found - create error response
+                            const schemaErrorResult = {
+                                found: false,
+                                sid: sid,
+                                error: 'Schema mapping not found',
+                                message: `No schema mapping found for SID: ${sid}`,
+                                availableSids: Object.keys(sidSchemaMapping),
+                                timestamp: new Date().toISOString()
+                            };
+
+                            const errorString = JSON.stringify(schemaErrorResult, null, 2);
+                            const errorSize = Buffer.byteLength(errorString, 'utf8');
+
+                            steps.push({
+                                name: 'Schema File Check (Step 4.1a) - Mapping Not Found',
+                                data: errorString,
+                                size: errorSize,
+                                percentage: Math.round((errorSize / jwtSize) * 100)
+                            });
+
+                            validationSummary.schemaFileCheck = {
+                                status: 'error',
+                                message: `No schema mapping found for SID: ${sid}`
+                            };
+
+                            validationSummary.schemaValidation = {
+                                status: 'error',
+                                message: 'Skipped due to missing schema mapping'
+                            };
+
+                            logger.error('Schema mapping not found:', { sid, availableSids: Object.keys(sidSchemaMapping) });
+                            throw new Error(`No schema mapping found for SID: ${sid}`);
+                        }
+
+                        // Build path to schema file
+                        const schemaPath = path.join(__dirname, '..', 'schemas', schemaFileName);
+
+                        // Step 4.1a: Check if schema file exists
+                        if (!fs.existsSync(schemaPath)) {
+                            const schemaNotFoundResult = {
+                                found: false,
+                                sid: sid,
+                                requestedSchema: schemaFileName,
+                                schemaPath: schemaPath,
+                                availableSchemas: fs.existsSync(path.join(__dirname, '..', 'schemas')) ?
+                                    fs.readdirSync(path.join(__dirname, '..', 'schemas')).filter(f => f.endsWith('.json')) : [],
+                                message: `Schema file not found: ${schemaFileName}`,
+                                timestamp: new Date().toISOString()
+                            };
+
+                            const notFoundString = JSON.stringify(schemaNotFoundResult, null, 2);
+                            const notFoundSize = Buffer.byteLength(notFoundString, 'utf8');
+
+                            steps.push({
+                                name: 'Schema File Check (Step 4.1a) - Not Found',
+                                data: notFoundString,
+                                size: notFoundSize,
+                                percentage: Math.round((notFoundSize / jwtSize) * 100)
+                            });
+
+                            validationSummary.schemaFileCheck = {
+                                status: 'error',
+                                message: `Schema file not found: ${schemaFileName}`
+                            };
+
+                            validationSummary.schemaValidation = {
+                                status: 'error',
+                                message: 'Skipped due to missing schema file'
+                            };
+
+                            logger.error('Schema file not found:', { schemaPath, sid });
+                            throw new Error(`Schema file not found: ${schemaFileName}`);
+                        }
+
+                        // Schema file exists - log success
+                        const schemaFoundResult = {
+                            found: true,
+                            sid: sid,
+                            schemaFile: schemaFileName,
+                            schemaPath: schemaPath,
+                            message: `Schema file found: ${schemaFileName}`,
+                            timestamp: new Date().toISOString()
+                        };
+
+                        const foundString = JSON.stringify(schemaFoundResult, null, 2);
+                        const foundSize = Buffer.byteLength(foundString, 'utf8');
+
+                        steps.push({
+                            name: 'Schema File Check (Step 4.1a) - Found',
+                            data: foundString,
+                            size: foundSize,
+                            percentage: Math.round((foundSize / jwtSize) * 100)
+                        });
+
+                        validationSummary.schemaFileCheck = {
+                            status: 'success',
+                            message: `Schema file found: ${schemaFileName}`
+                        };
+
+                        logger.info('Schema file check completed successfully:', { schemaPath, sid });
+
+                        // Read and parse schema file
+                        const schemaContent = fs.readFileSync(schemaPath, 'utf8');
+                        const schema = JSON.parse(schemaContent);
+
+                        // Perform validation
+                        const validationErrors = [];
+
+                        // Recursive validation function to handle nested objects
+                        function validateObject(obj, schemaObj, path = '') {
+                            // Check required fields
+                            if (schemaObj.required) {
+                                for (const field of schemaObj.required) {
+                                    if (obj[field] === undefined || obj[field] === null) {
+                                        validationErrors.push({
+                                            field: path ? `${path}.${field}` : field,
+                                            error: 'Required field missing',
+                                            value: obj[field]
+                                        });
+                                    }
+                                }
+                            }
+
+                            // Check property types and patterns
+                            if (schemaObj.properties) {
+                                for (const [key, rules] of Object.entries(schemaObj.properties)) {
+                                    const fieldPath = path ? `${path}.${key}` : key;
+                                    const value = obj[key];
+
+                                    if (value !== undefined && value !== null) {
+                                        // Handle nested objects
+                                        if (rules.type === 'object' && rules.properties) {
+                                            if (typeof value === 'object') {
+                                                validateObject(value, rules, fieldPath);
+                                            } else {
+                                                validationErrors.push({
+                                                    field: fieldPath,
+                                                    error: `Expected object, got ${typeof value}`,
+                                                    value: value
+                                                });
+                                            }
+                                        }
+                                        // Handle strings
+                                        else if (typeof value === 'string') {
+                                            // Pattern check
+                                            if (rules.pattern) {
+                                                const pattern = new RegExp(rules.pattern);
+                                                if (!pattern.test(value)) {
+                                                    validationErrors.push({
+                                                        field: fieldPath,
+                                                        error: `Value does not match pattern ${rules.pattern}`,
+                                                        value: value
+                                                    });
+                                                }
+                                            }
+                                            // Length checks
+                                            if (rules.minLength && value.length < rules.minLength) {
+                                                validationErrors.push({
+                                                    field: fieldPath,
+                                                    error: `Minimum length is ${rules.minLength}`,
+                                                    value: value,
+                                                    actualLength: value.length
+                                                });
+                                            }
+                                            if (rules.maxLength && value.length > rules.maxLength) {
+                                                validationErrors.push({
+                                                    field: fieldPath,
+                                                    error: `Maximum length is ${rules.maxLength}`,
+                                                    value: value,
+                                                    actualLength: value.length
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Validate the entire JWT structure
+                        validateObject(jwtToValidate, schema);
+
+                        // Create validation result
+                        const schemaValidationResult = {
+                            valid: validationErrors.length === 0,
+                            sid: sid,
+                            schemaVersion: schemaFileName.replace('.json', ''),
+                            schemaFile: schemaFileName,
+                            errors: validationErrors,
+                            errorCount: validationErrors.length,
+                            validated: new Date().toISOString(),
+                            jwtStructure: {
+                                hasProtected: !!jwtToValidate.protected,
+                                hasPayload: !!jwtToValidate.payload,
+                                hasSignature: !!jwtToValidate.signature,
+                                payloadFields: payload ? Object.keys(payload) : []
+                            },
+                            requiredFields: schema.required || [],
+                            message: validationErrors.length === 0
+                                ? 'JWT structure is valid according to schema'
+                                : `Validation failed with ${validationErrors.length} error(s)`
+                        };
+
+                        const validationString = JSON.stringify(schemaValidationResult, null, 2);
+                        const validationSize = Buffer.byteLength(validationString, 'utf8');
+
+                        steps.push({
+                            name: 'Schema Validation (Step 4.1b)',
+                            data: validationString,
+                            size: validationSize,
+                            percentage: Math.round((validationSize / jwtSize) * 100)
+                        });
+
+                        logger.info('Schema validation completed:', {
+                            valid: schemaValidationResult.valid,
+                            errorCount: schemaValidationResult.errorCount,
+                            sid: sid,
+                            schema: schemaFileName
+                        });
+
+                        validationSummary.schemaValidation = {
+                            status: schemaValidationResult.valid ? 'success' : 'error',
+                            message: schemaValidationResult.message,
+                            errorCount: schemaValidationResult.errorCount || 0
+                        };
+
+                    } catch (schemaError) {
+                        // Schema validation failed - add error info but don't stop the process
+                        const schemaErrorResult = {
+                            valid: false,
+                            error: 'Schema validation error',
+                            message: schemaError.message,
+                            sid: jwtDecoded?.payload?.sid || null,
+                            timestamp: new Date().toISOString()
+                        };
+
+                        const errorString = JSON.stringify(schemaErrorResult, null, 2);
+                        const errorSize = Buffer.byteLength(errorString, 'utf8');
+
+                        steps.push({
+                            name: 'Schema Validation (Step 4.1b) - Error',
+                            data: errorString,
+                            size: errorSize,
+                            percentage: Math.round((errorSize / jwtSize) * 100)
+                        });
+
+                        logger.error('Schema validation failed:', {
+                            error: schemaError.message,
+                            sid: jwtDecoded?.payload?.sid || null
+                        });
+
+                        validationSummary.schemaValidation = {
+                            status: 'error',
+                            message: `Schema validation error: ${schemaError.message}`
+                        };
+                    }
+
                     try {
                         // Step 5: Signature Verification
                         const signatureResponse = await verifySignature(jwtDecoded);
                         const responseString = JSON.stringify(signatureResponse, null, 2);
                         const responseSize = Buffer.byteLength(responseString, 'utf8');
                         steps.push({
-                            name: 'Signature Verification Response',
+                            name: 'Step 8: Signature Retrieval',
                             data: responseString,
                             size: responseSize,
                             percentage: Math.round((responseSize / jwtSize) * 100)
                         });
+                        validationSummary.signatureVerification = {
+                            status: 'success',
+                            message: 'Signature retrieval completed'
+                        };
+
+                        // Step 8.1: Signature Count Validation
+                        const signatureCount = signatureResponse.data && Array.isArray(signatureResponse.data) ?
+                            signatureResponse.data.length :
+                            (signatureResponse.data ? 1 : 0);
+
+                        const countValidationResult = {
+                            signatureCount: signatureCount,
+                            expectedCount: 1,
+                            valid: signatureCount === 1,
+                            message: signatureCount === 1 ?
+                                'Exactly one signature found' :
+                                signatureCount === 0 ?
+                                    'No signatures found' :
+                                    `Too many signatures found: ${signatureCount}`,
+                            timestamp: new Date().toISOString()
+                        };
+
+                        const countValidationString = JSON.stringify(countValidationResult, null, 2);
+                        const countValidationSize = Buffer.byteLength(countValidationString, 'utf8');
+
+                        steps.push({
+                            name: 'Step 8.1: Signature Count Validation',
+                            data: countValidationString,
+                            size: countValidationSize,
+                            percentage: Math.round((countValidationSize / responseSize) * 100)
+                        });
+
+                        validationSummary.signatureCountValidation = {
+                            status: countValidationResult.valid ? 'success' : 'error',
+                            message: countValidationResult.message
+                        };
+
+                        if (!countValidationResult.valid) {
+                            logger.error('Signature count validation failed', {
+                                expected: 1,
+                                actual: signatureCount,
+                                signatureResponse: signatureResponse
+                            });
+                            throw new Error(`Invalid signature count: expected 1, got ${signatureCount}`);
+                        }
+
+                        // Step 8.2: Country Code Validation
+                        // Enhanced debugging to see full structures
+                        logger.debug('JWT PAYLOAD FULL STRUCTURE:', JSON.stringify(jwtDecoded?.payload, null, 2));
+                        logger.debug('SIGNATURE RESPONSE FULL STRUCTURE:', JSON.stringify(signatureResponse, null, 2));
+
+                        // Try multiple possible paths for JWT country code
+                        const jwtCountryCode = jwtDecoded?.payload?.ic ||
+                                             jwtDecoded?.payload?.prc?.ic ||
+                                             jwtDecoded?.payload?.cert?.ic ||
+                                             jwtDecoded?.payload?.iss ||
+                                             jwtDecoded?.payload?.countryCode ||
+                                             null;
+
+                        // Try multiple possible paths for signature country code
+                        const signatureCountryCode = signatureResponse.data?.results && Array.isArray(signatureResponse.data.results) ?
+                            signatureResponse.data.results[0]?.countryCode || signatureResponse.data.results[0]?.country :
+                            signatureResponse.data?.countryCode || signatureResponse.data?.country ||
+                            signatureResponse.detectedCountryCode || null;
+
+                        logger.debug('Extracted country codes:', {
+                            jwtCountryCode: jwtCountryCode,
+                            signatureCountryCode: signatureCountryCode
+                        });
+
+                        const countryCodeValidationResult = {
+                            jwtCountryCode: jwtCountryCode,
+                            signatureCountryCode: signatureCountryCode,
+                            match: jwtCountryCode && signatureCountryCode &&
+                                   (jwtCountryCode === signatureCountryCode ||
+                                    jwtCountryCode.includes(signatureCountryCode) ||
+                                    signatureCountryCode.includes(jwtCountryCode)),
+                            message: !jwtCountryCode ?
+                                'No country code found in JWT' :
+                                !signatureCountryCode ?
+                                    'No country code found in signature response' :
+                                    jwtCountryCode === signatureCountryCode ?
+                                        `Country codes match: ${jwtCountryCode}` :
+                                        `Country code mismatch: JWT=${jwtCountryCode}, Signature=${signatureCountryCode}`,
+                            timestamp: new Date().toISOString()
+                        };
+
+                        const countryCodeValidationString = JSON.stringify(countryCodeValidationResult, null, 2);
+                        const countryCodeValidationSize = Buffer.byteLength(countryCodeValidationString, 'utf8');
+
+                        steps.push({
+                            name: 'Step 8.2: Country Code Validation',
+                            data: countryCodeValidationString,
+                            size: countryCodeValidationSize,
+                            percentage: Math.round((countryCodeValidationSize / countValidationSize) * 100)
+                        });
+
+                        validationSummary.countryCodeValidation = {
+                            status: countryCodeValidationResult.match ? 'success' : 'error',
+                            message: countryCodeValidationResult.message
+                        };
+
+                        if (!countryCodeValidationResult.match) {
+                            logger.error('Country code validation failed', {
+                                jwtCountryCode: jwtCountryCode,
+                                signatureCountryCode: signatureCountryCode,
+                                jwtPayload: jwtDecoded?.payload,
+                                signatureData: signatureResponse.data
+                            });
+                            // Don't throw error immediately - let other validations complete
+                            logger.warn('Continuing with JWT signature validation despite country code mismatch');
+                        }
 
                         try {
                             // Step 6: JWT Signature Validation using EBSI public key
@@ -1935,6 +2673,13 @@ async function processVerificationData(originalData) {
                                 size: validationSize,
                                 percentage: Math.round((validationSize / responseSize) * 100)
                             });
+
+                            validationSummary.jwtSignatureValidation = {
+                                status: jwtValidationResult.signatureValid ? 'success' : 'error',
+                                message: jwtValidationResult.signatureValid ?
+                                    'JWT signature validation successful' :
+                                    'JWT signature validation failed'
+                            };
 
                             logger.info('Complete QR code processing finished', {
                                 totalSteps: steps.length,
@@ -1961,15 +2706,32 @@ async function processVerificationData(originalData) {
                                 size: 0,
                                 percentage: 0
                             });
+
+                            validationSummary.jwtSignatureValidation = {
+                                status: 'error',
+                                message: `JWT signature validation failed: ${validationError.message}`
+                            };
                         }
                     } catch (signatureError) {
+                        validationSummary.signatureVerification = {
+                            status: 'error',
+                            message: `Signature verification failed: ${signatureError.message}`
+                        };
                         signatureError.step = 'Signature verification';
                         throw signatureError;
                     }
                 } else {
+                    validationSummary.jwtParsing = {
+                        status: 'error',
+                        message: 'JWT parsing failed: Invalid JWT format'
+                    };
                     throw new Error('Invalid JWT format');
                 }
             } catch (jwtError) {
+                validationSummary.jwtParsing = {
+                    status: 'error',
+                    message: `JWT parsing failed: ${jwtError.message}`
+                };
                 jwtError.step = 'JWT parsing';
                 throw jwtError;
             }
@@ -1978,11 +2740,26 @@ async function processVerificationData(originalData) {
             throw zlibError;
         }
     } catch (base45Error) {
+        validationSummary.base45Decode = {
+            status: 'error',
+            message: `BASE45 decoding failed: ${base45Error.message}`
+        };
         base45Error.step = 'BASE45 decoding';
         throw base45Error;
     }
 
-    return { steps, success: true };
+    // Determine overall validation status
+    const overallStatus = Object.values(validationSummary).every(v =>
+        v.status === 'success' || v.status === 'pending'
+    ) ? 'success' :
+    Object.values(validationSummary).some(v => v.status === 'error') ? 'error' : 'warning';
+
+    return {
+        steps,
+        success: true,
+        validationSummary,
+        overallStatus
+    };
 }
 
 async function validateJwtSignature(jwtToken, publicKeyData) {

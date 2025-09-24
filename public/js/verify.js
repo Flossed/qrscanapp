@@ -49,6 +49,7 @@ document.getElementById('process-verification').addEventListener('click', async 
         loadingDiv.style.display = 'none';
 
         if (response.ok && result.success) {
+            displayValidationSummary(result.validationSummary, result.overallStatus);
             displayVerificationSteps(result.steps);
         } else {
             displayError(result.error || getTranslatedText('verify-network-error', 'Unknown error'), result.message, result.step);
@@ -58,6 +59,73 @@ document.getElementById('process-verification').addEventListener('click', async 
         displayError(getTranslatedText('verify-network-error', 'Network Error'), error.message, 'network');
     }
 });
+
+function displayValidationSummary(summary, overallStatus) {
+    const container = document.getElementById('verification-steps');
+
+    // Create summary banner
+    const summaryDiv = document.createElement('div');
+    summaryDiv.className = `validation-summary ${overallStatus}`;
+    summaryDiv.id = 'validation-summary';
+
+    let summaryHTML = '<h3>Validation Summary</h3><div class="summary-items">';
+
+    // Define display names and order for validation steps
+    const validationSteps = [
+        { key: 'qrCodeAnalysis', label: 'QR Code Analysis' },
+        { key: 'base45Decode', label: 'BASE45 Decoding' },
+        { key: 'zlibDecompress', label: 'ZLIB Decompression' },
+        { key: 'jwtParsing', label: 'JWT Parsing' },
+        { key: 'schemaFileCheck', label: 'Schema File Check' },
+        { key: 'schemaValidation', label: 'Schema Validation' },
+        { key: 'signatureVerification', label: 'Signature Retrieval' },
+        { key: 'signatureCountValidation', label: 'Signature Count Validation' },
+        { key: 'countryCodeValidation', label: 'Country Code Validation' },
+        { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
+    ];
+
+    validationSteps.forEach(step => {
+        const validation = summary[step.key] || { status: 'pending', message: '' };
+        const statusIcon = getStatusIcon(validation.status);
+        const statusClass = validation.status;
+
+        summaryHTML += `
+            <div class="summary-item ${statusClass}">
+                <span class="status-icon">${statusIcon}</span>
+                <span class="step-label">${step.label}</span>
+                ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
+                ${validation.errorCount !== undefined && validation.errorCount > 0 ?
+                    `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+            </div>
+        `;
+    });
+
+    summaryHTML += '</div>';
+
+    // Add overall status
+    const overallIcon = getStatusIcon(overallStatus);
+    summaryHTML += `
+        <div class="overall-status ${overallStatus}">
+            <span class="status-icon">${overallIcon}</span>
+            <strong>Overall Status: ${overallStatus.toUpperCase()}</strong>
+        </div>
+    `;
+
+    summaryDiv.innerHTML = summaryHTML;
+
+    // Insert at the beginning of the container
+    container.insertBefore(summaryDiv, container.firstChild);
+}
+
+function getStatusIcon(status) {
+    switch(status) {
+        case 'success': return '✓';
+        case 'error': return '✗';
+        case 'warning': return '⚠';
+        case 'pending': return '○';
+        default: return '?';
+    }
+}
 
 function displayVerificationSteps(steps) {
     const container = document.getElementById('verification-steps');
