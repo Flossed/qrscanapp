@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 0.2
+## Current Status - Version 0.3.0
 
 ### ✅ Completed Features
 
@@ -33,7 +33,21 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **Detailed Results Display** - Shows all validation steps with success/failure status
 - **PDF Report Generation** - Creates comprehensive verification reports with all test results
 - **Email Integration** - Sends verification summaries with detailed test status
-- **Multi-language Support** - English and Dutch translations
+- **Complete Multi-language Support** - Full localization for all 26 EEA/EFTA languages
+
+#### Internationalization & Localization
+- **26 Language Support** - Complete translations for all EEA/EFTA countries
+- **Professional Healthcare Terminology** - Medical/government appropriate translations
+- **Native Language Names** - Language selector displays options in native scripts
+- **Full Character Support** - Cyrillic, Greek, and special character encoding
+- **Dynamic Language Switching** - Seamless language changes with session persistence
+- **Complete UI Coverage** - 260+ translation keys across all application features
+
+**Supported Languages:**
+- **EU Languages**: Bulgarian, Czech, Danish, German, Estonian, Greek, Spanish, French, Croatian, Italian, Latvian, Lithuanian, Hungarian, Maltese, Dutch, Polish, Portuguese, Romanian, Slovak, Slovenian, Finnish, Swedish
+- **EEA Languages**: Norwegian, Icelandic
+- **Regional Languages**: Irish Gaelic (Gaeilge), West Frisian (Frysk)
+- **EFTA Coverage**: German, French, Italian, Norwegian, Icelandic
 
 #### Technical Infrastructure
 - **MongoDB Integration** - Stores scan history and verification results
