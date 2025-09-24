@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JWS signature with PRC payload",
+  "type": "object",
+  "required": ["protected", "payload"],
+  "properties": {
+    "protected": {
+      "description": "Protected JWS header",
+      "type": "object",
+      "required": ["alg", "kid"],
+      "properties": {
+        "alg": {
+          "description": "Signing algorithm",
+          "type": "string",
+          "enum": ["ES256"]
+        },
+        "kid": {
+          "description": "Signing key or certificate identifier. Must start with 'EESSI:' followed by either 'x5t#S256:' or 'jkt:' and the identifier.",
+          "type": "string",
+          "pattern": "^EESSI:(x5t#S256|jkt):[A-Za-z0-9_-]+$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "payload": {
+      "$ref": "schema-prc-v1.json"
+    }
+  },
+  "additionalProperties": false
+}

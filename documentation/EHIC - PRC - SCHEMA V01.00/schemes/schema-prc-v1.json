@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Personal Record Card (PRC) Data Model",
+  "type": "object",
+  "required": ["sid", "prc"],
+  "properties": {
+    "jti": {
+      "description": "Unique token identifier",
+      "type": "string"
+    },
+    "sid": {
+      "description": "Schema ID. Version/ID number pointing to the JSON schema for the JWT Payload.  Major.Minor",
+      "type": "string",
+      "pattern": "^eessi:prc:\\d+\\.\\d+$"
+    },
+    "prc": {
+      "$ref": "#/$defs/prc"
+    },
+    "rid": {
+      "description": "Revocation list id",
+      "type": "string",
+      "format": "uri"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "prc": {
+      "description": "Schema for validating the structure and values of a Personal Record Card (PRC)",
+      "type": "object",
+      "required": ["ic", "fn", "gn", "dob", "hi", "in", "ii", "sd", "ed", "di"],
+      "properties": {
+        "ic": {
+          "$ref": "#/$defs/cardIssuerCountry"
+        },
+        "fn": {
+          "type": "string",
+          "title": "Family Name",
+          "description": "Family name of the holder.",
+          "maxLength": 40
+        },
+        "gn": {
+          "type": "string",
+          "title": "Given Name",
+          "description": "Given name of the holder.",
+          "maxLength": 35
+        },
+        "dob": {
+          "type": "string",
+          "title": "Date of Birth",
+          "description": "Date of birth in ISO 8601 format. Allows absence of exact day or month (e.g., yyyy-00-00, yyyy-mm-00).",
+          "pattern": "^[0-9]{4}-(0[0-9]|1[0-2]|00)-(0[0-9]|[1-2][0-9]|3[0-1]|00)$"
+        },
+        "hi": {
+          "type": "string",
+          "title": "Holder Identification Number",
+          "description": "Personal identification number of the cardholder.",
+          "maxLength": 20
+        },
+        "in": {
+          "type": "string",
+          "title": "Institution Name",
+          "description": "Name of the issuing institution. Combined with 'ii' must not exceed 25 characters.",
+          "maxLength": 21
+        },
+        "ii": {
+          "type": "string",
+          "title": "Institution Identification Number",
+          "description": "Identification number of the institution issuing the card.",
+          "minLength": 4,
+          "maxLength": 10
+        },
+        "ci": {
+          "type": "string",
+          "title": "Card Identification Number",
+          "description": "EHIC card ID = Institution ID (4-10) + Card Serial Number (10). Optional for PRCs without EHIC.",
+          "maxLength": 20
+        },
+        "sd": {
+          "type": "string",
+          "format": "date",
+          "title": "Entitlement Start Date",
+          "description": "Start date of PRC entitlement. Must be in ISO 8601 format (yyyy-mm-dd)."
+        },
+        "ed": {
+          "type": "string",
+          "format": "date",
+          "title": "Entitlement End Date",
+          "description": "End date of PRC entitlement. Must be in ISO 8601 format (yyyy-mm-dd)."
+        },
+        "xd": {
+          "type": "string",
+          "format": "date",
+          "title": "PRC Expiry Date",
+          "description": "Expiry date of PRC, if present. Must be in ISO 8601 format (yyyy-mm-dd)."
+        },
+        "di": {
+          "type": "string",
+          "format": "date",
+          "title": "Date of Issuance",
+          "description": "Date of issuance of the PRC. Must be in ISO 8601 format (yyyy-mm-dd)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "cardIssuerCountry": {
+      "type": "string",
+      "title": "Card Issuer Country",
+      "description": "Country code of the card issuer.",
+      "enum": [
+        "AT",
+        "BE",
+        "BG",
+        "HR",
+        "CY",
+        "CZ",
+        "DK",
+        "EE",
+        "FI",
+        "FR",
+        "DE",
+        "GR",
+        "HU",
+        "IE",
+        "IT",
+        "LV",
+        "LT",
+        "LU",
+        "MT",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SK",
+        "SI",
+        "ES",
+        "SE",
+        "IS",
+        "LI",
+        "NO",
+        "CH",
+        "UK"
+      ]
+    }
+  }
+}

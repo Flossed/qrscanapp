@@ -1463,21 +1463,72 @@ async function analyzeQRCodeData(data) {
 
     try {
         const dataLength = data.length;
+        const versionTable = getQRCodeVersionTable();
 
-        // Test different error correction levels to find the optimal one
-        const errorLevels = ['L', 'M', 'Q', 'H'];
+        // Find the smallest version that fits (same logic as PDF generation)
+        let optimalVersion = null;
+        let optimalErrorLevel = null;
+
+        // Check each version from smallest to largest
+        for (let version = 1; version <= 40; version++) {
+            const versionData = versionTable[version];
+            if (!versionData) continue;
+
+            // Check each error level for this version
+            for (const errorLevel of ['L', 'M', 'Q', 'H']) {
+                const capacity = versionData.alphanumeric[errorLevel];
+                if (capacity >= dataLength) {
+                    optimalVersion = version;
+                    optimalErrorLevel = errorLevel;
+                    break; // Found the smallest version that fits
+                }
+            }
+            if (optimalVersion) break; // Stop searching once we find a fit
+        }
+
+        // Now try to generate with the optimal version
         let actualProperties = null;
 
-        // Try each error correction level to find what actually works
-        for (const errorLevel of errorLevels) {
+        if (optimalVersion && optimalErrorLevel) {
             try {
-                // Use qrcode-generator to get exact version information
-                const typeNumber = 0; // Auto-detect type number
-                const qr = qrGenerator(typeNumber, errorLevel);
+                // Use the specific version number instead of auto-detect
+                logger.info('Attempting optimal QR generation in analysis:', {
+                    version: optimalVersion,
+                    errorLevel: optimalErrorLevel,
+                    dataLength: dataLength
+                });
+
+                const qr = qrGenerator(optimalVersion, optimalErrorLevel);
                 qr.addData(data);
                 qr.make();
 
-                // Get the actual properties from the generated QR code
+                const moduleCount = qr.getModuleCount();
+                const capacity = versionTable[optimalVersion].alphanumeric[optimalErrorLevel];
+
+                actualProperties = {
+                    version: optimalVersion,
+                    moduleCount: moduleCount,
+                    moduleDimensions: `${moduleCount}x${moduleCount}`,
+                    errorCorrectionLevel: optimalErrorLevel,
+                    actualDataLength: dataLength,
+                    qrCodeSvg: qr.createSvgTag(4, 0),
+                    detectionMethod: 'Optimal version selection (smallest that fits)',
+                    capacity: capacity,
+                    utilization: `${(dataLength / capacity * 100).toFixed(1)}%`
+                };
+            } catch (genError) {
+                // If optimal version fails, fall back to auto-detect
+                logger.warn('Optimal QR generation failed in analysis, falling back to auto-detect:', {
+                    attemptedVersion: optimalVersion,
+                    attemptedErrorLevel: optimalErrorLevel,
+                    error: genError.message,
+                    dataLength: dataLength
+                });
+
+                const qr = qrGenerator(0, 'L'); // Auto-detect with L
+                qr.addData(data);
+                qr.make();
+
                 const moduleCount = qr.getModuleCount();
                 const version = Math.floor((moduleCount - 17) / 4);
 
@@ -1485,15 +1536,11 @@ async function analyzeQRCodeData(data) {
                     version: version,
                     moduleCount: moduleCount,
                     moduleDimensions: `${moduleCount}x${moduleCount}`,
-                    errorCorrectionLevel: errorLevel,
+                    errorCorrectionLevel: 'L',
                     actualDataLength: dataLength,
                     qrCodeSvg: qr.createSvgTag(4, 0),
-                    detectionMethod: 'qrcode-generator exact analysis'
+                    detectionMethod: 'Auto-detect fallback'
                 };
-                break; // Use the first working error correction level
-            } catch (levelError) {
-                // Continue to next error level if this one fails
-                continue;
             }
         }
 
@@ -1533,8 +1580,8 @@ async function analyzeQRCodeData(data) {
                 errorCorrectionLevel: actualProperties.errorCorrectionLevel,
                 detectionMethod: actualProperties.detectionMethod,
                 dataCapacityUsed: `${dataLength} characters`,
-                maxCapacityAtThisLevel: capacityInfo.capacity,
-                capacityUtilization: `${Math.round((dataLength / capacityInfo.capacity) * 100)}%`
+                maxCapacityAtThisLevel: actualProperties.capacity || capacityInfo.capacity,
+                capacityUtilization: actualProperties.utilization || `${Math.round((dataLength / capacityInfo.capacity) * 100)}%`
             },
             completeQRVersionTable: getQRCodeVersionTable(),
             generatedQRInfo: {
@@ -1588,7 +1635,7 @@ function getQRCodeVersionTable() {
         13: { modules: 69, alphanumeric: { L: 619, M: 483, Q: 352, H: 259 } },
         14: { modules: 73, alphanumeric: { L: 667, M: 528, Q: 376, H: 283 } },
         15: { modules: 77, alphanumeric: { L: 758, M: 600, Q: 426, H: 321 } },
-        16: { modules: 81, alphanumeric: { L: 854, M: 656, Q: 470, H: 365 } },
+        16: { modules: 81, alphanumeric: { L: 852, M: 656, Q: 470, H: 365 } },
         17: { modules: 85, alphanumeric: { L: 938, M: 734, Q: 531, H: 408 } },
         18: { modules: 89, alphanumeric: { L: 1046, M: 816, Q: 574, H: 452 } },
         19: { modules: 93, alphanumeric: { L: 1153, M: 909, Q: 644, H: 493 } },
@@ -1631,67 +1678,151 @@ function getMaxCapacityForVersion(version, errorLevel) {
     };
 }
 
-// Optimal QR Code Generator for PDF - Uses proper qrcode library with Q or H error correction
+// Optimal QR Code Generator for PDF - Selects the smallest QR version that fits the data for best scanability
 async function generateOptimalQRCodeForPDF(data) {
     const QRCode = require('qrcode');
 
     const dataLength = data.length;
     const versionTable = getQRCodeVersionTable();
 
-    // Try all error correction levels: L (lowest) for smallest size, then M, Q, H
-    const errorLevels = ['L', 'M', 'Q', 'H'];
+    // Find all viable options first
+    const viableOptions = [];
 
-    for (const errorLevel of errorLevels) {
-        // Find the smallest version that can fit the data with this error level
-        for (let version = 1; version <= 40; version++) {
-            const versionData = versionTable[version];
-            if (!versionData) continue;
+    // Check all combinations of version and error correction level
+    for (let version = 1; version <= 40; version++) {
+        const versionData = versionTable[version];
+        if (!versionData) continue;
 
+        // Check each error correction level for this version
+        for (const errorLevel of ['L', 'M', 'Q', 'H']) {
             // BASE45 is always alphanumeric
             const capacity = versionData.alphanumeric[errorLevel];
 
-            // If this version can fit the data, use it
+            // If this version can fit the data, add it as an option
             if (capacity >= dataLength) {
-                try {
-                    // Force specific version and error correction level
-                    const svgString = await QRCode.toString(data, {
-                        type: 'svg',
-                        version: version,
-                        errorCorrectionLevel: errorLevel,
-                        margin: 2,
-                        width: 300,
-                        color: {
-                            dark: '#000000',
-                            light: '#ffffff'
-                        }
-                    });
+                const utilization = (dataLength / capacity * 100).toFixed(1);
+                viableOptions.push({
+                    version: version,
+                    errorLevel: errorLevel,
+                    capacity: capacity,
+                    utilization: parseFloat(utilization),
+                    moduleCount: 17 + version * 4
+                });
+            }
+        }
+    }
 
-                    // Calculate actual module count for this version
-                    const actualModuleCount = 17 + version * 4;
+    // Sort options by optimal criteria:
+    // PRIORITY: Smallest version that fits the data (easier to scan)
+    // For 818 bytes: L16, M19, Q22, H26 - we want L16!
+    viableOptions.sort((a, b) => {
+        // Simply sort by version number (ascending) - smallest QR code first
+        if (a.version !== b.version) {
+            return a.version - b.version;
+        }
 
+        // If same version (shouldn't happen), prefer lower error correction for that version
+        // (though this case is unlikely since each version will have different capacities)
+        const errorLevelOrder = { 'L': 1, 'M': 2, 'Q': 3, 'H': 4 };
+        return errorLevelOrder[a.errorLevel] - errorLevelOrder[b.errorLevel];
+    });
+
+    // Log all viable options for debugging
+    logger.info('QR Code viable options for PDF:', {
+        dataLength: dataLength,
+        topOptions: viableOptions.slice(0, 10).map(opt =>
+            `V${opt.version}-${opt.errorLevel} (${opt.utilization}% util, ${opt.capacity} cap)`
+        ),
+        selectedOption: viableOptions[0] ? `V${viableOptions[0].version}-${viableOptions[0].errorLevel}` : 'None',
+        totalOptions: viableOptions.length
+    });
+
+    // Try the sorted options until one works
+    for (const option of viableOptions) {
+        try {
+            // Force specific version and error correction level
+            const svgString = await QRCode.toString(data, {
+                type: 'svg',
+                version: option.version,
+                errorCorrectionLevel: option.errorLevel,
+                margin: 2,
+                width: 300,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            });
+
+            // Verify the actual version from the SVG output
+            // Count the modules from SVG to verify actual version
+            const svgModuleMatch = svgString.match(/viewBox="0 0 (\d+) \d+"/);
+            let actualModuleCount = null;
+            if (svgModuleMatch) {
+                // ViewBox size includes margin, so subtract margins (2*2=4)
+                actualModuleCount = parseInt(svgModuleMatch[1]) - 4;
+            }
+
+            // Also try to count rect elements in SVG for verification
+            const rectMatches = svgString.match(/<rect/g);
+            const rectCount = rectMatches ? rectMatches.length : 0;
+
+            const actualVersion = actualModuleCount ? Math.floor((actualModuleCount - 17) / 4) : option.version;
+
+            // Detailed logging to catch discrepancies
+            logger.info('SVG QR Code Analysis:', {
+                requestedVersion: option.version,
+                expectedModules: option.moduleCount,
+                svgViewBoxSize: svgModuleMatch ? svgModuleMatch[1] : 'not found',
+                actualModules: actualModuleCount,
+                calculatedVersion: actualVersion,
+                rectElementCount: rectCount,
+                svgSizeBytes: svgString.length,
+                svgPreview: svgString.substring(0, 200) + '...'
+            });
+
+            // Log if version mismatch detected
+            if (actualVersion !== option.version) {
+                logger.warn('QR Version Mismatch!', {
+                    requested: option.version,
+                    actual: actualVersion,
+                    requestedModules: option.moduleCount,
+                    actualModules: actualModuleCount,
+                    errorLevel: option.errorLevel
+                });
+                // Continue to next option if version doesn't match
+                continue;
+            }
+
+            // Return the optimal QR code with all metadata
                     return {
                         success: true,
-                        requestedVersion: version,
-                        actualVersion: version,
-                        version: version,
-                        errorCorrectionLevel: errorLevel,
-                        moduleCount: actualModuleCount,
-                        moduleDimensions: `${actualModuleCount}x${actualModuleCount}`,
+                        requestedVersion: option.version,
+                        actualVersion: actualVersion,
+                        version: actualVersion,
+                        errorCorrectionLevel: option.errorLevel,
+                        moduleCount: option.moduleCount,
+                        moduleDimensions: `${option.moduleCount}x${option.moduleCount}`,
                         dataEncoding: 'Alphanumeric',
                         dataLength: dataLength,
-                        requestedCapacity: capacity,
-                        capacityUsed: capacity,
-                        capacityUtilization: `${Math.round((dataLength / capacity) * 100)}%`,
+                        requestedCapacity: option.capacity,
+                        capacityUsed: option.capacity,
+                        capacityUtilization: `${option.utilization}%`,
                         svgString: svgString,
                         svgSize: svgString.length,
-                        optimizationNote: `Successfully used V${version}-${errorLevel} (capacity: ${capacity}, utilization: ${Math.round((dataLength / capacity) * 100)}%)`
+                        optimizationNote: `Smallest QR: V${option.version}-${option.errorLevel} (capacity: ${option.capacity}, utilization: ${option.utilization}%)`
                     };
                 } catch (generateError) {
+                    // Log which version failed and why
+                    logger.warn('QR generation failed for option:', {
+                        version: option.version,
+                        errorLevel: option.errorLevel,
+                        capacity: option.capacity,
+                        dataLength: dataLength,
+                        error: generateError.message
+                    });
                     // Continue to next version if generation fails
                     continue;
                 }
-            }
-        }
     }
 
     // If no version worked, return error info
