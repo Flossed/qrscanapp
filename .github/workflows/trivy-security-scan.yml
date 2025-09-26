@@ -1,0 +1,199 @@
+name: Trivy Security Scan
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+  schedule:
+    # Run scan daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual trigger
+
+jobs:
+  security-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner in filesystem mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln,secret,misconfig'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: '0'  # Don't fail the build, just report
+          ignore-unfixed: false
+          vuln-type: 'os,library'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Trivy for Summary Report
+        uses: aquasecurity/trivy-action@master
+        if: always()
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln,secret,misconfig'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+          format: 'table'
+          output: 'trivy-report.txt'
+          exit-code: '0'
+          ignore-unfixed: false
+          vuln-type: 'os,library'
+
+      - name: Run Trivy for JSON Report
+        uses: aquasecurity/trivy-action@master
+        if: always()
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln,secret,misconfig'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+          format: 'json'
+          output: 'trivy-report.json'
+          exit-code: '0'
+          ignore-unfixed: false
+          vuln-type: 'os,library'
+
+      - name: Create Markdown Summary
+        if: always()
+        run: |
+          echo "# Trivy Security Scan Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Scan Date: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Scanners**: Vulnerabilities, Secrets, Misconfigurations" >> $GITHUB_STEP_SUMMARY
+          echo "- **Severity Levels**: CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target**: Full filesystem scan" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Summary Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-report.txt ]; then
+            cat trivy-report.txt >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No report generated" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Count vulnerabilities
+        if: always()
+        run: |
+          if [ -f trivy-report.json ]; then
+            echo "Analyzing vulnerabilities..."
+            CRITICAL=$(grep -o '"Severity":"CRITICAL"' trivy-report.json | wc -l)
+            HIGH=$(grep -o '"Severity":"HIGH"' trivy-report.json | wc -l)
+            MEDIUM=$(grep -o '"Severity":"MEDIUM"' trivy-report.json | wc -l)
+            LOW=$(grep -o '"Severity":"LOW"' trivy-report.json | wc -l)
+
+            echo "## Vulnerability Count" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔴 **CRITICAL**: $CRITICAL" >> $GITHUB_STEP_SUMMARY
+            echo "- 🟠 **HIGH**: $HIGH" >> $GITHUB_STEP_SUMMARY
+            echo "- 🟡 **MEDIUM**: $MEDIUM" >> $GITHUB_STEP_SUMMARY
+            echo "- 🟢 **LOW**: $LOW" >> $GITHUB_STEP_SUMMARY
+
+            # Set output for use in other steps or notifications
+            echo "critical_count=$CRITICAL" >> $GITHUB_OUTPUT
+            echo "high_count=$HIGH" >> $GITHUB_OUTPUT
+          fi
+        id: vuln_counts
+
+      - name: Upload scan reports as artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-scan-reports
+          path: |
+            trivy-results.sarif
+            trivy-report.txt
+            trivy-report.json
+          retention-days: 30
+
+      - name: Comment PR (if applicable)
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request' && always()
+        with:
+          script: |
+            const criticalCount = '${{ steps.vuln_counts.outputs.critical_count }}' || '0';
+            const highCount = '${{ steps.vuln_counts.outputs.high_count }}' || '0';
+
+            const comment = `## 🔒 Trivy Security Scan Results
+
+            **Scan completed at**: ${new Date().toISOString()}
+
+            ### Vulnerability Summary:
+            - 🔴 **CRITICAL**: ${criticalCount}
+            - 🟠 **HIGH**: ${highCount}
+
+            View full report in the Actions tab or Security tab.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  docker-scan:
+    name: Docker Image Scan (if applicable)
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'docker') || contains(github.event.head_commit.message, 'Docker')
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Dockerfile
+        id: docker_check
+        run: |
+          if [ -f Dockerfile ]; then
+            echo "dockerfile_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "dockerfile_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Docker image
+        if: steps.docker_check.outputs.dockerfile_exists == 'true'
+        run: docker build -t local-scan:${{ github.sha }} .
+
+      - name: Run Trivy on Docker image
+        if: steps.docker_check.outputs.dockerfile_exists == 'true'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'local-scan:${{ github.sha }}'
+          format: 'sarif'
+          output: 'docker-trivy-results.sarif'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+
+      - name: Upload Docker scan results
+        if: steps.docker_check.outputs.dockerfile_exists == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'docker-trivy-results.sarif'
+          category: 'docker-scan'

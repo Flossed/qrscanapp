@@ -1,0 +1,27 @@
+# .trivyignore - Trivy Security Scanner Ignore File
+# Use this file to ignore specific vulnerabilities that are false positives
+# or have been reviewed and accepted as risks
+
+# Format:
+# CVE-YYYY-NNNN
+# or with expiry date:
+# CVE-YYYY-NNNN exp:2025-12-31
+
+# Example ignores (uncomment and modify as needed):
+# CVE-2023-12345  # False positive in development dependency
+# CVE-2023-67890 exp:2025-03-01  # Accepted risk, review by March 2025
+
+# Ignore test files and documentation
+**/test/**
+**/tests/**
+**/*.test.js
+**/*.spec.js
+**/node_modules/**
+**/.git/**
+**/documentation/**
+**/*.md
+
+# Ignore specific file patterns that may trigger false positives
+**/*.min.js
+**/*.map
+**/vendor/**
