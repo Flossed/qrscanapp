@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 0.4.0
+## Current Status - Version 0.5.0
 
 ### ✅ Completed Features
 
@@ -38,8 +38,10 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 #### Results & Finalization
 - **Detailed Results Display** - Shows all validation steps with success/failure status
 - **PDF Report Generation** - Creates comprehensive verification reports with all test results
+- **Dynamic PDF Language** - PDFs automatically render in issuing country's native language
 - **Email Integration** - Sends verification summaries with detailed test status
 - **Complete Multi-language Support** - Full localization for all 26 EEA/EFTA languages
+- **Technical/Business Validation Categories** - Clear separation of technical and business validations
 
 #### Internationalization & Localization
 - **26 Language Support** - Complete translations for all EEA/EFTA countries
@@ -48,6 +50,13 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **Full Character Support** - Cyrillic, Greek, and special character encoding
 - **Dynamic Language Switching** - Seamless language changes with session persistence
 - **Complete UI Coverage** - 260+ translation keys across all application features
+
+#### Intelligent PDF Language Rendering
+- **Automatic Language Detection** - PDFs render in the issuing country's native language
+- **Country-to-Language Mapping** - Comprehensive ISO 3166-1 to ISO 639-1 mapping
+- **Language Exceptions** - Belgium, Ireland, Luxembourg, Malta, and Switzerland render in English
+- **Fallback Support** - Defaults to English for unknown countries
+- **Email Language Independence** - Emails use user's selected language while PDFs use issuing country language
 
 **Supported Languages:**
 - **EU Languages**: Bulgarian, Czech, Danish, German, Estonian, Greek, Spanish, French, Croatian, Italian, Latvian, Lithuanian, Hungarian, Maltese, Dutch, Polish, Portuguese, Romanian, Slovak, Slovenian, Finnish, Swedish

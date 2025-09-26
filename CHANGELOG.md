@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-09-26
+
+### Added
+- **Intelligent PDF Language Rendering**: PDFs now automatically render in the issuing country's native language
+- **Technical/Business Validation Categories**: Added clear separation of technical and business validations throughout the application
+- **Country-to-Language Mapping**: Comprehensive mapping of ISO 3166-1 country codes to ISO 639-1 language codes
+- **Automated Security Scanning**: Trivy security scanning with email reports via GitHub Actions
+- **Validation Category Banners**: Visual separation of Technical Validations and Business Validations in all views
+
+### Changed
+- **PDF Language Logic**: PDFs render based on issuing country language with exceptions for Belgium, Ireland, Luxembourg, Malta, and Switzerland (render in English)
+- **Validation Display**: All validation results now grouped under Technical or Business categories
+- **Email Workflow**: Improved bulletproof email workflow with better error handling
+
+### Fixed
+- **prcData Initialization Error**: Fixed "Cannot access 'prcData' before initialization" error in PDF generation
+- **pdfLanguage Initialization Error**: Fixed "Cannot access 'pdfLanguage' before initialization" by properly scoping variable
+- **Trivy Workflow**: Fixed email configuration to match working test email workflow
+
+### Improved
+- **PDF Localization**: Each country receives PDFs in their native language for better understanding
+- **Validation Clarity**: Clear categorization helps distinguish technical from business requirements
+- **Security Monitoring**: Automated vulnerability scanning with scheduled reports
+
 ## [0.4.0] - 2025-09-24
 
 ### Changed
