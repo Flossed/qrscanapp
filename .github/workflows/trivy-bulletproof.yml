@@ -1,0 +1,321 @@
+name: Trivy Security Scan (Bulletproof)
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      send_email:
+        description: 'Send email report'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  security-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create reports directory
+        run: |
+          mkdir -p reports
+          echo "Reports directory created"
+          ls -la
+
+      - name: Run Trivy scan (SARIF)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'reports/trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+          scanners: 'vuln,secret,misconfig'
+          exit-code: '0'
+
+      - name: Run Trivy scan (Table)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          output: 'reports/trivy-report.txt'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+          scanners: 'vuln,secret,misconfig'
+          exit-code: '0'
+
+      - name: Check generated files
+        run: |
+          echo "Checking generated files..."
+          ls -la reports/
+
+          if [ -f reports/trivy-report.txt ]; then
+            echo "✅ Text report generated"
+            wc -l reports/trivy-report.txt
+          else
+            echo "❌ Text report not found"
+          fi
+
+          if [ -f reports/trivy-results.sarif ]; then
+            echo "✅ SARIF report generated"
+            wc -l reports/trivy-results.sarif
+          else
+            echo "❌ SARIF report not found"
+          fi
+
+      - name: Parse scan results (simple method)
+        id: scan_results
+        run: |
+          echo "Parsing scan results using simple text methods..."
+
+          # Initialize counters
+          CRITICAL=0
+          HIGH=0
+          MEDIUM=0
+          LOW=0
+
+          # Count vulnerabilities from text report if it exists
+          if [ -f reports/trivy-report.txt ]; then
+            echo "Parsing text report..."
+            cat reports/trivy-report.txt
+
+            # Count each severity (case-insensitive)
+            CRITICAL=$(grep -i "CRITICAL" reports/trivy-report.txt | wc -l || echo 0)
+            HIGH=$(grep -i "HIGH" reports/trivy-report.txt | wc -l || echo 0)
+            MEDIUM=$(grep -i "MEDIUM" reports/trivy-report.txt | wc -l || echo 0)
+            LOW=$(grep -i "LOW" reports/trivy-report.txt | wc -l || echo 0)
+
+            echo "Raw counts from text file:"
+            echo "CRITICAL lines: $CRITICAL"
+            echo "HIGH lines: $HIGH"
+            echo "MEDIUM lines: $MEDIUM"
+            echo "LOW lines: $LOW"
+          else
+            echo "No text report found, using zero counts"
+          fi
+
+          # Ensure we have numeric values
+          CRITICAL=${CRITICAL:-0}
+          HIGH=${HIGH:-0}
+          MEDIUM=${MEDIUM:-0}
+          LOW=${LOW:-0}
+
+          echo "Final counts:"
+          echo "Critical: $CRITICAL"
+          echo "High: $HIGH"
+          echo "Medium: $MEDIUM"
+          echo "Low: $LOW"
+
+          # Set outputs
+          echo "critical_count=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "high_count=$HIGH" >> $GITHUB_OUTPUT
+          echo "medium_count=$MEDIUM" >> $GITHUB_OUTPUT
+          echo "low_count=$LOW" >> $GITHUB_OUTPUT
+          echo "total_count=$((CRITICAL + HIGH + MEDIUM + LOW))" >> $GITHUB_OUTPUT
+
+      - name: Create summary report
+        run: |
+          echo "Creating summary report..."
+          cat > reports/summary.txt << EOF
+          TRIVY SECURITY SCAN SUMMARY
+          ============================
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Scan Date: $(date)
+
+          VULNERABILITY STATISTICS:
+          ------------------------
+          🔴 CRITICAL: ${{ steps.scan_results.outputs.critical_count }}
+          🟠 HIGH: ${{ steps.scan_results.outputs.high_count }}
+          🟡 MEDIUM: ${{ steps.scan_results.outputs.medium_count }}
+          🟢 LOW: ${{ steps.scan_results.outputs.low_count }}
+          ------------------------
+          TOTAL: ${{ steps.scan_results.outputs.total_count }}
+
+          Commit: ${{ github.sha }}
+          Triggered by: ${{ github.actor }}
+          Workflow: ${{ github.workflow }}
+          EOF
+
+          echo "Summary report created:"
+          cat reports/summary.txt
+
+      - name: Create HTML email report
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.send_email == 'true' }}
+        run: |
+          echo "Creating HTML email report..."
+          cat > reports/email-report.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Security Scan Report</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+                  .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                  .header { background: #2c3e50; color: white; padding: 20px; text-align: center; margin: -20px -20px 20px -20px; }
+                  .stats { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                  .critical { color: #dc3545; font-weight: bold; }
+                  .high { color: #fd7e14; font-weight: bold; }
+                  .medium { color: #ffc107; font-weight: bold; }
+                  .low { color: #28a745; font-weight: bold; }
+                  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                  th, td { padding: 8px; border: 1px solid #ddd; }
+                  th { background: #007bff; color: white; }
+                  .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="header">
+                      <h1>🔒 Security Scan Report</h1>
+                      <p>${{ github.repository }}</p>
+                  </div>
+
+                  <h2>Vulnerability Summary</h2>
+                  <div class="stats">
+                      <table>
+                          <tr><th>Severity</th><th>Count</th></tr>
+                          <tr><td class="critical">🔴 CRITICAL</td><td>${{ steps.scan_results.outputs.critical_count }}</td></tr>
+                          <tr><td class="high">🟠 HIGH</td><td>${{ steps.scan_results.outputs.high_count }}</td></tr>
+                          <tr><td class="medium">🟡 MEDIUM</td><td>${{ steps.scan_results.outputs.medium_count }}</td></tr>
+                          <tr><td class="low">🟢 LOW</td><td>${{ steps.scan_results.outputs.low_count }}</td></tr>
+                          <tr><th>TOTAL</th><th>${{ steps.scan_results.outputs.total_count }}</th></tr>
+                      </table>
+                  </div>
+
+                  <h2>Scan Information</h2>
+                  <ul>
+                      <li><strong>Repository:</strong> ${{ github.repository }}</li>
+                      <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
+                      <li><strong>Commit:</strong> ${{ github.sha }}</li>
+                      <li><strong>Scan Date:</strong> $(date)</li>
+                      <li><strong>Workflow:</strong> ${{ github.workflow }}</li>
+                  </ul>
+
+                  <h2>Action Required</h2>
+                  EOF
+
+          # Add conditional content based on results
+          if [ "${{ steps.scan_results.outputs.critical_count }}" != "0" ]; then
+            cat >> reports/email-report.html << 'EOF'
+                  <div style="background: #f8d7da; padding: 15px; border-left: 4px solid #dc3545; margin: 15px 0;">
+                      <h3>⚠️ Critical Vulnerabilities Detected!</h3>
+                      <p>Immediate action required. Please review the attached detailed report.</p>
+                  </div>
+          EOF
+          else
+            cat >> reports/email-report.html << 'EOF'
+                  <div style="background: #d4edda; padding: 15px; border-left: 4px solid #28a745; margin: 15px 0;">
+                      <h3>✅ No Critical Vulnerabilities</h3>
+                      <p>Security scan completed successfully with no critical issues.</p>
+                  </div>
+          EOF
+          fi
+
+          cat >> reports/email-report.html << 'EOF'
+
+                  <p>Detailed scan results are attached to this email.</p>
+
+                  <div class="footer">
+                      <p>This is an automated security report from GitHub Actions.</p>
+                      <p><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run</a></p>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+
+          echo "HTML email report created"
+
+      - name: Test email configuration
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.send_email == 'true' }}
+        run: |
+          echo "Testing email configuration..."
+          echo "SMTP_SERVER: ${{ secrets.SMTP_SERVER && 'configured' || 'missing' }}"
+          echo "SMTP_USERNAME: ${{ secrets.SMTP_USERNAME && 'configured' || 'missing' }}"
+          echo "SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD && 'configured' || 'missing' }}"
+          echo "SECURITY_EMAIL: ${{ secrets.SECURITY_EMAIL && 'configured' || 'missing' }}"
+
+      - name: Send email report
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.send_email == 'true' }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.SMTP_PORT || '587' }}
+          secure: true
+          username: ${{ secrets.SMTP_USERNAME || 'test@example.com' }}
+          password: ${{ secrets.SMTP_PASSWORD || 'test' }}
+          subject: '[SECURITY] ${{ github.repository }} - Critical:${{ steps.scan_results.outputs.critical_count }} High:${{ steps.scan_results.outputs.high_count }}'
+          to: ${{ secrets.SECURITY_EMAIL || 'admin@example.com' }}
+          from: ${{ secrets.SMTP_FROM_EMAIL || secrets.SMTP_USERNAME || 'noreply@example.com' }}
+          html_body: file://reports/email-report.html
+          attachments: reports/trivy-report.txt,reports/summary.txt
+          priority: ${{ steps.scan_results.outputs.critical_count != '0' && 'high' || 'normal' }}
+        continue-on-error: true
+
+      - name: Email send result
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.send_email == 'true' }}
+        run: |
+          echo "Email send attempt completed."
+          echo "If you see no errors above, the email was sent successfully."
+          echo "If you see errors, please check your SMTP configuration in repository secrets."
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'reports/trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports-${{ github.run_number }}
+          path: reports/
+          retention-days: 30
+
+      - name: Create workflow summary
+        if: always()
+        run: |
+          echo "# 🔒 Trivy Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔴 Critical | ${{ steps.scan_results.outputs.critical_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟠 High | ${{ steps.scan_results.outputs.high_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟡 Medium | ${{ steps.scan_results.outputs.medium_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟢 Low | ${{ steps.scan_results.outputs.low_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total** | **${{ steps.scan_results.outputs.total_count }}** |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.scan_results.outputs.critical_count }}" != "0" ]; then
+            echo "## ⚠️ Action Required" >> $GITHUB_STEP_SUMMARY
+            echo "${{ steps.scan_results.outputs.critical_count }} critical vulnerabilities found!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ✅ Security Status: Good" >> $GITHUB_STEP_SUMMARY
+            echo "No critical vulnerabilities detected." >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📋 Detailed reports are available in the workflow artifacts." >> $GITHUB_STEP_SUMMARY
