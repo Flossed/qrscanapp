@@ -764,18 +764,6 @@ router.post('/api/send-verification-email', async (req, res) => {
             'CH': 'en'  // Switzerland - Exception: English
         };
 
-        // Get the PDF language based on issuing country
-        let pdfLanguage = 'en'; // Default fallback
-        if (prcData && prcData.issuingMemberState && prcData.issuingMemberState !== 'N/A') {
-            pdfLanguage = countryToLanguageMap[prcData.issuingMemberState.toUpperCase()] || 'en';
-        }
-
-        logger.info('PDF language determination', {
-            issuingCountry: prcData?.issuingMemberState || 'unknown',
-            determinedLanguage: pdfLanguage,
-            userRequestedLanguage: userLanguage
-        });
-
         // Move up to reduce top margin before main title
         doc.moveUp(2.5);
 
@@ -1044,6 +1032,18 @@ router.post('/api/send-verification-email', async (req, res) => {
             cardHolderName: prcData.cardHolderName,
             cardHolderGivenName: prcData.cardHolderGivenName,
             hasRealData: prcData.cardHolderName !== 'N/A' || prcData.issuingMemberState !== 'N/A'
+        });
+
+        // Get the PDF language based on issuing country
+        let pdfLanguage = 'en'; // Default fallback
+        if (prcData && prcData.issuingMemberState && prcData.issuingMemberState !== 'N/A') {
+            pdfLanguage = countryToLanguageMap[prcData.issuingMemberState.toUpperCase()] || 'en';
+        }
+
+        logger.info('PDF language determination', {
+            issuingCountry: prcData?.issuingMemberState || 'unknown',
+            determinedLanguage: pdfLanguage,
+            userRequestedLanguage: userLanguage
         });
 
         // Helper function to format dates
