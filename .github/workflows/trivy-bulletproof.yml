@@ -259,14 +259,14 @@ jobs:
         if: ${{ github.event_name == 'schedule' || github.event.inputs.send_email == 'true' }}
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.SMTP_SERVER || 'smtp.gmail.com' }}
+          server_address: ${{ secrets.SMTP_SERVER }}
           server_port: ${{ secrets.SMTP_PORT || '587' }}
           secure: true
-          username: ${{ secrets.SMTP_USERNAME || 'test@example.com' }}
-          password: ${{ secrets.SMTP_PASSWORD || 'test' }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
           subject: '[SECURITY] ${{ github.repository }} - Critical:${{ steps.scan_results.outputs.critical_count }} High:${{ steps.scan_results.outputs.high_count }}'
-          to: ${{ secrets.SECURITY_EMAIL || 'admin@example.com' }}
-          from: ${{ secrets.SMTP_FROM_EMAIL || secrets.SMTP_USERNAME || 'noreply@example.com' }}
+          to: ${{ secrets.SECURITY_EMAIL }}
+          from: ${{ secrets.SMTP_FROM_EMAIL || secrets.SMTP_USERNAME }}
           html_body: file://reports/email-report.html
           attachments: reports/trivy-report.txt,reports/summary.txt
           priority: ${{ steps.scan_results.outputs.critical_count != '0' && 'high' || 'normal' }}
