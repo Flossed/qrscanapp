@@ -172,3 +172,111 @@ document.getElementById('print-summary').addEventListener('click', () => {
 document.querySelector('a[href="/"]').addEventListener('click', () => {
     sessionStorage.clear();
 });
+
+// Display validation summary with technical/business categories
+function displayValidationSummary() {
+    const verificationResults = sessionStorage.getItem('verificationResults');
+    const container = document.getElementById('validation-summary-finalization');
+
+    if (!verificationResults || !container) {
+        return;
+    }
+
+    try {
+        const results = JSON.parse(verificationResults);
+        const validationSummary = results.validationSummary || {};
+        const overallStatus = results.overallStatus || 'success';
+
+        // Technical Validations
+        const technicalSteps = [
+            { key: 'qrCodeAnalysis', label: 'QR Code Analysis' },
+            { key: 'base45Decode', label: 'BASE45 Decoding' },
+            { key: 'zlibDecompress', label: 'ZLIB Decompression' },
+            { key: 'jwtParsing', label: 'JWT Parsing' },
+            { key: 'schemaFileCheck', label: 'Schema File Check' },
+            { key: 'schemaValidation', label: 'Schema Validation' },
+            { key: 'signatureVerification', label: 'Signature Retrieval' },
+            { key: 'signatureCountValidation', label: 'Signature Count Validation' },
+            { key: 'countryCodeValidation', label: 'Country Code Validation' },
+            { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
+        ];
+
+        // Business Validations (placeholder for future validations)
+        const businessSteps = [
+            // Add business validation steps here when needed
+        ];
+
+        let summaryHTML = `<div class="validation-summary ${overallStatus}">`;
+
+        // Technical Validations Banner
+        summaryHTML += '<div class="validation-category">';
+        summaryHTML += '<h4 class="category-banner technical-banner">Technical Validations</h4>';
+        summaryHTML += '<div class="summary-items technical-items">';
+
+        technicalSteps.forEach(step => {
+            const validation = validationSummary[step.key] || { status: 'pending', message: '' };
+            const statusIcon = getValidationStatusIcon(validation.status);
+            const statusClass = validation.status;
+
+            summaryHTML += `
+                <div class="summary-item ${statusClass}">
+                    <span class="status-icon">${statusIcon}</span>
+                    <span class="step-label">${step.label}</span>
+                    ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
+                    ${validation.errorCount !== undefined && validation.errorCount > 0 ?
+                        `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+                </div>
+            `;
+        });
+
+        summaryHTML += '</div></div>'; // Close technical items and category
+
+        // Business Validations Banner
+        summaryHTML += '<div class="validation-category">';
+        summaryHTML += '<h4 class="category-banner business-banner">Business Validations</h4>';
+        summaryHTML += '<div class="summary-items business-items">';
+
+        if (businessSteps.length === 0) {
+            summaryHTML += '<div class="summary-item info"><span class="status-icon">ℹ</span><span class="step-label">No business validations configured</span></div>';
+        } else {
+            businessSteps.forEach(step => {
+                const validation = validationSummary[step.key] || { status: 'pending', message: '' };
+                const statusIcon = getValidationStatusIcon(validation.status);
+                const statusClass = validation.status;
+
+                summaryHTML += `
+                    <div class="summary-item ${statusClass}">
+                        <span class="status-icon">${statusIcon}</span>
+                        <span class="step-label">${step.label}</span>
+                        ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
+                        ${validation.errorCount !== undefined && validation.errorCount > 0 ?
+                            `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+                    </div>
+                `;
+            });
+        }
+
+        summaryHTML += '</div></div>'; // Close business items and category
+        summaryHTML += '</div>'; // Close validation-summary
+
+        container.innerHTML = summaryHTML;
+    } catch (e) {
+        console.error('Could not parse verification results for validation summary:', e);
+        container.innerHTML = '<p class="error-message">Unable to load validation details</p>';
+    }
+}
+
+function getValidationStatusIcon(status) {
+    switch(status) {
+        case 'success': return '✓';
+        case 'error': return '✗';
+        case 'warning': return '⚠';
+        case 'pending': return '○';
+        default: return '?';
+    }
+}
+
+// Initialize validation summary when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    displayValidationSummary();
+});

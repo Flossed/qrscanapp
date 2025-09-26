@@ -123,99 +123,100 @@ function displayVerificationResults(steps, validationSummary, overallStatus) {
         <span data-i18n-key="${allStepsSuccessful ? 'results-verification-successful' : 'results-verification-failed'}">${allStepsSuccessful ? 'Verification Successful' : 'Verification Failed'}</span>
     `;
 
-    // Display each verification step - using translation keys
-    const stepDescriptions = {
-        'Original BASE45 String': 'results-qr-data-received',
-        'Decoded BASE45 (ZLIB Compressed)': 'results-base45-decoding',
-        'Decompressed ZLIB (JWT)': 'results-data-decompression',
-        'Parsed JWT (Clear Text)': 'results-jwt-validation',
-        'Signature Verification Response': 'results-ca-lookup',
-        'JWT Signature Validation': 'results-signature-verification'
-    };
-
-    // Fallback descriptions for translation
-    const fallbackDescriptions = {
-        'Original BASE45 String': 'QR code data received successfully',
-        'Decoded BASE45 (ZLIB Compressed)': 'BASE45 decoding completed',
-        'Decompressed ZLIB (JWT)': 'Data decompression successful',
-        'Parsed JWT (Clear Text)': 'JWT structure validation passed',
-        'Signature Verification Response': 'Certificate authority lookup completed',
-        'JWT Signature Validation': 'Digital signature verification completed'
-    };
-
-    steps.forEach((step, index) => {
-        const stepDiv = document.createElement('div');
-        const isFailed = step.name.includes('FAILED');
-        let isSuccess = !isFailed;
-
-        // Special handling for specific steps
-        if (step.name.includes('Signature Verification Response')) {
-            try {
-                const data = JSON.parse(step.data);
-                isSuccess = !data.error;
-            } catch (e) {
-                isSuccess = true;
-            }
-        } else if (step.name.includes('JWT Signature Validation')) {
-            try {
-                const data = JSON.parse(step.data);
-                isSuccess = data.signatureValid === true;
-            } catch (e) {
-                isSuccess = false;
-            }
-        }
-
-        stepDiv.className = `verification-step-result ${isSuccess ? 'success' : 'failure'}`;
-
-        const baseStepName = step.name.replace(' (FAILED)', '');
-        const descriptionKey = stepDescriptions[baseStepName];
-        const fallbackDescription = fallbackDescriptions[baseStepName] || 'Processing step completed';
-
-        let errorMessage = '';
-        if (!isSuccess) {
-            if (step.name.includes('FAILED')) {
-                try {
-                    const data = JSON.parse(step.data);
-                    errorMessage = `<div class="step-error">Error: ${data.error || 'Unknown error'}</div>`;
-                } catch (e) {
-                    errorMessage = `<div class="step-error" data-i18n-key="results-step-failed">Step failed</div>`;
-                }
-            } else if (step.name.includes('Signature Verification Response')) {
-                try {
-                    const data = JSON.parse(step.data);
-                    if (data.error) {
-                        errorMessage = `<div class="step-error">Error: ${data.message || data.error}</div>`;
-                    }
-                } catch (e) {
-                    errorMessage = `<div class="step-error" data-i18n-key="results-response-parsing-failed">Response parsing failed</div>`;
-                }
-            } else if (step.name.includes('JWT Signature Validation')) {
-                try {
-                    const data = JSON.parse(step.data);
-                    if (!data.signatureValid) {
-                        errorMessage = `<div class="step-error">Signature validation failed: ${data.error || 'Invalid signature'}</div>`;
-                    }
-                } catch (e) {
-                    errorMessage = `<div class="step-error" data-i18n-key="results-signature-validation-failed">Signature validation failed</div>`;
-                }
-            }
-        }
-
-        stepDiv.innerHTML = `
-            <div class="step-icon ${isSuccess ? 'success' : 'failure'}">
-                ${isSuccess ? '✅' : '❌'}
-            </div>
-            <div class="step-details">
-                <div class="step-title">Step ${index + 1}: ${baseStepName}</div>
-                <div class="step-description" data-i18n-key="${descriptionKey}">${fallbackDescription}</div>
-                ${errorMessage}
-            </div>
-        `;
-
-        resultsContainer.appendChild(stepDiv);
-    });
+    // Display validation summary with technical and business categories
+    displayValidationSummary(validationSummary, overallStatus, resultsContainer);
 
     resultsContainer.style.display = 'block';
+}
+
+function displayValidationSummary(validationSummary, overallStatus, container) {
+    // Technical Validations
+    const technicalSteps = [
+        { key: 'qrCodeAnalysis', label: 'QR Code Analysis' },
+        { key: 'base45Decode', label: 'BASE45 Decoding' },
+        { key: 'zlibDecompress', label: 'ZLIB Decompression' },
+        { key: 'jwtParsing', label: 'JWT Parsing' },
+        { key: 'schemaFileCheck', label: 'Schema File Check' },
+        { key: 'schemaValidation', label: 'Schema Validation' },
+        { key: 'signatureVerification', label: 'Signature Retrieval' },
+        { key: 'signatureCountValidation', label: 'Signature Count Validation' },
+        { key: 'countryCodeValidation', label: 'Country Code Validation' },
+        { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
+    ];
+
+    // Business Validations (placeholder for future validations)
+    const businessSteps = [
+        // Add business validation steps here when needed
+    ];
+
+    const summaryDiv = document.createElement('div');
+    summaryDiv.className = `validation-summary ${overallStatus}`;
+    summaryDiv.id = 'validation-summary-results';
+
+    let summaryHTML = '<h3>Validation Summary</h3>';
+
+    // Technical Validations Banner
+    summaryHTML += '<div class="validation-category">';
+    summaryHTML += '<h4 class="category-banner technical-banner">Technical Validations</h4>';
+    summaryHTML += '<div class="summary-items technical-items">';
+
+    technicalSteps.forEach(step => {
+        const validation = validationSummary[step.key] || { status: 'pending', message: '' };
+        const statusIcon = getStatusIcon(validation.status);
+        const statusClass = validation.status;
+
+        summaryHTML += `
+            <div class="summary-item ${statusClass}">
+                <span class="status-icon">${statusIcon}</span>
+                <span class="step-label">${step.label}</span>
+                ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
+                ${validation.errorCount !== undefined && validation.errorCount > 0 ?
+                    `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+            </div>
+        `;
+    });
+
+    summaryHTML += '</div></div>'; // Close technical items and category
+
+    // Business Validations Banner
+    summaryHTML += '<div class="validation-category">';
+    summaryHTML += '<h4 class="category-banner business-banner">Business Validations</h4>';
+    summaryHTML += '<div class="summary-items business-items">';
+
+    if (businessSteps.length === 0) {
+        summaryHTML += '<div class="summary-item info"><span class="status-icon">ℹ</span><span class="step-label">No business validations configured</span></div>';
+    } else {
+        businessSteps.forEach(step => {
+            const validation = validationSummary[step.key] || { status: 'pending', message: '' };
+            const statusIcon = getStatusIcon(validation.status);
+            const statusClass = validation.status;
+
+            summaryHTML += `
+                <div class="summary-item ${statusClass}">
+                    <span class="status-icon">${statusIcon}</span>
+                    <span class="step-label">${step.label}</span>
+                    ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
+                    ${validation.errorCount !== undefined && validation.errorCount > 0 ?
+                        `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+                </div>
+            `;
+        });
+    }
+
+    summaryHTML += '</div></div>'; // Close business items and category
+
+    summaryDiv.innerHTML = summaryHTML;
+    container.appendChild(summaryDiv);
+}
+
+function getStatusIcon(status) {
+    switch(status) {
+        case 'success': return '✓';
+        case 'error': return '✗';
+        case 'warning': return '⚠';
+        case 'pending': return '○';
+        default: return '?';
+    }
 }
 
 function displayError(error, message, step) {

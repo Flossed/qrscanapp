@@ -63,15 +63,13 @@ document.getElementById('process-verification').addEventListener('click', async 
 function displayValidationSummary(summary, overallStatus) {
     const container = document.getElementById('verification-steps');
 
-    // Create summary banner
+    // Create main summary container
     const summaryDiv = document.createElement('div');
     summaryDiv.className = `validation-summary ${overallStatus}`;
     summaryDiv.id = 'validation-summary';
 
-    let summaryHTML = '<h3>Validation Summary</h3><div class="summary-items">';
-
-    // Define display names and order for validation steps
-    const validationSteps = [
+    // Technical Validations
+    const technicalSteps = [
         { key: 'qrCodeAnalysis', label: 'QR Code Analysis' },
         { key: 'base45Decode', label: 'BASE45 Decoding' },
         { key: 'zlibDecompress', label: 'ZLIB Decompression' },
@@ -84,7 +82,19 @@ function displayValidationSummary(summary, overallStatus) {
         { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
     ];
 
-    validationSteps.forEach(step => {
+    // Business Validations (placeholder for future validations)
+    const businessSteps = [
+        // Add business validation steps here when needed
+    ];
+
+    let summaryHTML = '<h3>Validation Summary</h3>';
+
+    // Technical Validations Banner
+    summaryHTML += '<div class="validation-category">';
+    summaryHTML += '<h4 class="category-banner technical-banner">Technical Validations</h4>';
+    summaryHTML += '<div class="summary-items technical-items">';
+
+    technicalSteps.forEach(step => {
         const validation = summary[step.key] || { status: 'pending', message: '' };
         const statusIcon = getStatusIcon(validation.status);
         const statusClass = validation.status;
@@ -100,7 +110,34 @@ function displayValidationSummary(summary, overallStatus) {
         `;
     });
 
-    summaryHTML += '</div>';
+    summaryHTML += '</div></div>'; // Close technical items and category
+
+    // Business Validations Banner
+    summaryHTML += '<div class="validation-category">';
+    summaryHTML += '<h4 class="category-banner business-banner">Business Validations</h4>';
+    summaryHTML += '<div class="summary-items business-items">';
+
+    if (businessSteps.length === 0) {
+        summaryHTML += '<div class="summary-item info"><span class="status-icon">ℹ</span><span class="step-label">No business validations configured</span></div>';
+    } else {
+        businessSteps.forEach(step => {
+            const validation = summary[step.key] || { status: 'pending', message: '' };
+            const statusIcon = getStatusIcon(validation.status);
+            const statusClass = validation.status;
+
+            summaryHTML += `
+                <div class="summary-item ${statusClass}">
+                    <span class="status-icon">${statusIcon}</span>
+                    <span class="step-label">${step.label}</span>
+                    ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
+                    ${validation.errorCount !== undefined && validation.errorCount > 0 ?
+                        `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+                </div>
+            `;
+        });
+    }
+
+    summaryHTML += '</div></div>'; // Close business items and category
 
     // Add overall status
     const overallIcon = getStatusIcon(overallStatus);

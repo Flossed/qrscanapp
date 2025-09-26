@@ -1408,7 +1408,11 @@ router.post('/api/send-verification-email', async (req, res) => {
             }
         }
 
-        // Use the helper function defined above for consistency
+        // Technical Validations Section
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text('TECHNICAL VALIDATIONS', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica').fontSize(9);
 
         doc.text(`${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} ${getTranslation('pdf-qr-analysis', 'en') || 'QR Code Analysis'}: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} ${getTranslation('email-base45-decoding', 'en')}: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
@@ -1420,6 +1424,15 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.text(`${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} ${getTranslation('pdf-signature-count', 'en') || 'Signature Count Validation'}: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} ${getTranslation('pdf-country-code', 'en') || 'Country Code Validation'}: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', 'en')}: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
+
+        doc.moveDown(1);
+
+        // Business Validations Section
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text('BUSINESS VALIDATIONS', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica').fontSize(9);
+        doc.text('No business validations configured');
         doc.moveDown(2);
 
         // === PDF DIGITAL SIGNATURE SECTION (at end of document) ===

@@ -2487,6 +2487,41 @@ body {
     margin-bottom: 1rem;
 }
 
+.validation-category {
+    margin-bottom: 2rem;
+}
+
+.category-banner {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.technical-banner {
+    background: linear-gradient(135deg, #e8f4fd 0%, #d1ecf1 100%);
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+.business-banner {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.validation-category:last-of-type {
+    margin-bottom: 1rem;
+}
+
 .summary-item {
     display: flex;
     align-items: center;
