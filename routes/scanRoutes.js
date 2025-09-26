@@ -727,19 +727,68 @@ router.post('/api/send-verification-email', async (req, res) => {
         // Add PRC Certificate header with translation
         const userLanguage = language || 'en';
 
+        // Determine PDF language based on issuing country
+        // Country code to language mapping (ISO 3166-1 alpha-2 to ISO 639-1)
+        const countryToLanguageMap = {
+            // EU/EEA countries
+            'AT': 'de', // Austria - German
+            'BE': 'en', // Belgium - Exception: English
+            'BG': 'bg', // Bulgaria - Bulgarian
+            'HR': 'hr', // Croatia - Croatian
+            'CY': 'el', // Cyprus - Greek
+            'CZ': 'cs', // Czech Republic - Czech
+            'DK': 'da', // Denmark - Danish
+            'EE': 'et', // Estonia - Estonian
+            'FI': 'fi', // Finland - Finnish
+            'FR': 'fr', // France - French
+            'DE': 'de', // Germany - German
+            'GR': 'el', // Greece - Greek
+            'HU': 'hu', // Hungary - Hungarian
+            'IS': 'is', // Iceland - Icelandic
+            'IE': 'en', // Ireland - Exception: English
+            'IT': 'it', // Italy - Italian
+            'LV': 'lv', // Latvia - Latvian
+            'LI': 'de', // Liechtenstein - German
+            'LT': 'lt', // Lithuania - Lithuanian
+            'LU': 'en', // Luxembourg - Exception: English
+            'MT': 'en', // Malta - Exception: English
+            'NL': 'nl', // Netherlands - Dutch
+            'NO': 'no', // Norway - Norwegian
+            'PL': 'pl', // Poland - Polish
+            'PT': 'pt', // Portugal - Portuguese
+            'RO': 'ro', // Romania - Romanian
+            'SK': 'sk', // Slovakia - Slovak
+            'SI': 'sl', // Slovenia - Slovenian
+            'ES': 'es', // Spain - Spanish
+            'SE': 'sv', // Sweden - Swedish
+            'CH': 'en'  // Switzerland - Exception: English
+        };
+
+        // Get the PDF language based on issuing country
+        let pdfLanguage = 'en'; // Default fallback
+        if (prcData && prcData.issuingMemberState && prcData.issuingMemberState !== 'N/A') {
+            pdfLanguage = countryToLanguageMap[prcData.issuingMemberState.toUpperCase()] || 'en';
+        }
+
+        logger.info('PDF language determination', {
+            issuingCountry: prcData?.issuingMemberState || 'unknown',
+            determinedLanguage: pdfLanguage,
+            userRequestedLanguage: userLanguage
+        });
+
         // Move up to reduce top margin before main title
         doc.moveUp(2.5);
 
         // Main titles: Arial 12pt Bold (always in English)
         doc.font('Helvetica-Bold').fontSize(12)
-           .text(getTranslation('pdf-title1', 'en'), { align: 'center' });
-        doc.text(getTranslation('pdf-title2', 'en'), { align: 'center' });
-        doc.text(getTranslation('pdf-title3', 'en'), { align: 'center' });
+           .text(getTranslation('pdf-title1', pdfLanguage), { align: 'center' });
+        doc.text(getTranslation('pdf-title2', pdfLanguage), { align: 'center' });
+        doc.text(getTranslation('pdf-title3', pdfLanguage), { align: 'center' });
 
         // Subtitles: Arial 9pt Italics (always in English)
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-subtitle1', 'en'), { align: 'center' });
-        doc.text(getTranslation('pdf-subtitle2', 'en'), { align: 'center' });
+           .text(getTranslation('pdf-subtitle1', pdfLanguage), { align: 'center' });
+        doc.text(getTranslation('pdf-subtitle2', pdfLanguage), { align: 'center' });
         doc.moveDown(1); // Add some margin between subtitle and next section
 
         // STATUS SYMBOLS - to be used later
@@ -1027,7 +1076,7 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Right-aligned section header: Arial 9pt italics
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-issuing-member-state', 'en'), { align: 'right' });
+           .text(getTranslation('pdf-issuing-member-state', pdfLanguage), { align: 'right' });
         doc.moveDown(0.5);
 
         // Create bordered text boxes for fields 1 and 2
@@ -1059,7 +1108,7 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Card holder-related information - truly left-aligned header, Arial 9pt italics
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-card-holder-info', 'en'), leftMargin, doc.y);
+           .text(getTranslation('pdf-card-holder-info', pdfLanguage), leftMargin, doc.y);
         doc.moveDown(0.5);
 
         // Create grouped box for fields 3-6 - positioned at true left edge
@@ -1082,19 +1131,19 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Field 3: Name - Arial 9pt, truly left-aligned within box
         doc.font('Helvetica').fontSize(9)
-           .text(`3. ${getTranslation('pdf-name-field', 'en')} ${prcData.cardHolderName}`,
+           .text(`3. ${getTranslation('pdf-name-field', pdfLanguage)} ${prcData.cardHolderName}`,
                   fieldLeftMargin, fieldY + 8);
 
         // Field 4: Given name(s) - aligned exactly under field 3 with reduced spacing
-        doc.text(`4. ${getTranslation('pdf-given-name-field', 'en')} ${prcData.cardHolderGivenName}`,
+        doc.text(`4. ${getTranslation('pdf-given-name-field', pdfLanguage)} ${prcData.cardHolderGivenName}`,
                  fieldLeftMargin, fieldY + 28);
 
         // Field 5: Date of birth - aligned exactly under field 4 with reduced spacing
-        doc.text(`5. ${getTranslation('pdf-date-of-birth-field', 'en')} ${prcData.dateOfBirth}`,
+        doc.text(`5. ${getTranslation('pdf-date-of-birth-field', pdfLanguage)} ${prcData.dateOfBirth}`,
                  fieldLeftMargin, fieldY + 48);
 
         // Field 6: Personal identification number - aligned exactly under field 5 with reduced spacing
-        doc.text(`6. ${getTranslation('pdf-personal-id-field', 'en')} ${prcData.personalIdNumber}`,
+        doc.text(`6. ${getTranslation('pdf-personal-id-field', pdfLanguage)} ${prcData.personalIdNumber}`,
                  fieldLeftMargin, fieldY + 68);
 
         // Move cursor below the group box
@@ -1108,7 +1157,7 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Competent institution-related information - Arial 9pt italics, truly left-aligned
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-competent-institution-info', 'en'), leftMargin, doc.y);
+           .text(getTranslation('pdf-competent-institution-info', pdfLanguage), leftMargin, doc.y);
         doc.moveDown(0.5);
 
         // Field 7: Institution information (larger box for multi-line content) - at true left edge
@@ -1128,7 +1177,7 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.font('Helvetica').fontSize(9);
 
         // Render the label first
-        doc.text(`7. ${getTranslation('pdf-institution-id-field', 'en')}`, leftMargin + 5, fieldY + 5);
+        doc.text(`7. ${getTranslation('pdf-institution-id-field', pdfLanguage)}`, leftMargin + 5, fieldY + 5);
 
         // Move down by 0.35 line height (approximately 3.15 pixels for 9pt font)
         const lineSpacing = 3.15; // 0.35 * 9pt
@@ -1164,7 +1213,7 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Card-related information - Arial 9pt italics, truly left-aligned
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-card-info', 'en'), leftMargin, doc.y);
+           .text(getTranslation('pdf-card-info', pdfLanguage), leftMargin, doc.y);
         doc.moveDown(0.5);
 
         // Fields 8 and 9: Combined in one box - Arial 9pt, at true left edge with reduced border weight
@@ -1173,8 +1222,8 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.lineWidth(0.5); // Reduce border weight by 50%
         doc.rect(leftMargin, fieldY, fullPageWidth, combinedBoxHeight).stroke();
         doc.font('Helvetica').fontSize(9)
-           .text(`8. ${getTranslation('pdf-card-id-field', 'en')} ${prcData.cardId}`, leftMargin + 5, fieldY + 8);
-        doc.text(`9. ${getTranslation('pdf-expiry-date-field', 'en')} ${prcData.expiryDate}`, leftMargin + 5, fieldY + 28);
+           .text(`8. ${getTranslation('pdf-card-id-field', pdfLanguage)} ${prcData.cardId}`, leftMargin + 5, fieldY + 8);
+        doc.text(`9. ${getTranslation('pdf-expiry-date-field', pdfLanguage)} ${prcData.expiryDate}`, leftMargin + 5, fieldY + 28);
 
         // Move cursor below the combined box
         doc.y = fieldY + combinedBoxHeight + 10;
@@ -1191,10 +1240,10 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Certificate validity period header - left-aligned
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-certificate-validity-period', 'en'), leftMargin, headerY);
+           .text(getTranslation('pdf-certificate-validity-period', pdfLanguage), leftMargin, headerY);
 
         // Certificate delivery date header - right-aligned at same Y position
-        doc.text(getTranslation('pdf-certificate-delivery-date', 'en'), deliveryBoxX, headerY);
+        doc.text(getTranslation('pdf-certificate-delivery-date', pdfLanguage), deliveryBoxX, headerY);
         doc.moveDown(0.5);
 
         // Create split boxes at same Y level
@@ -1209,9 +1258,9 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Content for left box - Certificate validity period
         doc.font('Helvetica').fontSize(9)
-           .text(`(a). ${getTranslation('pdf-from-field', 'en')} ${prcData.validityStart}`,
+           .text(`(a). ${getTranslation('pdf-from-field', pdfLanguage)} ${prcData.validityStart}`,
                   leftMargin + 5, fieldY + 8);
-        doc.text(`(b). ${getTranslation('pdf-to-field', 'en')} ${prcData.validityEnd}`,
+        doc.text(`(b). ${getTranslation('pdf-to-field', pdfLanguage)} ${prcData.validityEnd}`,
                  leftMargin + 5, fieldY + 28);
 
         // Content for right box - Certificate delivery date
@@ -1230,7 +1279,7 @@ router.post('/api/send-verification-email', async (req, res) => {
         // Position "Signature and stamp of the institution" at 50% of page width
         const signatureHeaderX = leftMargin + (pageWidth * 0.52);
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-signature-stamp', 'en'), signatureHeaderX, doc.y);
+           .text(getTranslation('pdf-signature-stamp', pdfLanguage), signatureHeaderX, doc.y);
         doc.moveDown();
 
         // Create signature box with QR code inside - positioned at 50% of page width (increased by 15%)
@@ -1337,10 +1386,10 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.moveDown(0.5);
         
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-notes-title', 'en'), leftMargin, doc.y);
+           .text(getTranslation('pdf-notes-title', pdfLanguage), leftMargin, doc.y);
         doc.moveDown(0.3);
         doc.font('Helvetica').fontSize(9)
-           .text(getTranslation('pdf-notes-text', 'en'), leftMargin, doc.y, {
+           .text(getTranslation('pdf-notes-text', pdfLanguage), leftMargin, doc.y, {
             width: pageWidth,
             align: 'justify'
         });
@@ -1356,21 +1405,21 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Add verification header on page 2 - Arial fonts
         const pdfOverallSuccess = verificationStatus?.overall || verificationStatus?.overallStatus === 'success';
-        const pdfOverallStatusText = pdfOverallSuccess ? getTranslation('email-successful', 'en') : getTranslation('email-failed', 'en');
+        const pdfOverallStatusText = pdfOverallSuccess ? getTranslation('email-successful', pdfLanguage) : getTranslation('email-failed', pdfLanguage);
         doc.font('Helvetica-Bold').fontSize(12)
-           .text(`${getTranslation('pdf-verification-status', 'en')} ${statusSymbol(pdfOverallSuccess)} ${pdfOverallStatusText}`, { align: 'center' });
+           .text(`${getTranslation('pdf-verification-status', pdfLanguage)} ${statusSymbol(pdfOverallSuccess)} ${pdfOverallStatusText}`, { align: 'center' });
         doc.font('Helvetica').fontSize(9)
-           .text(`${getTranslation('pdf-reference', 'en')} ${referenceNumber} | ${getTranslation('pdf-treatment-date', 'en')} ${treatmentDate}`, { align: 'center' });
-        doc.text(`${getTranslation('pdf-verified', 'en')} ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
+           .text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber} | ${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate}`, { align: 'center' });
+        doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
         doc.moveDown(2);
 
         // Add verification results section - Arial 9pt italics header, Arial 9pt content
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-verification-results', 'en'), { align: 'center' });
+           .text(getTranslation('pdf-verification-results', pdfLanguage), { align: 'center' });
         doc.moveDown();
         doc.font('Helvetica').fontSize(9);
-        const passedText = getTranslation('email-passed', 'en');
-        const failedText = getTranslation('email-failed', 'en');
+        const passedText = getTranslation('email-passed', pdfLanguage);
+        const failedText = getTranslation('email-failed', pdfLanguage);
 
         // Add identity verification warning if skipped
         if (identityVerification) {
@@ -1414,16 +1463,16 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} ${getTranslation('pdf-qr-analysis', 'en') || 'QR Code Analysis'}: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} ${getTranslation('email-base45-decoding', 'en')}: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ${getTranslation('email-zlib-decompression', 'en')}: ${getValidationStatus('zlibDecompress', 'zlibDecompression') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} ${getTranslation('email-jwt-validation', 'en')}: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} ${getTranslation('pdf-schema-file-check', 'en') || 'Schema File Check'}: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} ${getTranslation('pdf-schema-validation', 'en') || 'Schema Validation'}: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} ${getTranslation('pdf-signature-retrieval', 'en') || 'Signature Retrieval'}: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} ${getTranslation('pdf-signature-count', 'en') || 'Signature Count Validation'}: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} ${getTranslation('pdf-country-code', 'en') || 'Country Code Validation'}: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', 'en')}: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} ${getTranslation('pdf-qr-analysis', pdfLanguage) || 'QR Code Analysis'}: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} ${getTranslation('email-base45-decoding', pdfLanguage)}: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ${getTranslation('email-zlib-decompression', pdfLanguage)}: ${getValidationStatus('zlibDecompress', 'zlibDecompression') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} ${getTranslation('email-jwt-validation', pdfLanguage)}: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} ${getTranslation('pdf-schema-file-check', pdfLanguage) || 'Schema File Check'}: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} ${getTranslation('pdf-schema-validation', pdfLanguage) || 'Schema Validation'}: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} ${getTranslation('pdf-signature-retrieval', pdfLanguage) || 'Signature Retrieval'}: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} ${getTranslation('pdf-signature-count', pdfLanguage) || 'Signature Count Validation'}: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} ${getTranslation('pdf-country-code', pdfLanguage) || 'Country Code Validation'}: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', pdfLanguage)}: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
 
         doc.moveDown(1);
 
@@ -1438,17 +1487,17 @@ router.post('/api/send-verification-email', async (req, res) => {
         // === PDF DIGITAL SIGNATURE SECTION (at end of document) ===
         // Add separation and digital signature section - Arial 9pt italics header
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-digital-signature', 'en'));
+           .text(getTranslation('pdf-digital-signature', pdfLanguage));
         doc.moveDown();
 
         // Digital signature information - Arial 9pt
         doc.font('Helvetica').fontSize(9);
-        doc.text(getTranslation('pdf-digitally-signed-by', 'en'));
+        doc.text(getTranslation('pdf-digitally-signed-by', pdfLanguage));
         doc.text('EHIC/PRC Verification System');
-        doc.text(`${getTranslation('pdf-institution', 'en')} ${prcData.institutionName !== 'N/A' ? prcData.institutionName : 'Healthcare Provider'}`);
-        doc.text(`${getTranslation('pdf-institution-id-signature', 'en')} ${prcData.institutionId}`);
-        doc.text(`${getTranslation('pdf-signed-on', 'en')} ${new Date(timestamp).toLocaleDateString('en-GB')}`);
-        doc.text(`${getTranslation('pdf-time', 'en')} ${new Date(timestamp).toLocaleTimeString('en-GB')}`);
+        doc.text(`${getTranslation('pdf-institution', pdfLanguage)} ${prcData.institutionName !== 'N/A' ? prcData.institutionName : 'Healthcare Provider'}`);
+        doc.text(`${getTranslation('pdf-institution-id-signature', pdfLanguage)} ${prcData.institutionId}`);
+        doc.text(`${getTranslation('pdf-signed-on', pdfLanguage)} ${new Date(timestamp).toLocaleDateString('en-GB')}`);
+        doc.text(`${getTranslation('pdf-time', pdfLanguage)} ${new Date(timestamp).toLocaleTimeString('en-GB')}`);
 
         // Add verification hash/fingerprint
         const verificationHash = require('crypto')
@@ -1458,7 +1507,7 @@ router.post('/api/send-verification-email', async (req, res) => {
             .substring(0, 16)
             .toUpperCase();
 
-        doc.text(`${getTranslation('pdf-verification-hash', 'en')} ${verificationHash}`);
+        doc.text(`${getTranslation('pdf-verification-hash', pdfLanguage)} ${verificationHash}`);
 
         // Finalize PDF
         doc.end();
@@ -1501,15 +1550,15 @@ router.post('/api/send-verification-email', async (req, res) => {
             <h3>${getTranslation('email-verification-status', userLanguage, { icon: statusIcon, status: statusText })}</h3>
             <ul>
                 <li>${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} ${getTranslation('email-qr-analysis', userLanguage) || 'QR Code Analysis'}</li>
-                <li>${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} ${getTranslation('email-base45-decoding', 'en')}</li>
-                <li>${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ${getTranslation('email-zlib-decompression', 'en')}</li>
-                <li>${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} ${getTranslation('email-jwt-validation', 'en')}</li>
+                <li>${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} ${getTranslation('email-base45-decoding', userLanguage)}</li>
+                <li>${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ${getTranslation('email-zlib-decompression', userLanguage)}</li>
+                <li>${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} ${getTranslation('email-jwt-validation', userLanguage)}</li>
                 <li>${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} ${getTranslation('email-schema-file-check', userLanguage) || 'Schema File Check'}</li>
                 <li>${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} ${getTranslation('email-schema-validation', userLanguage) || 'Schema Validation'}</li>
                 <li>${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} ${getTranslation('email-signature-retrieval', userLanguage) || 'Signature Retrieval'}</li>
                 <li>${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} ${getTranslation('email-signature-count', userLanguage) || 'Signature Count Validation'}</li>
                 <li>${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} ${getTranslation('email-country-code', userLanguage) || 'Country Code Validation'}</li>
-                <li>${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', 'en')}</li>
+                <li>${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', userLanguage)}</li>
             </ul>
             <hr>
             <h3>${getTranslation('email-prc-certificate-info', userLanguage)}</h3>
