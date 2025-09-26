@@ -1,0 +1,174 @@
+name: Debug Workflow Issues
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    name: Debug Environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check environment
+        run: |
+          echo "=== Environment Check ==="
+          echo "Runner OS: $RUNNER_OS"
+          echo "Runner Architecture: $RUNNER_ARCH"
+          echo "GitHub Workspace: $GITHUB_WORKSPACE"
+          echo "Working Directory: $(pwd)"
+
+          echo ""
+          echo "=== Available Commands ==="
+          which jq && jq --version || echo "jq not found"
+          which curl && curl --version || echo "curl not found"
+          which docker && docker --version || echo "docker not found"
+
+          echo ""
+          echo "=== File System ==="
+          ls -la
+
+      - name: Check secrets configuration
+        run: |
+          echo "=== Secrets Configuration Check ==="
+          echo "SMTP_SERVER: ${{ secrets.SMTP_SERVER && 'SET' || 'NOT SET' }}"
+          echo "SMTP_PORT: ${{ secrets.SMTP_PORT && 'SET' || 'NOT SET' }}"
+          echo "SMTP_USERNAME: ${{ secrets.SMTP_USERNAME && 'SET' || 'NOT SET' }}"
+          echo "SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD && 'SET' || 'NOT SET' }}"
+          echo "SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL && 'SET' || 'NOT SET' }}"
+          echo "SECURITY_EMAIL: ${{ secrets.SECURITY_EMAIL && 'SET' || 'NOT SET' }}"
+
+      - name: Test basic Trivy
+        run: |
+          echo "=== Testing Basic Trivy Functionality ==="
+          mkdir -p test-reports
+
+          echo "Installing Trivy..."
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+          echo "Trivy version:"
+          trivy --version
+
+          echo "Running basic scan..."
+          trivy fs . \
+            --format table \
+            --output test-reports/basic-scan.txt \
+            --severity CRITICAL,HIGH,MEDIUM,LOW \
+            --exit-code 0
+
+          echo "Scan completed. Output:"
+          cat test-reports/basic-scan.txt
+
+      - name: Test file operations
+        run: |
+          echo "=== Testing File Operations ==="
+
+          mkdir -p test-reports
+
+          echo "Creating test HTML file..."
+          cat > test-reports/test.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Test</title></head>
+          <body><h1>Test HTML File</h1></body>
+          </html>
+          EOF
+
+          echo "File created successfully:"
+          ls -la test-reports/
+          cat test-reports/test.html
+
+      - name: Test email action (dry run)
+        run: |
+          echo "=== Testing Email Configuration ==="
+
+          if [ -z "${{ secrets.SMTP_SERVER }}" ]; then
+            echo "❌ SMTP_SERVER is not configured"
+          else
+            echo "✅ SMTP_SERVER is configured"
+          fi
+
+          if [ -z "${{ secrets.SMTP_USERNAME }}" ]; then
+            echo "❌ SMTP_USERNAME is not configured"
+          else
+            echo "✅ SMTP_USERNAME is configured"
+          fi
+
+          if [ -z "${{ secrets.SMTP_PASSWORD }}" ]; then
+            echo "❌ SMTP_PASSWORD is not configured"
+          else
+            echo "✅ SMTP_PASSWORD is configured"
+          fi
+
+      - name: Create sample reports
+        run: |
+          echo "=== Creating Sample Reports ==="
+
+          mkdir -p sample-reports
+
+          # Create sample text report
+          cat > sample-reports/sample-scan.txt << 'EOF'
+          Total: 5 (CRITICAL: 2, HIGH: 1, MEDIUM: 1, LOW: 1, UNKNOWN: 0)
+
+          ┌─────────────────────────────────────┬────────────────┬──────────┬───────────────────┬───────────────┬────────────────────────────────────────┐
+          │                Library              │ Vulnerability  │ Severity │ Installed Version │ Fixed Version │                  Title                 │
+          ├─────────────────────────────────────┼────────────────┼──────────┼───────────────────┼───────────────┼────────────────────────────────────────┤
+          │ example-lib                         │ CVE-2023-12345 │ CRITICAL │ 1.0.0             │ 1.0.1         │ Sample critical vulnerability          │
+          │ another-lib                         │ CVE-2023-67890 │ HIGH     │ 2.0.0             │ 2.0.1         │ Sample high vulnerability              │
+          EOF
+
+          # Create sample summary
+          cat > sample-reports/sample-summary.txt << 'EOF'
+          TRIVY SECURITY SCAN SUMMARY
+          ============================
+          Repository: test/repo
+          Branch: master
+          Scan Date: $(date)
+
+          VULNERABILITY STATISTICS:
+          ------------------------
+          🔴 CRITICAL: 2
+          🟠 HIGH: 1
+          🟡 MEDIUM: 1
+          🟢 LOW: 1
+          ------------------------
+          TOTAL: 5
+          EOF
+
+          echo "Sample reports created:"
+          ls -la sample-reports/
+
+          echo "Content of sample scan:"
+          cat sample-reports/sample-scan.txt
+
+      - name: Test vulnerability parsing
+        run: |
+          echo "=== Testing Vulnerability Parsing ==="
+
+          # Test parsing the sample report
+          if [ -f sample-reports/sample-scan.txt ]; then
+            CRITICAL=$(grep -i "CRITICAL" sample-reports/sample-scan.txt | wc -l || echo 0)
+            HIGH=$(grep -i "HIGH" sample-reports/sample-scan.txt | wc -l || echo 0)
+            MEDIUM=$(grep -i "MEDIUM" sample-reports/sample-scan.txt | wc -l || echo 0)
+            LOW=$(grep -i "LOW" sample-reports/sample-scan.txt | wc -l || echo 0)
+
+            echo "Parsed counts:"
+            echo "Critical: $CRITICAL"
+            echo "High: $HIGH"
+            echo "Medium: $MEDIUM"
+            echo "Low: $LOW"
+          else
+            echo "Sample report not found"
+          fi
+
+      - name: Upload debug artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: debug-reports
+          path: |
+            test-reports/
+            sample-reports/
+          retention-days: 7
