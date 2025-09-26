@@ -198,6 +198,7 @@ function displayValidationSummary() {
             { key: 'signatureVerification', label: 'Signature Retrieval' },
             { key: 'signatureCountValidation', label: 'Signature Count Validation' },
             { key: 'countryCodeValidation', label: 'Country Code Validation' },
+            { key: 'certificateValidityDate', label: 'Certificate Validity Date' },
             { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
         ];
 

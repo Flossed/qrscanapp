@@ -1474,6 +1474,7 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.text(`${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} ${getTranslation('pdf-signature-retrieval', pdfLanguage) || 'Signature Retrieval'}: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} ${getTranslation('pdf-signature-count', pdfLanguage) || 'Signature Count Validation'}: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} ${getTranslation('pdf-country-code', pdfLanguage) || 'Country Code Validation'}: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('certificateValidityDate', 'certificateValidityDate'))} ${getTranslation('pdf-certificate-validity', pdfLanguage) || 'Certificate Validity Date'}: ${getValidationStatus('certificateValidityDate', 'certificateValidityDate') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', pdfLanguage)}: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
 
         doc.moveDown(1);
@@ -1560,6 +1561,7 @@ router.post('/api/send-verification-email', async (req, res) => {
                 <li>${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} ${getTranslation('email-signature-retrieval', userLanguage) || 'Signature Retrieval'}</li>
                 <li>${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} ${getTranslation('email-signature-count', userLanguage) || 'Signature Count Validation'}</li>
                 <li>${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} ${getTranslation('email-country-code', userLanguage) || 'Country Code Validation'}</li>
+                <li>${statusSymbol(getValidationStatus('certificateValidityDate', 'certificateValidityDate'))} ${getTranslation('email-certificate-validity', userLanguage) || 'Certificate Validity Date'}</li>
                 <li>${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', userLanguage)}</li>
             </ul>
             <hr>
@@ -2805,8 +2807,105 @@ async function processVerificationData(originalData) {
                             logger.warn('Continuing with JWT signature validation despite country code mismatch');
                         }
 
+                        // Step 8.3: Certificate Validity Date Verification
+                        // Verify that treatment date falls within certificate validity period
+                        let certificateValidityPassed = false;
+                        let certificateValidityMessage = '';
+
                         try {
-                            // Step 6: JWT Signature Validation using EBSI public key
+                            // Get treatment date from session storage (passed in verification request)
+                            const treatmentDateStr = req.body.treatmentDate || new Date().toISOString().split('T')[0];
+                            const treatmentDate = new Date(treatmentDateStr);
+
+                            // Get certificate validity dates from signature response
+                            let notBefore = null;
+                            let notAfter = null;
+
+                            if (signatureResponse.data && signatureResponse.data[0]) {
+                                const cert = signatureResponse.data[0];
+
+                                // Extract validity dates from certificate
+                                if (cert.notBefore) {
+                                    notBefore = new Date(cert.notBefore);
+                                } else if (cert.validFrom) {
+                                    notBefore = new Date(cert.validFrom);
+                                } else if (cert.validity && cert.validity.notBefore) {
+                                    notBefore = new Date(cert.validity.notBefore);
+                                }
+
+                                if (cert.notAfter) {
+                                    notAfter = new Date(cert.notAfter);
+                                } else if (cert.validTo) {
+                                    notAfter = new Date(cert.validTo);
+                                } else if (cert.validity && cert.validity.notAfter) {
+                                    notAfter = new Date(cert.validity.notAfter);
+                                }
+                            }
+
+                            // Perform validity check
+                            if (notBefore && notAfter) {
+                                certificateValidityPassed = treatmentDate >= notBefore && treatmentDate <= notAfter;
+
+                                if (certificateValidityPassed) {
+                                    certificateValidityMessage = `Treatment date ${treatmentDateStr} is within certificate validity period (${notBefore.toISOString().split('T')[0]} to ${notAfter.toISOString().split('T')[0]})`;
+                                } else {
+                                    certificateValidityMessage = `Treatment date ${treatmentDateStr} is OUTSIDE certificate validity period (${notBefore.toISOString().split('T')[0]} to ${notAfter.toISOString().split('T')[0]})`;
+                                }
+                            } else {
+                                certificateValidityMessage = 'Certificate validity dates not found in signature response';
+                                logger.warn('Certificate validity dates not found', { signatureResponse: signatureResponse.data });
+                            }
+
+                            const certificateValidityResult = {
+                                passed: certificateValidityPassed,
+                                treatmentDate: treatmentDateStr,
+                                certificateNotBefore: notBefore ? notBefore.toISOString() : null,
+                                certificateNotAfter: notAfter ? notAfter.toISOString() : null,
+                                message: certificateValidityMessage,
+                                timestamp: new Date().toISOString()
+                            };
+
+                            const validityString = JSON.stringify(certificateValidityResult, null, 2);
+                            const validitySize = Buffer.byteLength(validityString, 'utf8');
+
+                            steps.push({
+                                name: 'Step 8.3: Certificate Validity Date Verification',
+                                data: validityString,
+                                size: validitySize,
+                                percentage: Math.round((validitySize / responseSize) * 100)
+                            });
+
+                            validationSummary.certificateValidityDate = {
+                                status: certificateValidityPassed ? 'success' : 'error',
+                                message: certificateValidityMessage
+                            };
+
+                            logger.info('Certificate validity date check completed', certificateValidityResult);
+
+                        } catch (validityError) {
+                            logger.error('Certificate validity date verification failed:', validityError);
+
+                            const errorResult = {
+                                passed: false,
+                                error: validityError.message,
+                                timestamp: new Date().toISOString()
+                            };
+
+                            steps.push({
+                                name: 'Step 8.3: Certificate Validity Date Verification (ERROR)',
+                                data: JSON.stringify(errorResult, null, 2),
+                                size: Buffer.byteLength(JSON.stringify(errorResult), 'utf8'),
+                                percentage: 100
+                            });
+
+                            validationSummary.certificateValidityDate = {
+                                status: 'error',
+                                message: `Verification failed: ${validityError.message}`
+                            };
+                        }
+
+                        try {
+                            // Step 9: JWT Signature Validation using EBSI public key
                             const jwtValidationResult = await validateJwtSignature(zlibDecompressed, signatureResponse.data);
                             const validationString = JSON.stringify(jwtValidationResult, null, 2);
                             const validationSize = Buffer.byteLength(validationString, 'utf8');

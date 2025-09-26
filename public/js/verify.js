@@ -37,12 +37,18 @@ document.getElementById('process-verification').addEventListener('click', async 
     stepsContainer.innerHTML = '';
 
     try {
+        // Get treatment date from sessionStorage if available
+        const treatmentDate = sessionStorage.getItem('treatmentDate');
+
         const response = await fetch('/api/verify', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ data: originalData })
+            body: JSON.stringify({
+                data: originalData,
+                treatmentDate: treatmentDate
+            })
         });
 
         const result = await response.json();
@@ -79,6 +85,7 @@ function displayValidationSummary(summary, overallStatus) {
         { key: 'signatureVerification', label: 'Signature Retrieval' },
         { key: 'signatureCountValidation', label: 'Signature Count Validation' },
         { key: 'countryCodeValidation', label: 'Country Code Validation' },
+        { key: 'certificateValidityDate', label: 'Certificate Validity Date' },
         { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
     ];
 
