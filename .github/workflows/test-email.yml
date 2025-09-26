@@ -6,7 +6,7 @@ on:
       test_email:
         description: 'Email address to test'
         required: true
-        default: 'admin@example.com'
+        default: 'security@zandd.eu'
         type: string
 
 jobs:
