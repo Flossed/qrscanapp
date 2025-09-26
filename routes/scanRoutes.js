@@ -727,6 +727,9 @@ router.post('/api/send-verification-email', async (req, res) => {
         // Add PRC Certificate header with translation
         const userLanguage = language || 'en';
 
+        // Initialize pdfLanguage with default value (will be updated after prcData is populated)
+        let pdfLanguage = 'en'; // Default fallback
+
         // Determine PDF language based on issuing country
         // Country code to language mapping (ISO 3166-1 alpha-2 to ISO 639-1)
         const countryToLanguageMap = {
@@ -1034,8 +1037,7 @@ router.post('/api/send-verification-email', async (req, res) => {
             hasRealData: prcData.cardHolderName !== 'N/A' || prcData.issuingMemberState !== 'N/A'
         });
 
-        // Get the PDF language based on issuing country
-        let pdfLanguage = 'en'; // Default fallback
+        // Update the PDF language based on issuing country
         if (prcData && prcData.issuingMemberState && prcData.issuingMemberState !== 'N/A') {
             pdfLanguage = countryToLanguageMap[prcData.issuingMemberState.toUpperCase()] || 'en';
         }
