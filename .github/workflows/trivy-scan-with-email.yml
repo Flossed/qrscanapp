@@ -1,0 +1,282 @@
+name: Trivy Security Scan with Email Report
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      send_email:
+        description: 'Send email report'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      email_recipient:
+        description: 'Email recipient (leave empty for default)'
+        required: false
+        type: string
+
+env:
+  DEFAULT_EMAIL: ${{ secrets.SECURITY_EMAIL }}  # Set this in repository secrets
+
+jobs:
+  security-scan-and-report:
+    name: Security Scan with Email Report
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      - name: Run Trivy scan - JSON format
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln,secret,misconfig'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+          format: 'json'
+          output: 'reports/trivy-report.json'
+          exit-code: '0'
+          ignore-unfixed: false
+
+      - name: Run Trivy scan - Table format
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln,secret,misconfig'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+          format: 'table'
+          output: 'reports/trivy-report.txt'
+          exit-code: '0'
+
+      - name: Run Trivy scan - HTML format
+        run: |
+          # Install Trivy
+          sudo apt-get update
+          sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy -y
+
+          # Generate HTML report
+          trivy fs . \
+            --scanners vuln,secret,misconfig \
+            --severity CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN \
+            --format template \
+            --template "@contrib/html.tpl" \
+            --output reports/trivy-report.html
+
+      - name: Generate summary statistics
+        id: scan_stats
+        run: |
+          # Parse JSON report for statistics
+          if [ -f reports/trivy-report.json ]; then
+            CRITICAL=$(grep -o '"Severity":"CRITICAL"' reports/trivy-report.json | wc -l || echo 0)
+            HIGH=$(grep -o '"Severity":"HIGH"' reports/trivy-report.json | wc -l || echo 0)
+            MEDIUM=$(grep -o '"Severity":"MEDIUM"' reports/trivy-report.json | wc -l || echo 0)
+            LOW=$(grep -o '"Severity":"LOW"' reports/trivy-report.json | wc -l || echo 0)
+
+            echo "critical_count=$CRITICAL" >> $GITHUB_OUTPUT
+            echo "high_count=$HIGH" >> $GITHUB_OUTPUT
+            echo "medium_count=$MEDIUM" >> $GITHUB_OUTPUT
+            echo "low_count=$LOW" >> $GITHUB_OUTPUT
+            echo "total_count=$((CRITICAL + HIGH + MEDIUM + LOW))" >> $GITHUB_OUTPUT
+
+            # Create summary file
+            cat > reports/summary.txt << EOF
+          TRIVY SECURITY SCAN SUMMARY
+          ============================
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Scan Date: $(date)
+
+          VULNERABILITY STATISTICS:
+          ------------------------
+          🔴 CRITICAL: $CRITICAL
+          🟠 HIGH: $HIGH
+          🟡 MEDIUM: $MEDIUM
+          🟢 LOW: $LOW
+          ------------------------
+          TOTAL: $((CRITICAL + HIGH + MEDIUM + LOW))
+
+          Commit: ${{ github.sha }}
+          Triggered by: ${{ github.actor }}
+          Workflow: ${{ github.workflow }}
+          EOF
+          fi
+
+      - name: Create email body
+        id: email_content
+        run: |
+          # Create HTML email body
+          cat > reports/email-body.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <style>
+                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                  .header { background-color: #2c3e50; color: white; padding: 20px; text-align: center; }
+                  .content { padding: 20px; }
+                  .stats { background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                  .critical { color: #d9534f; font-weight: bold; }
+                  .high { color: #f0ad4e; font-weight: bold; }
+                  .medium { color: #5bc0de; font-weight: bold; }
+                  .low { color: #5cb85c; font-weight: bold; }
+                  .footer { background-color: #34495e; color: white; padding: 10px; text-align: center; font-size: 12px; }
+                  table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+                  th, td { padding: 10px; text-align: left; border: 1px solid #ddd; }
+                  th { background-color: #3498db; color: white; }
+                  .action-required { background-color: #ffe5e5; padding: 15px; border-left: 5px solid #d9534f; margin: 20px 0; }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>🔒 Trivy Security Scan Report</h1>
+                  <p>${{ github.repository }}</p>
+              </div>
+              <div class="content">
+                  <h2>Scan Summary</h2>
+                  <div class="stats">
+                      <table>
+                          <tr>
+                              <th>Severity</th>
+                              <th>Count</th>
+                              <th>Status</th>
+                          </tr>
+                          <tr>
+                              <td class="critical">🔴 CRITICAL</td>
+                              <td>${{ steps.scan_stats.outputs.critical_count }}</td>
+                              <td>${{ steps.scan_stats.outputs.critical_count == '0' && '✅ Clear' || '⚠️ Action Required' }}</td>
+                          </tr>
+                          <tr>
+                              <td class="high">🟠 HIGH</td>
+                              <td>${{ steps.scan_stats.outputs.high_count }}</td>
+                              <td>${{ steps.scan_stats.outputs.high_count == '0' && '✅ Clear' || '⚠️ Review Needed' }}</td>
+                          </tr>
+                          <tr>
+                              <td class="medium">🟡 MEDIUM</td>
+                              <td>${{ steps.scan_stats.outputs.medium_count }}</td>
+                              <td>${{ steps.scan_stats.outputs.medium_count == '0' && '✅ Clear' || 'ℹ️ Monitor' }}</td>
+                          </tr>
+                          <tr>
+                              <td class="low">🟢 LOW</td>
+                              <td>${{ steps.scan_stats.outputs.low_count }}</td>
+                              <td>ℹ️ Informational</td>
+                          </tr>
+                      </table>
+                  </div>
+
+                  ${{ steps.scan_stats.outputs.critical_count != '0' && '<div class="action-required"><h3>⚠️ Action Required</h3><p>Critical vulnerabilities detected! Please review the attached reports and take immediate action.</p></div>' || '' }}
+
+                  <h2>Scan Details</h2>
+                  <ul>
+                      <li><strong>Repository:</strong> ${{ github.repository }}</li>
+                      <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
+                      <li><strong>Commit:</strong> ${{ github.sha }}</li>
+                      <li><strong>Triggered by:</strong> ${{ github.actor }}</li>
+                      <li><strong>Scan Date:</strong> $(date)</li>
+                  </ul>
+
+                  <h2>Attached Reports</h2>
+                  <ul>
+                      <li><strong>HTML Report:</strong> Complete interactive report</li>
+                      <li><strong>Text Report:</strong> Detailed findings in plain text</li>
+                      <li><strong>JSON Report:</strong> Machine-readable format</li>
+                  </ul>
+
+                  <p>Please review the attached reports for detailed vulnerability information.</p>
+              </div>
+              <div class="footer">
+                  <p>This is an automated security scan report from GitHub Actions</p>
+                  <p><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" style="color: #3498db;">View Workflow Run</a></p>
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Send Email Report (SendGrid)
+        if: ${{ (github.event_name == 'schedule' || github.event.inputs.send_email == 'true') && secrets.SENDGRID_API_KEY != '' }}
+        uses: peter-evans/sendgrid-action@v1
+        with:
+          sendgrid-token: ${{ secrets.SENDGRID_API_KEY }}
+          to: ${{ github.event.inputs.email_recipient || env.DEFAULT_EMAIL }}
+          from: ${{ secrets.SENDGRID_FROM_EMAIL }}
+          subject: '🔒 Security Scan Report - ${{ github.repository }} - ${{ steps.scan_stats.outputs.critical_count }} Critical, ${{ steps.scan_stats.outputs.high_count }} High'
+          html: ./reports/email-body.html
+          attachments: |
+            ./reports/trivy-report.html
+            ./reports/trivy-report.txt
+            ./reports/summary.txt
+
+      # Alternative: Send Email using SMTP (Gmail, Outlook, etc.)
+      - name: Send Email Report (SMTP)
+        if: ${{ (github.event_name == 'schedule' || github.event.inputs.send_email == 'true') && secrets.SMTP_SERVER != '' }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          secure: true
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: '🔒 Security Scan - ${{ github.repository }} - Critical: ${{ steps.scan_stats.outputs.critical_count }}, High: ${{ steps.scan_stats.outputs.high_count }}'
+          to: ${{ github.event.inputs.email_recipient || env.DEFAULT_EMAIL }}
+          from: ${{ secrets.SMTP_FROM_EMAIL }}
+          html_body: file://reports/email-body.html
+          attachments: reports/trivy-report.html,reports/trivy-report.txt,reports/summary.txt
+          priority: ${{ steps.scan_stats.outputs.critical_count != '0' && 'high' || 'normal' }}
+
+      # Alternative: Use AWS SES
+      - name: Configure AWS credentials
+        if: ${{ (github.event_name == 'schedule' || github.event.inputs.send_email == 'true') && secrets.AWS_ACCESS_KEY_ID != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Send Email via AWS SES
+        if: ${{ (github.event_name == 'schedule' || github.event.inputs.send_email == 'true') && secrets.AWS_ACCESS_KEY_ID != '' }}
+        run: |
+          # Install AWS CLI if needed
+          pip install awscli
+
+          # Send email with attachments
+          aws ses send-raw-email \
+            --from "${{ secrets.SES_FROM_EMAIL }}" \
+            --destination "ToAddresses=${{ github.event.inputs.email_recipient || env.DEFAULT_EMAIL }}" \
+            --raw-message file://reports/email-with-attachments.mime
+
+      - name: Upload reports as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reports-${{ github.run_number }}
+          path: reports/
+          retention-days: 30
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'reports/trivy-results.sarif'
