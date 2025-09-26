@@ -29,20 +29,19 @@ the verification steps that are executed as part of the verification are:
 
 
 ## Technical validation steps :  
-1. a correct base 45 encoded string 
-2. a correct compressed data (according to zlib)
-3. a correct JWT format
-4. check if the schema identified in the JWT is available.
-5. a schema valid content
-6. retrieve the 1. signature from the trust registries based on : 
-7a : thumbprint
-7b : countrycode
-7c : officialId
+1. a correct QR code . 
+2. a correct base 45 encoded string 
+3. a correct compressed data (according to zlib)
+4. a correct JWT format
+5. check if the schema identified in the JWT is available.
+6. a schema valid content
+7. retrieve the signature from the trust registries based on : 
+  7a : thumbprint
+  7b : countrycode
+  7c : officialId ( <u>where do i get this one from?)</u>
 8. if this results in more than 1 signature should result in an error.
-9 : if returned result in data not having the same country id or official id an error should be given. 
-
-
-a correct signature in relation to the trust registries.
+9. if returned result in data not having the same country id or official id an error should be given.  <u>( can only check on country codes as I don't know where I should get the official ID from.)</u>
+10. the result of the signature validation.  
 
 ## Business validation steps
 1. invalid if : treatment date is > current date 
