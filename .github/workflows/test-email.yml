@@ -1,0 +1,73 @@
+name: Test Email Configuration
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_email:
+        description: 'Email address to test'
+        required: true
+        default: 'admin@example.com'
+        type: string
+
+jobs:
+  test-email:
+    name: Test Email Sending
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create test report
+        run: |
+          echo "Creating test email content..."
+          cat > test-report.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <style>
+                  body { font-family: Arial, sans-serif; padding: 20px; }
+                  .header { background: #007bff; color: white; padding: 15px; text-align: center; }
+                  .content { padding: 20px; }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>🧪 Email Test Successful!</h1>
+              </div>
+              <div class="content">
+                  <h2>Configuration Test</h2>
+                  <p>If you're reading this, your email configuration is working correctly!</p>
+
+                  <h3>Test Details:</h3>
+                  <ul>
+                      <li><strong>Repository:</strong> ${{ github.repository }}</li>
+                      <li><strong>Workflow:</strong> ${{ github.workflow }}</li>
+                      <li><strong>Run ID:</strong> ${{ github.run_id }}</li>
+                      <li><strong>Test Date:</strong> $(date)</li>
+                  </ul>
+
+                  <p>You can now proceed to configure the full Trivy security scanning with email reports.</p>
+              </div>
+          </body>
+          </html>
+          EOF
+
+          echo "Test email report created successfully"
+
+      - name: Send test email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT || '587' }}
+          secure: true
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: '🧪 Email Test - ${{ github.repository }}'
+          to: ${{ github.event.inputs.test_email }}
+          from: ${{ secrets.SMTP_FROM_EMAIL || secrets.SMTP_USERNAME }}
+          html_body: file://test-report.html
+          priority: normal
+
+      - name: Test result
+        run: |
+          echo "✅ Email test completed!"
+          echo "If no errors appeared above, your email configuration is working."
+          echo "Check your inbox at: ${{ github.event.inputs.test_email }}"
