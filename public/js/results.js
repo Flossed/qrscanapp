@@ -236,7 +236,7 @@ function displayValidationSummary(validationSummary, overallStatus, container) {
         }
 
         summaryHTML += `
-            <div class="summary-item ${statusClass}">
+            <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
                 <span class="status-icon">${statusIcon}</span>
                 <span class="step-label">${step.label}</span>
                 ${messageContent}
@@ -296,7 +296,7 @@ function displayValidationSummary(validationSummary, overallStatus, container) {
         }
 
         summaryHTML += `
-            <div class="summary-item ${statusClass}">
+            <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
                 <span class="status-icon">${statusIcon}</span>
                 <span class="step-label">${step.label}</span>
                 ${messageContent}
@@ -310,6 +310,9 @@ function displayValidationSummary(validationSummary, overallStatus, container) {
 
     summaryDiv.innerHTML = summaryHTML;
     container.appendChild(summaryDiv);
+
+    // Add click handlers for clickable tiles
+    addTileClickHandlers();
 }
 
 function getStatusIcon(status) {
@@ -347,4 +350,86 @@ function displayError(error, message, step) {
     `;
 
     errorContainer.style.display = 'block';
+}
+
+function getStepIdFromName(stepName) {
+    // Map step names from backend to validation keys
+    const stepMappings = {
+        'QR Code Analysis': 'qrCodeAnalysis',
+        'Original BASE45 String': 'base45Decode',
+        'Decoded BASE45': 'base45Decode',
+        'Decompressed ZLIB': 'zlibDecompress',
+        'Parsed JWT': 'jwtParsing',
+        'Schema File Check': 'schemaFileCheck',
+        'Schema Validation': 'schemaValidation',
+        'Kid Header Validation': 'kidHeaderValidation',
+        'Algorithm Header Validation': 'algorithmHeaderValidation',
+        'Signature Verification Response': 'signatureVerification',
+        'Signature Count Validation': 'signatureCountValidation',
+        'Country Code Validation': 'countryCodeValidation',
+        'Certificate Validity Date': 'certificateValidityDate',
+        'EHIC Accreditation': 'ehicAccreditation',
+        'Date of Birth Validation': 'dateOfBirthValidation',
+        'Date Range Validation': 'dateRangeValidation',
+        'Start/Issuance Date Validation': 'startIssuanceValidation',
+        'Issuance/End Date Validation': 'issuanceEndValidation',
+        'Institution Length Validation': 'institutionLengthValidation',
+        'Card ID Digit Validation': 'cardIdDigitValidation',
+        'Institution ID Digit Validation': 'institutionIdDigitValidation',
+        'Revocation Information Presence Validation': 'revocationPresence',
+        'Revocation Status Validation': 'revocationStatus',
+        'JWT Signature Validation': 'jwtSignatureValidation'
+    };
+
+    // Find exact match first
+    for (const [name, key] of Object.entries(stepMappings)) {
+        if (stepName.includes(name)) {
+            return key;
+        }
+    }
+
+    // Fallback for partial matches
+    if (stepName.includes('BASE45')) return 'base45Decode';
+    if (stepName.includes('ZLIB')) return 'zlibDecompress';
+    if (stepName.includes('JWT')) {
+        if (stepName.includes('Signature')) return 'jwtSignatureValidation';
+        return 'jwtParsing';
+    }
+    if (stepName.includes('Schema')) {
+        if (stepName.includes('File')) return 'schemaFileCheck';
+        return 'schemaValidation';
+    }
+
+    return null;
+}
+
+function addTileClickHandlers() {
+    const clickableTiles = document.querySelectorAll('.clickable-tile[data-step-key]');
+
+    clickableTiles.forEach(tile => {
+        tile.addEventListener('click', function() {
+            const stepKey = this.getAttribute('data-step-key');
+            if (stepKey) {
+                // Try to find the corresponding step element by ID
+                const stepElement = document.getElementById(`step-${stepKey}`);
+                if (stepElement) {
+                    stepElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+
+                    // Add a visual highlight effect
+                    stepElement.style.transition = 'background-color 0.3s ease';
+                    stepElement.style.backgroundColor = '#f0f8ff';
+                    setTimeout(() => {
+                        stepElement.style.backgroundColor = '';
+                    }, 2000);
+                }
+            }
+        });
+
+        // Add cursor pointer style to indicate clickability
+        tile.style.cursor = 'pointer';
+        tile.title = 'Click to navigate to verification step';
+    });
 }

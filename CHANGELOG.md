@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2025-01-01
+
+### Enhanced
+- **Cross-Page Navigation for Revocation Validations**: Extended interactive validation tiles across all user interface pages
+  - **Results Page Navigation**: Added clickable validation tiles with smooth scrolling to corresponding verification steps
+  - **Finalization Page Navigation**: Implemented clickable tiles that redirect to verify page with step anchoring
+  - **Comprehensive Step Mapping**: Added complete step mapping functions for revocation validations across all pages
+  - **Visual Feedback Enhancement**: Added hover effects, cursor pointers, and tooltip indicators for clickable tiles
+  - **Seamless User Experience**: Users can now navigate from validation summaries to detailed verification steps on any page
+
+### Added
+- **Step Navigation Infrastructure**: Implemented consistent navigation functionality across verify, results, and finalization pages
+- **Revocation Step Integration**: Added specific step mappings for "Revocation Information Presence Validation" and "Revocation Status Validation"
+- **Cross-Page Redirection**: Finalization page tiles redirect to verify page with appropriate step anchoring for detailed view
+- **Visual Highlighting**: Added background highlighting effect when navigating to verification steps for better user feedback
+
+### Technical Improvements
+- **Unified Navigation Functions**: Consistent `getStepIdFromName()` and `addTileClickHandlers()` implementations across all pages
+- **Enhanced User Interface**: Clickable tiles with `data-step-key` attributes for precise navigation targeting
+- **Responsive Design**: Navigation works seamlessly across desktop and mobile interfaces
+- **Cross-Platform Consistency**: Same navigation behavior and visual feedback across all validation display contexts
+
 ## [0.14.0] - 2025-01-01
 
 ### Added

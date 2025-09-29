@@ -239,7 +239,7 @@ function displayValidationSummary() {
             const statusClass = validation.status;
 
             summaryHTML += `
-                <div class="summary-item ${statusClass}">
+                <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
                     <span class="status-icon">${statusIcon}</span>
                     <span class="step-label">${step.label}</span>
                     ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
@@ -294,7 +294,7 @@ function displayValidationSummary() {
             const statusClass = validation.status;
 
             summaryHTML += `
-                <div class="summary-item ${statusClass}">
+                <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
                     <span class="status-icon">${statusIcon}</span>
                     <span class="step-label">${step.label}</span>
                     ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
@@ -308,6 +308,9 @@ function displayValidationSummary() {
         summaryHTML += '</div>'; // Close validation-summary
 
         container.innerHTML = summaryHTML;
+
+        // Add click handlers for clickable tiles
+        addTileClickHandlers();
     } catch (e) {
         console.error('Could not parse verification results for validation summary:', e);
         container.innerHTML = '<p class="error-message">Unable to load validation details</p>';
@@ -323,6 +326,76 @@ function getValidationStatusIcon(status) {
         case 'skipped': return '○';
         default: return '?';
     }
+}
+
+function getStepIdFromName(stepName) {
+    // Map step names from backend to validation keys
+    const stepMappings = {
+        'QR Code Analysis': 'qrCodeAnalysis',
+        'Original BASE45 String': 'base45Decode',
+        'Decoded BASE45': 'base45Decode',
+        'Decompressed ZLIB': 'zlibDecompress',
+        'Parsed JWT': 'jwtParsing',
+        'Schema File Check': 'schemaFileCheck',
+        'Schema Validation': 'schemaValidation',
+        'Kid Header Validation': 'kidHeaderValidation',
+        'Algorithm Header Validation': 'algorithmHeaderValidation',
+        'Signature Verification Response': 'signatureVerification',
+        'Signature Count Validation': 'signatureCountValidation',
+        'Country Code Validation': 'countryCodeValidation',
+        'Certificate Validity Date': 'certificateValidityDate',
+        'EHIC Accreditation': 'ehicAccreditation',
+        'Date of Birth Validation': 'dateOfBirthValidation',
+        'Date Range Validation': 'dateRangeValidation',
+        'Start/Issuance Date Validation': 'startIssuanceValidation',
+        'Issuance/End Date Validation': 'issuanceEndValidation',
+        'Institution Length Validation': 'institutionLengthValidation',
+        'Card ID Digit Validation': 'cardIdDigitValidation',
+        'Institution ID Digit Validation': 'institutionIdDigitValidation',
+        'Revocation Information Presence Validation': 'revocationPresence',
+        'Revocation Status Validation': 'revocationStatus',
+        'JWT Signature Validation': 'jwtSignatureValidation'
+    };
+
+    // Find exact match first
+    for (const [name, key] of Object.entries(stepMappings)) {
+        if (stepName.includes(name)) {
+            return key;
+        }
+    }
+
+    // Fallback for partial matches
+    if (stepName.includes('BASE45')) return 'base45Decode';
+    if (stepName.includes('ZLIB')) return 'zlibDecompress';
+    if (stepName.includes('JWT')) {
+        if (stepName.includes('Signature')) return 'jwtSignatureValidation';
+        return 'jwtParsing';
+    }
+    if (stepName.includes('Schema')) {
+        if (stepName.includes('File')) return 'schemaFileCheck';
+        return 'schemaValidation';
+    }
+
+    return null;
+}
+
+function addTileClickHandlers() {
+    const clickableTiles = document.querySelectorAll('.clickable-tile[data-step-key]');
+
+    clickableTiles.forEach(tile => {
+        tile.addEventListener('click', function() {
+            const stepKey = this.getAttribute('data-step-key');
+            if (stepKey) {
+                // Navigate to the verify page with step navigation
+                // Since finalization page doesn't have individual steps, redirect to verify page
+                window.location.href = `/verify#step-${stepKey}`;
+            }
+        });
+
+        // Add cursor pointer style to indicate clickability
+        tile.style.cursor = 'pointer';
+        tile.title = 'Click to navigate to verification step';
+    });
 }
 
 // Initialize validation summary when page loads
