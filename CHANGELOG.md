@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-09-29
+
+### Added
+- **Certificate Validity Date Verification**: Added comprehensive X.509 certificate validation using OpenSSL
+- **Document Issuance Date Validation**: Certificate validity period is now validated against document issuance date (`di` field) instead of treatment date
+- **OpenSSL Certificate Display**: Complete X.509 certificate details now displayed in Step 11 with proper line formatting
+- **Enhanced Certificate Details**: Full certificate parsing showing validity periods, issuer, subject, and extensions
+
+### Changed
+- **Certificate Validation Logic**: Updated to use document issuance date from JWT payload (`jwtDecoded?.payload?.prc?.di`) for certificate validity checking
+- **Step 11 Enhancement**: Certificate Validity Date Verification step now includes complete OpenSSL certificate output with proper formatting
+- **Validation Response**: Cleaned up Step 11 JSON response to show essential validity information with correct dates
+
+### Fixed
+- **Certificate Display Location**: Fixed certificate details to display in Step 11 section instead of validation summary banner
+- **Line Break Formatting**: OpenSSL certificate output now properly displays with actual line breaks instead of `\n` characters
+- **Variable Reference Error**: Fixed "treatmentDateStr is not defined" error by consolidating validation logic
+- **Date Validation**: Corrected certificate validity verification to use document issuance date as intended
+
+### Technical Improvements
+- **OpenSSL Integration**: Added secure certificate parsing using `openssl x509 -text -noout` command
+- **Temporary File Handling**: Proper certificate file creation and cleanup for OpenSSL processing
+- **Frontend Certificate Parsing**: Enhanced JavaScript to parse and display multi-line certificate details
+- **Error Handling**: Improved error handling for certificate parsing and OpenSSL execution
+
 ## [0.5.0] - 2025-09-26
 
 ### Added
@@ -166,6 +191,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.6.0**: Certificate validity date verification with OpenSSL parsing and document issuance date validation
+- **v0.5.0**: Intelligent PDF language rendering and technical/business validation categories
+- **v0.4.0**: Improved identity verification flow and PRC data display
 - **v0.3.0**: Complete multi-language support for all EEA/EFTA countries
 - **v0.2.0**: Full EHIC verification system with comprehensive validation pipeline
 - **v0.1.0**: Initial QR scanning and basic verification functionality

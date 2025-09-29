@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 0.5.0
+## Current Status - Version 0.6.0
 
 ### ✅ Completed Features
 
@@ -22,12 +22,14 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **Signature Retrieval** - Fetches digital signatures from EBSI infrastructure
 - **Signature Count Validation** - Ensures exactly one signature is present
 - **Country Code Validation** - Matches country codes between JWT and signature response
+- **Certificate Validity Date Verification** - Validates certificate validity period against document issuance date
 - **JWT Signature Validation** - Cryptographic validation of digital signatures
 
 #### User Interface
 - **Comprehensive Validation Banner** - Step-by-step validation status with individual pass/fail indicators
 - **Real-time Status Updates** - Live feedback during verification process
 - **Responsive Design** - Mobile-friendly interface with proper error handling
+- **OpenSSL Certificate Display** - Complete X.509 certificate details in Step 11 with proper formatting
 
 #### Visual Verification System
 - **Optional Identity Check** - Visual verification of patient identity after QR verification
@@ -112,7 +114,12 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
    - Signature `countryCode` field validation
    - Cross-validation between sources
 
-10. **JWT Signature Validation** ✅
+10. **Certificate Validity Date Verification** ✅
+    - X.509 certificate parsing using OpenSSL
+    - Certificate validity period extraction
+    - Document issuance date validation against certificate validity
+
+11. **JWT Signature Validation** ✅
     - Cryptographic signature verification
     - Public key validation using EBSI
 
@@ -213,4 +220,4 @@ SMTP_PASS=your_smtp_password
 
 ---
 
-**Version 0.2** - Technical validations complete, verification pipeline fully operational, results and finalization systems implemented.
+**Version 0.6** - Added certificate validity date verification with OpenSSL parsing and document issuance date validation.
