@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2025-09-29
+
+### Fixed
+- **Cross-Platform Validation Consistency**: All validation results now properly reflected across all output formats
+  - Updated email template to include complete technical and business validation sections
+  - Enhanced PDF generation with full validation breakdown including business validations
+  - Added missing Kid Header and Algorithm Header validations to technical validations in email and PDF
+  - Replaced placeholder "No business validations configured" in PDF with actual business validation results
+  - Added missing institutionIdDigitValidation to error handling validation summary
+
+### Enhanced
+- **Email Notifications**: Comprehensive validation display with technical/business categorization and optional validation indicators
+- **PDF Reports**: Complete validation listing with proper technical/business separation and clear status indicators
+- **Validation Display Consistency**: Synchronized validation information across verify page, results page, finalization page, email notifications, and PDF reports
+- **User Experience**: Users now receive consistent validation information regardless of output format
+
+### Technical Improvements
+- **Email Template Structure**: Organized validation display with styled section headers and color-coded optional validation indicators
+- **PDF Generation Logic**: Enhanced validation status mapping and comprehensive validation listing
+- **Error Handling**: Improved validation summary completeness in error scenarios
+- **Output Format Synchronization**: Unified validation structure across all user-facing outputs
+
 ## [0.11.0] - 2025-09-29
 
 ### Added
@@ -319,6 +341,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.12.1**: Business validations reflected also in the email and document with cross-platform validation consistency
 - **v0.11.0**: Added comprehensive business validations with date comparisons, institution validations, and optional warning-only checks
 - **v0.10.0**: Implemented header verification (Kid and Algorithm header validation)
 - **v0.9.0**: Added interactive validation tiles with click navigation and enhanced user experience
