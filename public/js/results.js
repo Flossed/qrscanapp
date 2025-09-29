@@ -98,6 +98,8 @@ async function processVerification() {
             institutionLengthValidation: { status: 'skipped', message: 'Skipped due to network error' },
             cardIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
             institutionIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            revocationPresence: { status: 'skipped', message: 'Skipped due to network error' },
+            revocationStatus: { status: 'skipped', message: 'Skipped due to network error' },
             jwtSignatureValidation: { status: 'skipped', message: 'Skipped due to network error' }
         };
 
@@ -272,6 +274,39 @@ function displayValidationSummary(validationSummary, overallStatus, container) {
     }
 
     summaryHTML += '</div></div>'; // Close business items and category
+
+    // Revocation Validations Section
+    const revocationSteps = [
+        { key: 'revocationPresence', label: 'Revocation Information Presence' },
+        { key: 'revocationStatus', label: 'Revocation Status Check' }
+    ];
+
+    summaryHTML += '<div class="validation-category">';
+    summaryHTML += '<h4 class="category-banner revocation-banner">Revocation Validations</h4>';
+    summaryHTML += '<div class="summary-items revocation-items">';
+
+    revocationSteps.forEach(step => {
+        const validation = validationSummary[step.key] || { status: 'pending', message: '' };
+        const statusIcon = getStatusIcon(validation.status);
+        const statusClass = validation.status;
+
+        let messageContent = '';
+        if (validation.message) {
+            messageContent = `<span class="step-message">${validation.message}</span>`;
+        }
+
+        summaryHTML += `
+            <div class="summary-item ${statusClass}">
+                <span class="status-icon">${statusIcon}</span>
+                <span class="step-label">${step.label}</span>
+                ${messageContent}
+                ${validation.errorCount !== undefined && validation.errorCount > 0 ?
+                    `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+            </div>
+        `;
+    });
+
+    summaryHTML += '</div></div>'; // Close revocation items and category
 
     summaryDiv.innerHTML = summaryHTML;
     container.appendChild(summaryDiv);

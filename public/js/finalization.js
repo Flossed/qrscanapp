@@ -277,6 +277,34 @@ function displayValidationSummary() {
         }
 
         summaryHTML += '</div></div>'; // Close business items and category
+
+        // Revocation Validations Section
+        const revocationSteps = [
+            { key: 'revocationPresence', label: 'Revocation Information Presence' },
+            { key: 'revocationStatus', label: 'Revocation Status Check' }
+        ];
+
+        summaryHTML += '<div class="validation-category">';
+        summaryHTML += '<h4 class="category-banner revocation-banner">Revocation Validations</h4>';
+        summaryHTML += '<div class="summary-items revocation-items">';
+
+        revocationSteps.forEach(step => {
+            const validation = validationSummary[step.key] || { status: 'pending', message: '' };
+            const statusIcon = getValidationStatusIcon(validation.status);
+            const statusClass = validation.status;
+
+            summaryHTML += `
+                <div class="summary-item ${statusClass}">
+                    <span class="status-icon">${statusIcon}</span>
+                    <span class="step-label">${step.label}</span>
+                    ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
+                    ${validation.errorCount !== undefined && validation.errorCount > 0 ?
+                        `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+                </div>
+            `;
+        });
+
+        summaryHTML += '</div></div>'; // Close revocation items and category
         summaryHTML += '</div>'; // Close validation-summary
 
         container.innerHTML = summaryHTML;

@@ -125,6 +125,8 @@ document.getElementById('process-verification').addEventListener('click', async 
             jwtParsing: { status: 'skipped', message: 'Skipped due to network error' },
             schemaFileCheck: { status: 'skipped', message: 'Skipped due to network error' },
             schemaValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            kidHeaderValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            algorithmHeaderValidation: { status: 'skipped', message: 'Skipped due to network error' },
             signatureVerification: { status: 'skipped', message: 'Skipped due to network error' },
             signatureCountValidation: { status: 'skipped', message: 'Skipped due to network error' },
             countryCodeValidation: { status: 'skipped', message: 'Skipped due to network error' },
@@ -136,6 +138,9 @@ document.getElementById('process-verification').addEventListener('click', async 
             issuanceEndValidation: { status: 'skipped', message: 'Skipped due to network error' },
             institutionLengthValidation: { status: 'skipped', message: 'Skipped due to network error' },
             cardIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            institutionIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            revocationPresence: { status: 'skipped', message: 'Skipped due to network error' },
+            revocationStatus: { status: 'skipped', message: 'Skipped due to network error' },
             jwtSignatureValidation: { status: 'skipped', message: 'Skipped due to network error' }
         };
 
@@ -282,6 +287,35 @@ function displayValidationSummary(summary, overallStatus) {
 
     summaryHTML += '</div></div>'; // Close business items and category
 
+    // Revocation Validations Section
+    const revocationSteps = [
+        { key: 'revocationPresence', label: 'Revocation Information Presence' },
+        { key: 'revocationStatus', label: 'Revocation Status Check' }
+    ];
+
+    summaryHTML += '<div class="validation-category">';
+    summaryHTML += '<h4 class="category-banner revocation-banner">Revocation Validations</h4>';
+    summaryHTML += '<div class="summary-items revocation-items">';
+
+    revocationSteps.forEach(step => {
+        const validation = summary[step.key] || { status: 'pending', message: '' };
+        const statusIcon = getStatusIcon(validation.status);
+        const statusClass = validation.status;
+
+        summaryHTML += `
+            <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
+                <span class="status-icon">${statusIcon}</span>
+                <span class="step-label">${step.label}</span>
+                ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
+                ${validation.errorCount !== undefined && validation.errorCount > 0 ?
+                    `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+                <span class="click-indicator">→</span>
+            </div>
+        `;
+    });
+
+    summaryHTML += '</div></div>'; // Close revocation items and category
+
     // Add overall status
     const overallIcon = getStatusIcon(overallStatus);
     summaryHTML += `
@@ -324,6 +358,8 @@ function getStepIdFromName(stepName) {
         'Institution ID/Name Length Validation (Optional)': 'institutionLengthValidation',
         'Card ID Digit Validation (Optional)': 'cardIdDigitValidation',
         'Institution ID Digit Validation (Optional)': 'institutionIdDigitValidation',
+        'Revocation Information Presence Validation': 'revocationPresence',
+        'Revocation Status Validation': 'revocationStatus',
         'JWT Signature Validation': 'jwtSignatureValidation'
     };
 

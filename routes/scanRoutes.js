@@ -1495,6 +1495,17 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.text(`${statusSymbol(getValidationStatus('institutionLengthValidation', 'institutionLengthValidation'))} Institution Length Validation (Optional): ${getValidationStatus('institutionLengthValidation', 'institutionLengthValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation'))} Card ID Digit Validation (Optional): ${getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation'))} Institution ID Digit Validation (Optional): ${getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation') ? passedText : failedText}`);
+
+        doc.moveDown(1);
+
+        // Revocation Validations Section
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text('REVOCATION VALIDATIONS', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica').fontSize(9);
+
+        doc.text(`${statusSymbol(getValidationStatus('revocationPresence', 'revocationPresence'))} Revocation Information Presence: ${getValidationStatus('revocationPresence', 'revocationPresence') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('revocationStatus', 'revocationStatus'))} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : failedText}`);
         doc.moveDown(2);
 
         // === PDF DIGITAL SIGNATURE SECTION (at end of document) ===
@@ -1589,6 +1600,12 @@ router.post('/api/send-verification-email', async (req, res) => {
                 <li>${statusSymbol(getValidationStatus('institutionLengthValidation', 'institutionLengthValidation'))} Institution Length Validation <span style="color: #f39c12;">(Optional)</span></li>
                 <li>${statusSymbol(getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation'))} Card ID Digit Validation <span style="color: #f39c12;">(Optional)</span></li>
                 <li>${statusSymbol(getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation'))} Institution ID Digit Validation <span style="color: #f39c12;">(Optional)</span></li>
+            </ul>
+
+            <h4 style="color: #2c3e50; margin-top: 20px;">Revocation Validations</h4>
+            <ul>
+                <li>${statusSymbol(getValidationStatus('revocationPresence', 'revocationPresence'))} Revocation Information Presence</li>
+                <li>${statusSymbol(getValidationStatus('revocationStatus', 'revocationStatus'))} Revocation Status Check</li>
             </ul>
             <hr>
             <h3>${getTranslation('email-prc-certificate-info', userLanguage)}</h3>
@@ -1874,6 +1891,8 @@ router.post('/api/verify', async (req, res) => {
                 institutionLengthValidation: { status: 'pending', message: '' },
                 cardIdDigitValidation: { status: 'pending', message: '' },
                 institutionIdDigitValidation: { status: 'pending', message: '' },
+                revocationPresence: { status: 'pending', message: '' },
+                revocationStatus: { status: 'pending', message: '' },
                 jwtSignatureValidation: { status: 'pending', message: '' }
             };
 
@@ -4079,6 +4098,193 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 };
                             }
 
+                            // Step 18: Revocation Information Presence Validation
+                            try {
+                                let revocationPresenceValidationPassed = false;
+                                let revocationPresenceValidationMessage = 'Revocation information presence validation N/A - JWT ID (jti) and/or Revocation ID (rid) not present in payload';
+
+                                const payload = jwtDecoded?.payload;
+
+                                // Check if both jti and rid are present in the payload
+                                const hasJti = payload?.jti !== undefined && payload?.jti !== null && payload?.jti !== '';
+                                const hasRid = payload?.rid !== undefined && payload?.rid !== null && payload?.rid !== '';
+
+                                if (hasJti && hasRid) {
+                                    revocationPresenceValidationMessage = `Revocation information presence validation passed - both JWT ID (jti): "${payload.jti}" and Revocation ID (rid): "${payload.rid}" are present`;
+                                    revocationPresenceValidationPassed = true;
+                                } else if (hasJti && !hasRid) {
+                                    revocationPresenceValidationMessage = `Revocation information presence validation N/A - JWT ID (jti): "${payload.jti}" is present but Revocation ID (rid) is missing`;
+                                    revocationPresenceValidationPassed = false;
+                                } else if (!hasJti && hasRid) {
+                                    revocationPresenceValidationMessage = `Revocation information presence validation N/A - Revocation ID (rid): "${payload.rid}" is present but JWT ID (jti) is missing`;
+                                    revocationPresenceValidationPassed = false;
+                                } else {
+                                    revocationPresenceValidationMessage = 'Revocation information presence validation N/A - both JWT ID (jti) and Revocation ID (rid) are missing from payload';
+                                    revocationPresenceValidationPassed = false;
+                                }
+
+                                logger.info('Revocation information presence validation completed', {
+                                    hasJti: hasJti,
+                                    hasRid: hasRid,
+                                    jtiValue: payload?.jti || null,
+                                    ridValue: payload?.rid || null,
+                                    validationPassed: revocationPresenceValidationPassed
+                                });
+
+                                const revocationPresenceValidationString = JSON.stringify({
+                                    revocationPresenceValidationPassed,
+                                    message: revocationPresenceValidationMessage,
+                                    revocationInfo: {
+                                        hasJti: hasJti,
+                                        hasRid: hasRid,
+                                        jtiValue: payload?.jti || null,
+                                        ridValue: payload?.rid || null,
+                                        jtiType: typeof payload?.jti,
+                                        ridType: typeof payload?.rid
+                                    }
+                                }, null, 2);
+                                const revocationPresenceValidationSize = Buffer.byteLength(revocationPresenceValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 18: Revocation Information Presence Validation',
+                                    data: revocationPresenceValidationString,
+                                    size: revocationPresenceValidationSize,
+                                    percentage: Math.round((revocationPresenceValidationSize / responseSize) * 100)
+                                });
+
+                                // Set status - success if both present, warning if not available
+                                validationSummary.revocationPresence = {
+                                    status: revocationPresenceValidationPassed ? 'success' : 'warning',
+                                    message: revocationPresenceValidationMessage
+                                };
+
+                            } catch (revocationPresenceError) {
+                                logger.error('Revocation information presence validation failed:', revocationPresenceError);
+
+                                validationSummary.revocationPresence = {
+                                    status: 'warning',
+                                    message: `Revocation information presence validation encountered an error: ${revocationPresenceError.message}`
+                                };
+                            }
+
+                            // Step 19: Revocation Status Validation
+                            try {
+                                let revocationStatusValidationPassed = false;
+                                let revocationStatusValidationMessage = 'Revocation status validation N/A - missing required jti or rid fields';
+                                let revocationStatus = 'N/A';
+
+                                const payload = jwtDecoded?.payload;
+                                const hasJti = payload?.jti !== undefined && payload?.jti !== null && payload?.jti !== '';
+                                const hasRid = payload?.rid !== undefined && payload?.rid !== null && payload?.rid !== '';
+
+                                if (hasJti && hasRid) {
+                                    // Both jti and rid are present, attempt to fetch revocation status
+                                    try {
+                                        logger.info('Attempting to fetch revocation status', {
+                                            jti: payload.jti,
+                                            rid: payload.rid
+                                        });
+
+                                        // TODO: Replace with actual revocation endpoint URL
+                                        const revocationEndpoint = process.env.REVOCATION_ENDPOINT || 'https://api.ebsi.eu/revocation/v1/status';
+
+                                        const revocationResponse = await axios.get(revocationEndpoint, {
+                                            params: {
+                                                jti: payload.jti,
+                                                rid: payload.rid
+                                            },
+                                            timeout: 10000, // 10 second timeout
+                                            headers: {
+                                                'Accept': 'application/json',
+                                                'User-Agent': 'EHIC-Verification-System/1.0'
+                                            }
+                                        });
+
+                                        if (revocationResponse.status === 200 && revocationResponse.data) {
+                                            const revocationData = revocationResponse.data;
+
+                                            // Check if the credential is revoked
+                                            const isRevoked = revocationData.revoked === true || revocationData.status === 'revoked';
+
+                                            if (isRevoked) {
+                                                revocationStatus = 'REVOKED';
+                                                revocationStatusValidationMessage = `Revocation status validation failed - credential is REVOKED (jti: "${payload.jti}", rid: "${payload.rid}")`;
+                                                revocationStatusValidationPassed = false;
+                                            } else {
+                                                revocationStatus = 'ACTIVE';
+                                                revocationStatusValidationMessage = `Revocation status validation passed - credential is ACTIVE (jti: "${payload.jti}", rid: "${payload.rid}")`;
+                                                revocationStatusValidationPassed = true;
+                                            }
+
+                                            logger.info('Revocation status check completed', {
+                                                jti: payload.jti,
+                                                rid: payload.rid,
+                                                revocationStatus: revocationStatus,
+                                                isRevoked: isRevoked,
+                                                endpointResponse: revocationData
+                                            });
+
+                                        } else {
+                                            revocationStatus = 'UNKNOWN';
+                                            revocationStatusValidationMessage = `Revocation status validation warning - unable to determine status from endpoint response (jti: "${payload.jti}", rid: "${payload.rid}")`;
+                                            revocationStatusValidationPassed = false;
+                                        }
+
+                                    } catch (revocationFetchError) {
+                                        logger.warn('Failed to fetch revocation status from endpoint', {
+                                            jti: payload.jti,
+                                            rid: payload.rid,
+                                            error: revocationFetchError.message,
+                                            endpoint: process.env.REVOCATION_ENDPOINT || 'https://api.ebsi.eu/revocation/v1/status'
+                                        });
+
+                                        revocationStatus = 'UNKNOWN';
+                                        revocationStatusValidationMessage = `Revocation status validation warning - failed to fetch status from endpoint: ${revocationFetchError.message} (jti: "${payload.jti}", rid: "${payload.rid}")`;
+                                        revocationStatusValidationPassed = false;
+                                    }
+                                } else {
+                                    // Missing jti or rid, status is N/A
+                                    revocationStatusValidationMessage = `Revocation status validation N/A - missing required fields (jti: ${hasJti ? 'present' : 'missing'}, rid: ${hasRid ? 'present' : 'missing'})`;
+                                    revocationStatusValidationPassed = false; // N/A is treated as skipped
+                                }
+
+                                const revocationStatusValidationString = JSON.stringify({
+                                    revocationStatusValidationPassed,
+                                    message: revocationStatusValidationMessage,
+                                    revocationStatusInfo: {
+                                        status: revocationStatus,
+                                        hasJti: hasJti,
+                                        hasRid: hasRid,
+                                        jtiValue: payload?.jti || null,
+                                        ridValue: payload?.rid || null,
+                                        endpoint: process.env.REVOCATION_ENDPOINT || 'https://api.ebsi.eu/revocation/v1/status'
+                                    }
+                                }, null, 2);
+                                const revocationStatusValidationSize = Buffer.byteLength(revocationStatusValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 19: Revocation Status Validation',
+                                    data: revocationStatusValidationString,
+                                    size: revocationStatusValidationSize,
+                                    percentage: Math.round((revocationStatusValidationSize / responseSize) * 100)
+                                });
+
+                                // Set status based on revocation check result
+                                const finalStatus = revocationStatus === 'N/A' ? 'skipped' : (revocationStatusValidationPassed ? 'success' : 'warning');
+                                validationSummary.revocationStatus = {
+                                    status: finalStatus,
+                                    message: revocationStatusValidationMessage
+                                };
+
+                            } catch (revocationStatusError) {
+                                logger.error('Revocation status validation failed:', revocationStatusError);
+
+                                validationSummary.revocationStatus = {
+                                    status: 'warning',
+                                    message: `Revocation status validation encountered an error: ${revocationStatusError.message}`
+                                };
+                            }
+
                             logger.info('Complete QR code processing finished', {
                                 totalSteps: steps.length,
                                 signatureValid: jwtValidationResult.signatureValid,
@@ -4207,10 +4413,15 @@ async function processVerificationData(originalData, treatmentDate = null) {
     });
 
     // Determine overall validation status
-    const overallStatus = Object.values(validationSummary).every(v =>
+    // Exclude revocation validations from overall status calculation since they're optional
+    const coreValidations = Object.entries(validationSummary)
+        .filter(([key, _]) => !key.startsWith('revocation'))
+        .map(([_, validation]) => validation);
+
+    const overallStatus = coreValidations.every(v =>
         v.status === 'success' || v.status === 'skipped'
     ) ? 'success' :
-    Object.values(validationSummary).some(v => v.status === 'error') ? 'error' : 'warning';
+    coreValidations.some(v => v.status === 'error') ? 'error' : 'warning';
 
     return {
         steps,

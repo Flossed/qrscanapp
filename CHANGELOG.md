@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2025-01-01
+
+### Added
+- **Revocation Validation System**: Comprehensive revocation checking for EHIC/PRC certificates
+  - **Revocation Information Presence Validation**: Checks for JWT ID (jti) and Revocation ID (rid) fields in the payload
+  - **Revocation Status Validation**: Fetches real-time revocation status from configurable external endpoints (defaults to EBSI API)
+  - **Frontend Integration**: Added revocation validation sections across all user interfaces (verify, results, finalization pages)
+  - **Email and PDF Integration**: Revocation validation results included in email notifications and PDF reports
+  - **Configurable Endpoint**: Support for custom revocation endpoints via REVOCATION_ENDPOINT environment variable
+  - **Graceful Error Handling**: Network failures and missing revocation information handled appropriately
+  - **Non-blocking Validation**: Revocation validations do not affect overall verification success when information is not present
+
+### Enhanced
+- **Overall Status Calculation**: Revocation validations excluded from overall pass/fail determination since they are optional
+- **Validation Status Levels**: Revocation presence shows as warning when information is missing, making it visible without blocking verification
+- **Error Handling**: Updated error handling validation summary to include revocation validations
+- **User Experience**: Clear distinction between "not checked" vs "checked and passed" for revocation status
+- **Security**: When revocation information is present and indicates a revoked certificate, appropriate warnings are displayed
+
+### Technical Improvements
+- **Step 18**: Revocation Information Presence Validation with comprehensive logging and status reporting
+- **Step 19**: Revocation Status Validation with external API integration and timeout handling
+- **Validation Summary Structure**: Enhanced to support revocation validation categories
+- **Cross-Platform Consistency**: Revocation validations displayed consistently across web, email, and PDF outputs
+- **Optional Validation Logic**: Framework for handling optional validations that enhance but don't block verification
+
 ## [0.12.1] - 2025-09-29
 
 ### Fixed
