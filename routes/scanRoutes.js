@@ -1465,17 +1465,17 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} ${getTranslation('pdf-qr-analysis', pdfLanguage) || 'QR Code Analysis'}: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} ${getTranslation('email-base45-decoding', pdfLanguage)}: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ${getTranslation('email-zlib-decompression', pdfLanguage)}: ${getValidationStatus('zlibDecompress', 'zlibDecompression') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} ${getTranslation('email-jwt-validation', pdfLanguage)}: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} ${getTranslation('pdf-schema-file-check', pdfLanguage) || 'Schema File Check'}: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} ${getTranslation('pdf-schema-validation', pdfLanguage) || 'Schema Validation'}: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} ${getTranslation('pdf-signature-retrieval', pdfLanguage) || 'Signature Retrieval'}: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} ${getTranslation('pdf-signature-count', pdfLanguage) || 'Signature Count Validation'}: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} ${getTranslation('pdf-country-code', pdfLanguage) || 'Country Code Validation'}: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('certificateValidityDate', 'certificateValidityDate'))} ${getTranslation('pdf-certificate-validity', pdfLanguage) || 'Certificate Validity Date'}: ${getValidationStatus('certificateValidityDate', 'certificateValidityDate') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', pdfLanguage)}: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} QR Code Analysis: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} BASE45 Decoding: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ZLIB Decompression: ${getValidationStatus('zlibDecompress', 'zlibDecompression') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} JWT Parsing: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} Schema File Check: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} Schema Validation: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} Signature Retrieval: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} Signature Count Validation: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} Country Code Validation: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('certificateValidityDate', 'certificateValidityDate'))} Certificate Validity Date: ${getValidationStatus('certificateValidityDate', 'certificateValidityDate') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} JWT Signature Validation: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
 
         doc.moveDown(1);
 
@@ -1552,17 +1552,17 @@ router.post('/api/send-verification-email', async (req, res) => {
             ${identityVerificationWarning}
             <h3>${getTranslation('email-verification-status', userLanguage, { icon: statusIcon, status: statusText })}</h3>
             <ul>
-                <li>${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} ${getTranslation('email-qr-analysis', userLanguage) || 'QR Code Analysis'}</li>
-                <li>${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} ${getTranslation('email-base45-decoding', userLanguage)}</li>
-                <li>${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ${getTranslation('email-zlib-decompression', userLanguage)}</li>
-                <li>${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} ${getTranslation('email-jwt-validation', userLanguage)}</li>
-                <li>${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} ${getTranslation('email-schema-file-check', userLanguage) || 'Schema File Check'}</li>
-                <li>${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} ${getTranslation('email-schema-validation', userLanguage) || 'Schema Validation'}</li>
-                <li>${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} ${getTranslation('email-signature-retrieval', userLanguage) || 'Signature Retrieval'}</li>
-                <li>${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} ${getTranslation('email-signature-count', userLanguage) || 'Signature Count Validation'}</li>
-                <li>${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} ${getTranslation('email-country-code', userLanguage) || 'Country Code Validation'}</li>
-                <li>${statusSymbol(getValidationStatus('certificateValidityDate', 'certificateValidityDate'))} ${getTranslation('email-certificate-validity', userLanguage) || 'Certificate Validity Date'}</li>
-                <li>${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} ${getTranslation('email-signature-validation', userLanguage)}</li>
+                <li>${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} QR Code Analysis</li>
+                <li>${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} BASE45 Decoding</li>
+                <li>${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ZLIB Decompression</li>
+                <li>${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} JWT Parsing</li>
+                <li>${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} Schema File Check</li>
+                <li>${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} Schema Validation</li>
+                <li>${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} Signature Retrieval</li>
+                <li>${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} Signature Count Validation</li>
+                <li>${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} Country Code Validation</li>
+                <li>${statusSymbol(getValidationStatus('certificateValidityDate', 'certificateValidityDate'))} Certificate Validity Date</li>
+                <li>${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} JWT Signature Validation</li>
             </ul>
             <hr>
             <h3>${getTranslation('email-prc-certificate-info', userLanguage)}</h3>
@@ -2321,6 +2321,15 @@ async function processVerificationData(originalData, treatmentDate = null) {
     try {
         const QRCode = require('qrcode');
 
+        // Check if data is valid for QR code analysis
+        if (!originalData || originalData.length === 0) {
+            throw new Error('No data provided for QR Code analysis');
+        }
+
+        if (originalData.length < 3) {
+            throw new Error('Data too short for meaningful QR Code analysis');
+        }
+
         // Analyze QR code characteristics by generating it and examining properties
         const qrAnalysis = await analyzeQRCodeData(originalData);
         const analysisSize = Buffer.byteLength(JSON.stringify(qrAnalysis), 'utf8');
@@ -2332,10 +2341,21 @@ async function processVerificationData(originalData, treatmentDate = null) {
             percentage: 100
         });
 
-        validationSummary.qrCodeAnalysis = {
-            status: 'success',
-            message: `QR Code analyzed - Version ${qrAnalysis.version}, Error Level ${qrAnalysis.errorCorrectionLevel}`
-        };
+        // Check if analysis has valid data
+        const version = qrAnalysis?.actualQRProperties?.version;
+        const errorLevel = qrAnalysis?.actualQRProperties?.errorCorrectionLevel;
+
+        if (version && errorLevel) {
+            validationSummary.qrCodeAnalysis = {
+                status: 'success',
+                message: `QR Code analyzed - Version ${version}, Error Level ${errorLevel}`
+            };
+        } else {
+            validationSummary.qrCodeAnalysis = {
+                status: 'error',
+                message: `QR Code analysis incomplete - missing version or error correction level data`
+            };
+        }
     } catch (qrError) {
         // If QR analysis fails, add error info
         const errorInfo = {
@@ -2356,6 +2376,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
             message: `QR Code analysis failed: ${qrError.message}`
         };
     }
+
 
     // Step 1: Original BASE45 data
     const originalSize = Buffer.byteLength(originalData, 'utf8');

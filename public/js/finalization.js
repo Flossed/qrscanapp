@@ -72,7 +72,17 @@ if (identityVerificationData) {
 }
 
 // Get treatment date from sessionStorage if available
-const treatmentDate = sessionStorage.getItem('treatmentDate');
+let treatmentDate = null;
+const treatmentData = sessionStorage.getItem('treatmentData');
+if (treatmentData) {
+    try {
+        const parsedData = JSON.parse(treatmentData);
+        treatmentDate = parsedData.treatmentDate;
+    } catch (e) {
+        console.warn('Could not parse treatment data from sessionStorage:', e);
+    }
+}
+
 if (treatmentDate) {
     // Format the date nicely
     const date = new Date(treatmentDate);

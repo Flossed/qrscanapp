@@ -48,7 +48,16 @@ document.getElementById('process-verification').addEventListener('click', async 
 
     try {
         // Get treatment date from sessionStorage if available
-        const treatmentDate = sessionStorage.getItem('treatmentDate');
+        let treatmentDate = null;
+        const treatmentData = sessionStorage.getItem('treatmentData');
+        if (treatmentData) {
+            try {
+                const parsedData = JSON.parse(treatmentData);
+                treatmentDate = parsedData.treatmentDate;
+            } catch (e) {
+                console.warn('Could not parse treatment data from sessionStorage:', e);
+            }
+        }
 
         const response = await fetch('/api/verify', {
             method: 'POST',
@@ -70,9 +79,12 @@ document.getElementById('process-verification').addEventListener('click', async 
                 displayValidationSummary(result.validationSummary, result.overallStatus || 'error');
             }
 
-            // Display steps if available
+            // Display steps if available - always try to show something
             if (result.steps && result.steps.length > 0) {
                 displayVerificationSteps(result.steps);
+            } else {
+                // If no detailed steps available, create a basic display from validation summary
+                displayBasicVerificationSteps(result.validationSummary || {});
             }
 
             // If there's an error, show error details too
@@ -93,6 +105,8 @@ document.getElementById('process-verification').addEventListener('click', async 
 
             if (result.validationSummary) {
                 displayValidationSummary(result.validationSummary, result.overallStatus || 'error');
+                // Also display basic verification steps when server error occurs
+                displayBasicVerificationSteps(result.validationSummary);
             }
         }
     } catch (error) {
@@ -120,8 +134,50 @@ document.getElementById('process-verification').addEventListener('click', async 
 
         // Display the validation summary with all steps marked as skipped
         displayValidationSummary(skippedValidationSummary, 'error');
+
+        // Also display basic verification steps to show what would have been processed
+        displayBasicVerificationSteps(skippedValidationSummary);
     }
 });
+
+function displayRawDataBlock(container) {
+    // Get the raw data from sessionStorage
+    const rawData = sessionStorage.getItem('verificationData');
+
+    if (rawData) {
+        const rawDataDiv = document.createElement('div');
+        rawDataDiv.className = 'raw-data-block';
+        rawDataDiv.innerHTML = `
+            <div class="raw-data-header">
+                <h4>Raw QR Code Data</h4>
+                <button class="btn btn-small btn-copy-raw" data-content="${rawData}">Copy Raw Data</button>
+            </div>
+            <div class="raw-data-content">
+                <textarea readonly class="raw-data-textarea" rows="6">${rawData}</textarea>
+                <div class="raw-data-info">
+                    <span class="data-length">Length: ${rawData.length} characters</span>
+                    <span class="data-type">Format: BASE45 Encoded</span>
+                </div>
+            </div>
+        `;
+        container.appendChild(rawDataDiv);
+
+        // Add copy functionality for raw data
+        const copyButton = rawDataDiv.querySelector('.btn-copy-raw');
+        copyButton.addEventListener('click', (e) => {
+            const content = e.target.dataset.content;
+            navigator.clipboard.writeText(content).then(() => {
+                const originalText = e.target.textContent;
+                e.target.textContent = 'Copied!';
+                e.target.classList.add('copied');
+                setTimeout(() => {
+                    e.target.textContent = originalText;
+                    e.target.classList.remove('copied');
+                }, 2000);
+            });
+        });
+    }
+}
 
 function displayValidationSummary(summary, overallStatus) {
     const container = document.getElementById('verification-steps');
@@ -234,8 +290,64 @@ function getStatusIcon(status) {
     }
 }
 
+function displayBasicVerificationSteps(validationSummary) {
+    const container = document.getElementById('verification-steps');
+
+    // Add a separator/header for the basic steps section
+    const stepsHeader = document.createElement('div');
+    stepsHeader.className = 'verification-steps-header';
+    stepsHeader.innerHTML = '<h3>Verification Steps Overview</h3>';
+    container.appendChild(stepsHeader);
+
+    // Add raw data block
+    displayRawDataBlock(container);
+
+    // Technical validation steps
+    const technicalSteps = [
+        { key: 'qrCodeAnalysis', label: 'QR Code Analysis', description: 'Analyzed QR code structure and encoding' },
+        { key: 'base45Decode', label: 'BASE45 Decoding', description: 'Decoded BASE45 encoded data' },
+        { key: 'zlibDecompress', label: 'ZLIB Decompression', description: 'Decompressed ZLIB data' },
+        { key: 'jwtParsing', label: 'JWT Parsing', description: 'Parsed JSON Web Token structure' },
+        { key: 'schemaFileCheck', label: 'Schema File Check', description: 'Verified schema file availability' },
+        { key: 'schemaValidation', label: 'Schema Validation', description: 'Validated data against schema' },
+        { key: 'signatureVerification', label: 'Signature Retrieval', description: 'Retrieved digital signatures from EBSI' },
+        { key: 'signatureCountValidation', label: 'Signature Count Validation', description: 'Validated signature count' },
+        { key: 'countryCodeValidation', label: 'Country Code Validation', description: 'Validated country codes' },
+        { key: 'certificateValidityDate', label: 'Certificate Validity Date', description: 'Verified certificate validity period' },
+        { key: 'jwtSignatureValidation', label: 'JWT Signature Validation', description: 'Cryptographically validated JWT signature' }
+    ];
+
+    technicalSteps.forEach((step, index) => {
+        const validation = validationSummary[step.key] || { status: 'pending', message: 'Not processed' };
+        const statusIcon = getStatusIcon(validation.status);
+        const statusClass = validation.status;
+
+        const stepDiv = document.createElement('div');
+        stepDiv.className = `verification-step basic-step ${statusClass}`;
+        stepDiv.innerHTML = `
+            <div class="step-header">
+                <h3><span class="status-icon">${statusIcon}</span> Step ${index + 1}: ${step.label}</h3>
+            </div>
+            <div class="step-content">
+                <p class="step-description">${step.description}</p>
+                <p class="step-status"><strong>Status:</strong> ${validation.message || validation.status}</p>
+            </div>
+        `;
+        container.appendChild(stepDiv);
+    });
+}
+
 function displayVerificationSteps(steps) {
     const container = document.getElementById('verification-steps');
+
+    // Add a separator/header for the detailed steps section
+    const stepsHeader = document.createElement('div');
+    stepsHeader.className = 'verification-steps-header';
+    stepsHeader.innerHTML = '<h3>Detailed Verification Steps</h3>';
+    container.appendChild(stepsHeader);
+
+    // Add raw data block
+    displayRawDataBlock(container);
 
     steps.forEach((step, index) => {
         const stepDiv = document.createElement('div');

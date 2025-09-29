@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2025-09-29
+
+### Fixed
+- **Treatment Date Persistence**: Fixed treatment date not persisting across verification pages due to sessionStorage key mismatch
+- **QR Code Analysis Validation**: Corrected status mismatch where green tiles showed for invalid data with "Version undefined" errors
+- **Validation Nomenclature**: Standardized validation step names across all media (results, verify, email, PDF)
+- **Broken Email Display**: Fixed corrupted validation step names in email notifications
+- **PDF Validation Names**: Cleaned up inconsistent translation keys and fallback labels in PDF reports
+
+### Enhanced
+- **Raw Data Display**: Added raw QR code data block to `/verify` page for complete transparency
+- **Verification Steps Overview**: Enhanced `/verify` page to show all verification results, not just summary tiles
+- **Format Agnostic Processing**: Removed artificial HC1 prefix requirement to allow processing of any data format
+
+### Technical Improvements
+- **SessionStorage Consistency**: Fixed `treatmentData` vs `treatmentDate` key mismatch across all JavaScript files
+- **Validation Display**: Unified validation step labels across frontend and backend
+- **Error Handling**: Better error status mapping between backend validation and frontend display
+- **Code Cleanup**: Removed unnecessary EHIC/HC1 format restrictions
+
+### UI/UX Improvements
+- **Complete Verification Visibility**: Users now see detailed breakdown of all 11 validation steps
+- **Consistent Naming**: Same validation step names in tiles, emails, and PDF reports
+- **Better Error Feedback**: Accurate tile colors that match validation results
+- **Enhanced Verify Page**: Raw data display with copy functionality and step-by-step breakdown
+
 ## [0.7.0] - 2025-09-29
 
 ### Fixed
@@ -202,6 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.8.0**: Fixed treatment date persistence, standardized validation nomenclature, and enhanced verification display
 - **v0.7.0**: Enhanced certificate display and cleaned up validation summary tiles
 - **v0.6.0**: Certificate validity date verification with OpenSSL parsing and document issuance date validation
 - **v0.5.0**: Intelligent PDF language rendering and technical/business validation categories
