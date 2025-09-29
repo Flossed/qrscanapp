@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 0.9.0
+## Current Status - Version 0.10.0
 
 ### ✅ Completed Features
 
@@ -121,7 +121,17 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
     - Certificate validity period extraction
     - Document issuance date validation against certificate validity
 
-11. **JWT Signature Validation** ✅
+11. **Kid Header Validation** ✅
+    - JWT header `kid` field validation
+    - Base64URL format conversion and validation
+    - Pattern matching: `EESSI:x5t#S256:[A-Za-z0-9_-]+`
+
+12. **Algorithm Header Validation** ✅
+    - JWT header `alg` field validation
+    - Allowed algorithms: ES256, RS256
+    - Cryptographic algorithm security validation
+
+13. **JWT Signature Validation** ✅
     - Cryptographic signature verification
     - Public key validation using EBSI
 
@@ -222,4 +232,4 @@ SMTP_PASS=your_smtp_password
 
 ---
 
-**Version 0.9** - Added interactive validation tiles with click navigation and enhanced user experience.
+**Version 0.10.0** - Implementation of header verification (Kid and Algorithm header validation) - *September 29, 2025*

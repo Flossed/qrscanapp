@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2025-09-29
+
+### Added
+- **Kid Header Validation**: New Step 7 validation for JWT header `kid` field
+  - Base64URL format conversion and validation
+  - Pattern matching for `EESSI:x5t#S256:[A-Za-z0-9_-]+` format
+  - Support for both original and translated kid values in validation results
+- **Algorithm Header Validation**: New Step 8 validation for JWT header `alg` field
+  - Validation against allowed algorithms: ES256, RS256
+  - Comprehensive error messaging for unsupported algorithms
+  - Security validation for cryptographic algorithm compliance
+
+### Enhanced
+- **JWT Header Security**: Enhanced security validation for JWT headers
+- **Base64URL Processing**: Improved handling of Base64 to Base64URL conversion
+- **Validation Pipeline**: Extended verification pipeline with additional header validations
+- **Error Reporting**: Enhanced error reporting for header validation failures
+
+### Technical Improvements
+- **Validation Steps Integration**: New validation steps integrated across all verification pages
+- **Frontend Updates**: Updated verify.js, results.js, and finalization.js to display new validations
+- **Step Mapping**: Added step mappings for kid and algorithm header validations
+- **Consistent Nomenclature**: Maintained consistent validation naming across all media
+
+### Security Enhancements
+- **Algorithm Validation**: Ensures only secure algorithms (ES256, RS256) are accepted
+- **Kid Format Validation**: Validates proper EESSI kid header format structure
+- **Header Integrity**: Comprehensive JWT header validation for security compliance
+
 ## [0.9.0] - 2025-09-29
 
 ### Added

@@ -205,6 +205,8 @@ function displayValidationSummary() {
             { key: 'jwtParsing', label: 'JWT Parsing' },
             { key: 'schemaFileCheck', label: 'Schema File Check' },
             { key: 'schemaValidation', label: 'Schema Validation' },
+            { key: 'kidHeaderValidation', label: 'Kid Header Validation' },
+            { key: 'algorithmHeaderValidation', label: 'Algorithm Header Validation' },
             { key: 'signatureVerification', label: 'Signature Retrieval' },
             { key: 'signatureCountValidation', label: 'Signature Count Validation' },
             { key: 'countryCodeValidation', label: 'Country Code Validation' },

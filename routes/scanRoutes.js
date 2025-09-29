@@ -2762,6 +2762,133 @@ async function processVerificationData(originalData, treatmentDate = null) {
                         };
                     }
 
+                    // Step 7: Kid Header Validation
+                    // Validate that header contains kid with pattern "^EESSI:x5t#S256:[A-Za-z0-9_-]+$"
+                    const kidValidationResult = (() => {
+                        const originalKid = jwtDecoded?.header?.kid;
+                        let translatedKid = originalKid;
+
+                        // Convert Base64 to Base64URL if needed for the translated version
+                        if (originalKid && typeof originalKid === 'string') {
+                            const kidMatch = originalKid.match(/^(EESSI:(?:x5t#S256|jkt):)(.+)$/);
+                            if (kidMatch) {
+                                const prefix = kidMatch[1];
+                                const base64Part = kidMatch[2];
+
+                                // Convert Base64 to Base64URL
+                                const base64UrlPart = base64Part
+                                    .replace(/\+/g, '-')
+                                    .replace(/\//g, '_')
+                                    .replace(/=/g, '');
+
+                                translatedKid = prefix + base64UrlPart;
+                            }
+                        }
+
+                        const kidPattern = /^EESSI:x5t#S256:[A-Za-z0-9_-]+$/;
+
+                        if (!originalKid) {
+                            return {
+                                valid: false,
+                                message: 'No kid field found in JWT header',
+                                kid: null,
+                                translatedKid: null,
+                                timestamp: new Date().toISOString()
+                            };
+                        }
+
+                        // Validate against the translated (base64url) version
+                        const isValid = kidPattern.test(translatedKid);
+                        return {
+                            valid: isValid,
+                            message: isValid
+                                ? `Kid header validation passed: ${translatedKid}`
+                                : `Kid header validation failed. Expected pattern: EESSI:x5t#S256:[A-Za-z0-9_-]+, got: ${translatedKid}`,
+                            kid: originalKid,
+                            translatedKid: translatedKid,
+                            pattern: 'EESSI:x5t#S256:[A-Za-z0-9_-]+',
+                            timestamp: new Date().toISOString()
+                        };
+                    })();
+
+                    const kidValidationString = JSON.stringify(kidValidationResult, null, 2);
+                    const kidValidationSize = Buffer.byteLength(kidValidationString, 'utf8');
+
+                    steps.push({
+                        name: 'Step 7: Kid Header Validation',
+                        data: kidValidationString,
+                        size: kidValidationSize,
+                        percentage: Math.round((kidValidationSize / jwtSize) * 100)
+                    });
+
+                    validationSummary.kidHeaderValidation = {
+                        status: kidValidationResult.valid ? 'success' : 'error',
+                        message: kidValidationResult.message
+                    };
+
+                    if (!kidValidationResult.valid) {
+                        logger.error('Kid header validation failed', {
+                            kid: kidValidationResult.kid,
+                            expected: 'EESSI:x5t#S256:[A-Za-z0-9_-]+',
+                            jwtHeader: jwtDecoded?.header
+                        });
+                        // Don't throw error immediately - let other validations complete
+                        logger.warn('Continuing with signature verification despite kid header validation failure');
+                    }
+
+                    // Step 8: Algorithm Header Validation
+                    // Validate that header contains alg field with value from enum [ES256, RS256]
+                    const algValidationResult = (() => {
+                        const algorithm = jwtDecoded?.header?.alg;
+                        const allowedAlgorithms = ['ES256', 'RS256'];
+
+                        if (!algorithm) {
+                            return {
+                                valid: false,
+                                message: 'No alg field found in JWT header',
+                                algorithm: null,
+                                allowedAlgorithms: allowedAlgorithms,
+                                timestamp: new Date().toISOString()
+                            };
+                        }
+
+                        const isValid = allowedAlgorithms.includes(algorithm);
+                        return {
+                            valid: isValid,
+                            message: isValid
+                                ? `Algorithm header validation passed: ${algorithm}`
+                                : `Algorithm header validation failed. Expected one of: ${allowedAlgorithms.join(', ')}, got: ${algorithm}`,
+                            algorithm: algorithm,
+                            allowedAlgorithms: allowedAlgorithms,
+                            timestamp: new Date().toISOString()
+                        };
+                    })();
+
+                    const algValidationString = JSON.stringify(algValidationResult, null, 2);
+                    const algValidationSize = Buffer.byteLength(algValidationString, 'utf8');
+
+                    steps.push({
+                        name: 'Step 8: Algorithm Header Validation',
+                        data: algValidationString,
+                        size: algValidationSize,
+                        percentage: Math.round((algValidationSize / jwtSize) * 100)
+                    });
+
+                    validationSummary.algorithmHeaderValidation = {
+                        status: algValidationResult.valid ? 'success' : 'error',
+                        message: algValidationResult.message
+                    };
+
+                    if (!algValidationResult.valid) {
+                        logger.error('Algorithm header validation failed', {
+                            algorithm: algValidationResult.algorithm,
+                            expected: allowedAlgorithms,
+                            jwtHeader: jwtDecoded?.header
+                        });
+                        // Don't throw error immediately - let other validations complete
+                        logger.warn('Continuing with signature verification despite algorithm header validation failure');
+                    }
+
                     try {
                         // Step 5: Signature Verification
                         const signatureResponse = await verifySignature(jwtDecoded);
