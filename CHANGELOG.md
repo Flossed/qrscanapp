@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2025-09-29
+
+### Added
+- **JSON Output Attachment to Emails**: Structured JSON verification results now attached alongside PDF reports
+  - **Comprehensive JSON Schema**: Created detailed schema defining all verification output fields and validation steps
+  - **Schema Validation**: Implemented AJV-based validation to ensure data integrity and consistency
+  - **Dual Attachments**: Email recipients receive both human-readable PDF and machine-readable JSON files
+  - **Complete Verification Data**: JSON includes all validation results, overall status, treatment date, and verification timestamp
+  - **Schema Location**: New schema file at `schemas/verification-output-schema.json` defining structure for 25 validation steps
+
+### Enhanced
+- **Email Functionality**: Enhanced email endpoint to generate and attach JSON verification output
+  - **Automatic JSON Generation**: Creates structured JSON file with complete verification results
+  - **Schema Compliance**: Validates generated JSON against defined schema before sending
+  - **Error Resilience**: Email sending continues even if JSON validation fails, with proper logging
+  - **Treatment Date Formatting**: Ensures treatment dates are properly formatted as YYYY-MM-DD for schema compliance
+
+### Fixed
+- **Treatment Date Format Validation**: Fixed date format issues causing schema validation errors
+  - **Date Parsing**: Added robust date parsing to handle various input formats
+  - **ISO Format Conversion**: Converts dates to YYYY-MM-DD format for JSON schema compliance
+  - **Null Handling**: Properly handles missing treatment dates with null values
+
+- **AJV Strict Mode Warning**: Resolved union type warnings in schema validation
+  - **Configuration Update**: Set AJV strict mode to false to allow union types
+  - **OpenSSL Details Handling**: Fixed type mismatch for opensslDetails field (string vs object)
+  - **Schema Type Flexibility**: Updated schema to accept string, object, or null for opensslDetails
+
+- **Nodemon Restart Issue**: Fixed server restarts during email generation
+  - **Added nodemon.json Configuration**: Created ignore rules for temp files, PDFs, and JSON files
+  - **Prevented Unnecessary Restarts**: Server no longer restarts when generating verification files
+  - **Improved Stability**: Eliminated network errors caused by mid-request server restarts
+
+### Technical Improvements
+- **Dependencies Added**:
+  - `ajv@^8.12.0`: JSON schema validation library
+  - `ajv-formats@^2.1.1`: Format validators for date-time, email, etc.
+
+- **Error Handling**: Enhanced error handling for schema loading and validation
+  - **Schema Load Protection**: Graceful handling when schema file cannot be loaded
+  - **Validation Error Logging**: Comprehensive error logging with stack traces
+  - **Continuous Operation**: Email sending continues regardless of validation errors
+
+- **Data Structure Improvements**:
+  - **Consistent Field Types**: Ensured all validation fields have consistent types
+  - **Proper Null Handling**: Fields that can be null are properly defined in schema
+  - **Format Validation**: Added format validators for dates and timestamps
+
 ## [0.16.0] - 2025-01-01
 
 ### Added

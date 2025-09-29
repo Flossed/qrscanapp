@@ -1,0 +1,335 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://qrscanapp.com/schemas/verification-output.json",
+  "title": "EHIC Verification Output Schema",
+  "description": "JSON schema for the complete output of the EHIC QR code verification process",
+  "type": "object",
+  "required": [
+    "overall",
+    "overallStatus",
+    "validationSummary",
+    "verificationTimestamp",
+    "steps"
+  ],
+  "properties": {
+    "overall": {
+      "type": "boolean",
+      "description": "Overall verification result - true if verification passed, false if failed"
+    },
+    "overallStatus": {
+      "type": "string",
+      "enum": ["success", "error"],
+      "description": "Overall status string representation"
+    },
+    "validationSummary": {
+      "type": "object",
+      "description": "Summary of all individual validation steps",
+      "required": [
+        "qrCodeAnalysis",
+        "base45Decode",
+        "zlibDecompress",
+        "jwtParsing",
+        "schemaFileCheck",
+        "schemaValidation",
+        "kidHeaderValidation",
+        "algorithmHeaderValidation",
+        "signatureVerification",
+        "signatureCountValidation",
+        "countryCodeValidation",
+        "certificateValidityDate",
+        "jwtSignatureValidation",
+        "ehicAccreditation",
+        "dateOfBirthValidation",
+        "dateRangeValidation",
+        "startIssuanceValidation",
+        "issuanceEndValidation",
+        "institutionLengthValidation",
+        "cardIdDigitValidation",
+        "institutionIdDigitValidation",
+        "revocationPresence",
+        "revocationStatus",
+        "treatmentDatePresence",
+        "treatmentDateRange"
+      ],
+      "properties": {
+        "qrCodeAnalysis": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "base45Decode": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "zlibDecompress": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "jwtParsing": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "schemaFileCheck": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "schemaValidation": {
+          "$ref": "#/definitions/validationStepWithErrors"
+        },
+        "kidHeaderValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "algorithmHeaderValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "signatureVerification": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "signatureCountValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "countryCodeValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "certificateValidityDate": {
+          "$ref": "#/definitions/validationStepWithCertificate"
+        },
+        "jwtSignatureValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "ehicAccreditation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "dateOfBirthValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "dateRangeValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "startIssuanceValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "issuanceEndValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "institutionLengthValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "cardIdDigitValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "institutionIdDigitValidation": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "revocationPresence": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "revocationStatus": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "treatmentDatePresence": {
+          "$ref": "#/definitions/validationStep"
+        },
+        "treatmentDateRange": {
+          "$ref": "#/definitions/validationStep"
+        }
+      },
+      "additionalProperties": false
+    },
+    "verificationTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the verification was performed"
+    },
+    "treatmentDate": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "Treatment date provided for validation (YYYY-MM-DD format), null if not provided"
+    },
+    "steps": {
+      "type": "array",
+      "description": "Detailed step-by-step verification process data",
+      "items": {
+        "$ref": "#/definitions/verificationStep"
+      }
+    },
+    "details": {
+      "type": "object",
+      "description": "Additional verification details",
+      "properties": {
+        "jwt": {
+          "type": "object",
+          "description": "Decoded JWT information",
+          "properties": {
+            "header": {
+              "type": "object",
+              "description": "JWT header"
+            },
+            "payload": {
+              "type": "object",
+              "description": "JWT payload containing certificate data"
+            }
+          }
+        },
+        "qrAnalysis": {
+          "type": "object",
+          "description": "QR code analysis results",
+          "properties": {
+            "actualQRProperties": {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "type": "integer"
+                },
+                "errorCorrectionLevel": {
+                  "type": "string"
+                },
+                "moduleCount": {
+                  "type": "integer"
+                },
+                "utilization": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "certificateData": {
+          "type": "object",
+          "description": "Extracted EHIC certificate data",
+          "properties": {
+            "issuingMemberState": {
+              "type": "string"
+            },
+            "cardHolderName": {
+              "type": "string"
+            },
+            "cardHolderGivenName": {
+              "type": "string"
+            },
+            "dateOfBirth": {
+              "type": "string"
+            },
+            "personalIdNumber": {
+              "type": "string"
+            },
+            "institutionId": {
+              "type": "string"
+            },
+            "institutionName": {
+              "type": "string"
+            },
+            "cardId": {
+              "type": "string"
+            },
+            "expiryDate": {
+              "type": "string"
+            },
+            "validityStart": {
+              "type": "string"
+            },
+            "validityEnd": {
+              "type": "string"
+            },
+            "deliveryDate": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "referenceNumber": {
+      "type": "string",
+      "description": "Unique reference number for this verification"
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[a-z]{2}$",
+      "description": "Two-letter language code (ISO 639-1) used for the verification"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "validationStep": {
+      "type": "object",
+      "required": ["status", "message"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["success", "error", "warning", "skipped", "pending"],
+          "description": "Validation step status"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable validation result message"
+        }
+      },
+      "additionalProperties": false
+    },
+    "validationStepWithErrors": {
+      "type": "object",
+      "required": ["status", "message"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["success", "error", "warning", "skipped", "pending"],
+          "description": "Validation step status"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable validation result message"
+        },
+        "errorCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of validation errors found (for schema validation)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "validationStepWithCertificate": {
+      "type": "object",
+      "required": ["status", "message"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["success", "error", "warning", "skipped", "pending"],
+          "description": "Validation step status"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable validation result message"
+        },
+        "opensslDetails": {
+          "type": ["object", "string", "null"],
+          "description": "OpenSSL certificate validation details - can be object with details, string message, or null"
+        }
+      },
+      "additionalProperties": false
+    },
+    "verificationStep": {
+      "type": "object",
+      "required": ["name", "data", "size", "percentage"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Step name (e.g., 'Step 1: QR Code Analysis')"
+        },
+        "data": {
+          "type": "string",
+          "description": "JSON string containing step-specific data"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Size of the data in bytes"
+        },
+        "percentage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage of total verification data"
+        },
+        "certificateDetails": {
+          "type": "object",
+          "description": "Certificate details (for certificate validation steps)"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

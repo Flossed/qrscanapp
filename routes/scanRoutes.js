@@ -1644,10 +1644,105 @@ router.post('/api/send-verification-email', async (req, res) => {
             <p>${getTranslation('email-keep-records', userLanguage)}</p>
         `;
 
-        // Read PDF file for attachment
-        const pdfContent = fs.readFileSync(pdfPath);
+        // Format treatment date to YYYY-MM-DD if it exists
+        let formattedTreatmentDate = null;
+        if (treatmentDate) {
+            try {
+                // Parse the treatment date and format it as YYYY-MM-DD
+                const dateObj = new Date(treatmentDate);
+                if (!isNaN(dateObj.getTime())) {
+                    formattedTreatmentDate = dateObj.toISOString().split('T')[0];
+                } else {
+                    // If it's already in YYYY-MM-DD format, use it as-is
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(treatmentDate)) {
+                        formattedTreatmentDate = treatmentDate;
+                    } else {
+                        logger.warn('Invalid treatment date format', {
+                            treatmentDate: treatmentDate,
+                            referenceNumber: referenceNumber
+                        });
+                    }
+                }
+            } catch (dateError) {
+                logger.error('Error formatting treatment date', {
+                    error: dateError.message,
+                    treatmentDate: treatmentDate,
+                    referenceNumber: referenceNumber
+                });
+            }
+        }
 
-        // Send email with PDF attachment
+        // Generate JSON verification output
+        const verificationOutput = {
+            overall: verificationStatus?.overall || false,
+            overallStatus: verificationStatus?.overall ? 'success' : 'error',
+            validationSummary: verificationStatus?.validationSummary || {},
+            verificationTimestamp: new Date(timestamp).toISOString(),
+            treatmentDate: formattedTreatmentDate,
+            steps: verificationStatus?.steps || [],
+            details: verificationStatus?.details || {},
+            referenceNumber: referenceNumber,
+            language: language || 'en'
+        };
+
+        // Validate JSON output against schema
+        try {
+            const Ajv = require('ajv');
+            const addFormats = require('ajv-formats');
+
+            // Try to load the schema file with proper error handling
+            let schema;
+            try {
+                schema = require('../schemas/verification-output-schema.json');
+            } catch (schemaLoadError) {
+                logger.warn('Could not load verification schema file', {
+                    error: schemaLoadError.message,
+                    referenceNumber: referenceNumber
+                });
+                // Continue without validation if schema can't be loaded
+                schema = null;
+            }
+
+            if (schema) {
+                const ajv = new Ajv({
+                    strict: false,  // Disable strict mode to allow union types
+                    allErrors: true // Collect all errors, not just the first one
+                });
+                addFormats(ajv);
+                const validate = ajv.compile(schema);
+                const valid = validate(verificationOutput);
+
+                if (!valid) {
+                    logger.warn('Generated verification JSON does not conform to schema', {
+                        errors: validate.errors,
+                        referenceNumber: referenceNumber
+                    });
+                    // Continue with email sending even if validation fails, but log the issue
+                } else {
+                    logger.info('Verification JSON successfully validated against schema', {
+                        referenceNumber: referenceNumber
+                    });
+                }
+            }
+        } catch (validationError) {
+            logger.error('JSON schema validation failed', {
+                error: validationError.message,
+                stack: validationError.stack,
+                referenceNumber: referenceNumber
+            });
+            // Continue with email sending even if validation fails
+        }
+
+        // Create JSON file
+        const jsonFileName = `verification-${referenceNumber}.json`;
+        const jsonPath = path.join(__dirname, '..', 'temp', jsonFileName);
+        fs.writeFileSync(jsonPath, JSON.stringify(verificationOutput, null, 2));
+
+        // Read files for attachments
+        const pdfContent = fs.readFileSync(pdfPath);
+        const jsonContent = fs.readFileSync(jsonPath);
+
+        // Send email with PDF and JSON attachments
         await transporter.sendMail({
             from: '"EHIC Verifier" <noreply@ehic-verifier.com>',
             to: email,
@@ -1661,12 +1756,18 @@ router.post('/api/send-verification-email', async (req, res) => {
                     filename: pdfFileName,
                     content: pdfContent,
                     contentType: 'application/pdf'
+                },
+                {
+                    filename: jsonFileName,
+                    content: jsonContent,
+                    contentType: 'application/json'
                 }
             ]
         });
 
-        // Clean up temp file
+        // Clean up temp files
         fs.unlinkSync(pdfPath);
+        fs.unlinkSync(jsonPath);
         
 
         // For demonstration, we'll save the email request to the database
@@ -3348,10 +3449,16 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 certificateDetails: certificateDetails // Add certificate details to step for frontend access
                             });
 
+                            // Ensure opensslDetails is either an object or null (not a string)
+                            let opensslDetailsForSummary = certificateDetails?.parsedInfo?.opensslDetails || null;
+                            if (typeof opensslDetailsForSummary === 'string') {
+                                opensslDetailsForSummary = null; // Convert string to null for schema compliance
+                            }
+
                             validationSummary.certificateValidityDate = {
                                 status: certificateValidityPassed ? 'success' : 'error',
                                 message: certificateValidityMessage,
-                                opensslDetails: certificateDetails?.parsedInfo?.opensslDetails || null
+                                opensslDetails: opensslDetailsForSummary
                             };
 
                             // Debug logging
@@ -3483,10 +3590,16 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 percentage: 100
                             });
 
+                            // Ensure opensslDetails is either an object or null (not a string) for error case too
+                            let opensslDetailsForError = certificateDetails?.parsedInfo?.opensslDetails || null;
+                            if (typeof opensslDetailsForError === 'string') {
+                                opensslDetailsForError = null; // Convert string to null for schema compliance
+                            }
+
                             validationSummary.certificateValidityDate = {
                                 status: 'error',
                                 message: `Verification failed: ${validityError.message}`,
-                                opensslDetails: certificateDetails?.parsedInfo?.opensslDetails || null
+                                opensslDetails: opensslDetailsForError
                             };
                         }
 
