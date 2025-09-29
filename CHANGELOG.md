@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2025-01-01
+
+### Added
+- **Treatment Date Verification System**: Comprehensive validation of treatment dates against certificate validity periods
+  - **Treatment Date Presence Validation**: Validates that a treatment date is provided when required (Step 20)
+  - **Treatment Date Range Validation**: Ensures treatment date falls within certificate validity period with startDate <= treatmentDate <= endDate logic (Step 21)
+  - **Frontend Integration**: Added Treatment Date Validations section across all user interfaces (verify, results, finalization pages)
+  - **Email and PDF Integration**: Treatment date validation results included in email notifications and PDF reports
+  - **Interactive Navigation**: Clickable validation tiles with step navigation for treatment date validations
+  - **Cross-Platform Consistency**: Treatment date validations displayed consistently across web, email, and PDF outputs
+
+### Enhanced
+- **Validation Logic**: Added comprehensive date range validation comparing treatment date against certificate start date (cert.sd) and end date (cert.ed)
+- **Error Handling**: Updated error handling validation summary to include treatment date validations
+- **Status Management**: Proper status mapping for treatment date validations (success/warning/skipped)
+- **User Experience**: Clear validation feedback distinguishing between missing treatment dates and invalid date ranges
+- **Backend Validation**: Added Steps 20-21 to verification pipeline with comprehensive logging and status reporting
+
+### Technical Improvements
+- **Date Comparison Logic**: Robust date parsing and comparison for certificate validity period validation
+- **Dual Certificate Support**: Supports both payload.prc.sd/ed and payload.hcert.v[0].sd/ed certificate structures
+- **Optional Validation Framework**: Treatment date validations are optional and don't block verification when dates are not provided
+- **Step Navigation**: Complete step mapping integration for treatment date validations across all frontend pages
+- **Comprehensive Logging**: Detailed logging for treatment date validation steps with validation results and error handling
+
+### Removed
+- **Treatment Date Format Validation**: Removed unnecessary format validation to focus on business logic requirements
+- **Simplified Interface**: Streamlined treatment date validation to essential presence and range checks only
+
 ## [0.15.0] - 2025-01-01
 
 ### Enhanced

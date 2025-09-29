@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 0.15.0 - 2025-01-01
+## Current Status - Version 0.16.0 - 2025-01-01
 
 ### ✅ Completed Features
 
@@ -26,6 +26,8 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **JWT Signature Validation** - Cryptographic validation of digital signatures
 - **Revocation Information Presence** - Checks for JWT ID (jti) and Revocation ID (rid) fields in the payload
 - **Revocation Status Validation** - Fetches real-time revocation status from external endpoints when revocation information is present
+- **Treatment Date Presence Validation** - Validates that a treatment date is provided when required
+- **Treatment Date Range Validation** - Ensures treatment date falls within certificate validity period (startDate <= treatmentDate <= endDate)
 
 #### User Interface
 - **Comprehensive Validation Banner** - Step-by-step validation status with individual pass/fail indicators

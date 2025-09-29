@@ -141,6 +141,8 @@ document.getElementById('process-verification').addEventListener('click', async 
             institutionIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
             revocationPresence: { status: 'skipped', message: 'Skipped due to network error' },
             revocationStatus: { status: 'skipped', message: 'Skipped due to network error' },
+            treatmentDatePresence: { status: 'skipped', message: 'Skipped due to network error' },
+            treatmentDateRange: { status: 'skipped', message: 'Skipped due to network error' },
             jwtSignatureValidation: { status: 'skipped', message: 'Skipped due to network error' }
         };
 
@@ -316,6 +318,40 @@ function displayValidationSummary(summary, overallStatus) {
 
     summaryHTML += '</div></div>'; // Close revocation items and category
 
+    // Treatment Date Validations Section
+    const treatmentDateSteps = [
+        { key: 'treatmentDatePresence', label: 'Treatment Date Presence' },
+        { key: 'treatmentDateRange', label: 'Treatment Date Range Validation' }
+    ];
+
+    summaryHTML += '<div class="validation-category">';
+    summaryHTML += '<h4 class="category-banner treatment-date-banner">Treatment Date Validations</h4>';
+    summaryHTML += '<div class="summary-items treatment-date-items">';
+
+    treatmentDateSteps.forEach(step => {
+        const validation = summary[step.key] || { status: 'pending', message: '' };
+        const statusIcon = getStatusIcon(validation.status);
+        const statusClass = validation.status;
+
+        let messageContent = '';
+        if (validation.message) {
+            messageContent = `<span class="step-message">${validation.message}</span>`;
+        }
+
+        summaryHTML += `
+            <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
+                <span class="status-icon">${statusIcon}</span>
+                <span class="step-label">${step.label}</span>
+                ${messageContent}
+                ${validation.errorCount !== undefined && validation.errorCount > 0 ?
+                    `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+                <span class="click-indicator">→</span>
+            </div>
+        `;
+    });
+
+    summaryHTML += '</div></div>'; // Close treatment date items and category
+
     // Add overall status
     const overallIcon = getStatusIcon(overallStatus);
     summaryHTML += `
@@ -360,6 +396,8 @@ function getStepIdFromName(stepName) {
         'Institution ID Digit Validation (Optional)': 'institutionIdDigitValidation',
         'Revocation Information Presence Validation': 'revocationPresence',
         'Revocation Status Validation': 'revocationStatus',
+        'Treatment Date Presence Validation': 'treatmentDatePresence',
+        'Treatment Date Range Validation': 'treatmentDateRange',
         'JWT Signature Validation': 'jwtSignatureValidation'
     };
 

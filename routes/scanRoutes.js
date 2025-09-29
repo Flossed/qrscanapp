@@ -1506,6 +1506,17 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         doc.text(`${statusSymbol(getValidationStatus('revocationPresence', 'revocationPresence'))} Revocation Information Presence: ${getValidationStatus('revocationPresence', 'revocationPresence') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('revocationStatus', 'revocationStatus'))} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : failedText}`);
+
+        doc.moveDown(1);
+
+        // Treatment Date Validations Section
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text('TREATMENT DATE VALIDATIONS', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica').fontSize(9);
+
+        doc.text(`${statusSymbol(getValidationStatus('treatmentDatePresence', 'treatmentDatePresence'))} Treatment Date Presence: ${getValidationStatus('treatmentDatePresence', 'treatmentDatePresence') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('treatmentDateRange', 'treatmentDateRange'))} Treatment Date Range Validation: ${getValidationStatus('treatmentDateRange', 'treatmentDateRange') ? passedText : failedText}`);
         doc.moveDown(2);
 
         // === PDF DIGITAL SIGNATURE SECTION (at end of document) ===
@@ -1606,6 +1617,12 @@ router.post('/api/send-verification-email', async (req, res) => {
             <ul>
                 <li>${statusSymbol(getValidationStatus('revocationPresence', 'revocationPresence'))} Revocation Information Presence</li>
                 <li>${statusSymbol(getValidationStatus('revocationStatus', 'revocationStatus'))} Revocation Status Check</li>
+            </ul>
+
+            <h4 style="color: #2c3e50; margin-top: 20px;">Treatment Date Validations</h4>
+            <ul>
+                <li>${statusSymbol(getValidationStatus('treatmentDatePresence', 'treatmentDatePresence'))} Treatment Date Presence</li>
+                <li>${statusSymbol(getValidationStatus('treatmentDateRange', 'treatmentDateRange'))} Treatment Date Range Validation</li>
             </ul>
             <hr>
             <h3>${getTranslation('email-prc-certificate-info', userLanguage)}</h3>
@@ -2379,6 +2396,8 @@ async function processVerificationData(originalData, treatmentDate = null) {
         issuanceEndValidation: { status: 'pending', message: '' },
         institutionLengthValidation: { status: 'pending', message: '' },
         cardIdDigitValidation: { status: 'pending', message: '' },
+        treatmentDatePresence: { status: 'pending', message: '' },
+        treatmentDateRange: { status: 'pending', message: '' },
         jwtSignatureValidation: { status: 'pending', message: '' }
     };
 
@@ -4282,6 +4301,143 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 validationSummary.revocationStatus = {
                                     status: 'warning',
                                     message: `Revocation status validation encountered an error: ${revocationStatusError.message}`
+                                };
+                            }
+
+                            // Step 20: Treatment Date Presence Validation
+                            try {
+                                let treatmentDatePresenceValidationPassed = false;
+                                let treatmentDatePresenceValidationMessage = 'Treatment date presence validation N/A - no treatment date provided';
+
+                                if (treatmentDate && treatmentDate !== null && treatmentDate !== '') {
+                                    treatmentDatePresenceValidationMessage = `Treatment date presence validation passed - treatment date provided: ${treatmentDate}`;
+                                    treatmentDatePresenceValidationPassed = true;
+                                } else {
+                                    treatmentDatePresenceValidationMessage = 'Treatment date presence validation N/A - no treatment date provided';
+                                    treatmentDatePresenceValidationPassed = false;
+                                }
+
+                                logger.info('Treatment date presence validation completed', {
+                                    treatmentDateProvided: !!treatmentDate,
+                                    treatmentDateValue: treatmentDate || null,
+                                    validationPassed: treatmentDatePresenceValidationPassed
+                                });
+
+                                const treatmentDatePresenceValidationString = JSON.stringify({
+                                    treatmentDatePresenceValidationPassed,
+                                    message: treatmentDatePresenceValidationMessage,
+                                    treatmentDateInfo: {
+                                        provided: !!treatmentDate,
+                                        value: treatmentDate || null,
+                                        type: typeof treatmentDate
+                                    }
+                                }, null, 2);
+                                const treatmentDatePresenceValidationSize = Buffer.byteLength(treatmentDatePresenceValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 20: Treatment Date Presence Validation',
+                                    data: treatmentDatePresenceValidationString,
+                                    size: treatmentDatePresenceValidationSize,
+                                    percentage: Math.round((treatmentDatePresenceValidationSize / responseSize) * 100)
+                                });
+
+                                // Set status - success if present, skipped if not available
+                                validationSummary.treatmentDatePresence = {
+                                    status: treatmentDatePresenceValidationPassed ? 'success' : 'skipped',
+                                    message: treatmentDatePresenceValidationMessage
+                                };
+
+                            } catch (treatmentDatePresenceError) {
+                                logger.error('Treatment date presence validation failed:', treatmentDatePresenceError);
+
+                                validationSummary.treatmentDatePresence = {
+                                    status: 'warning',
+                                    message: `Treatment date presence validation encountered an error: ${treatmentDatePresenceError.message}`
+                                };
+                            }
+
+                            // Step 21: Treatment Date Range Validation
+                            try {
+                                let treatmentDateRangeValidationPassed = false;
+                                let treatmentDateRangeValidationMessage = 'Treatment date range validation N/A - no treatment date or certificate dates available';
+
+                                if (treatmentDate && treatmentDate !== null && treatmentDate !== '') {
+                                    const payload = jwtDecoded?.payload;
+                                    let cert = null;
+
+                                    if (payload?.prc) {
+                                        cert = payload.prc;
+                                    } else if (payload?.hcert && payload.hcert.v) {
+                                        cert = payload.hcert.v[0];
+                                    }
+
+                                    if (cert) {
+                                        const startDate = cert.sd; // Start date
+                                        const endDate = cert.ed;   // End date
+
+                                        if (startDate && endDate) {
+                                            const treatmentDateObj = new Date(treatmentDate);
+                                            const startDateObj = new Date(startDate);
+                                            const endDateObj = new Date(endDate);
+
+                                            if (treatmentDateObj >= startDateObj && treatmentDateObj <= endDateObj) {
+                                                treatmentDateRangeValidationMessage = `Treatment date range validation passed - treatment date ${treatmentDate} is within certificate validity period (${startDate} to ${endDate})`;
+                                                treatmentDateRangeValidationPassed = true;
+                                            } else {
+                                                treatmentDateRangeValidationMessage = `Treatment date range validation warning - treatment date ${treatmentDate} is outside certificate validity period (${startDate} to ${endDate})`;
+                                                treatmentDateRangeValidationPassed = false;
+                                            }
+                                        } else {
+                                            treatmentDateRangeValidationMessage = `Treatment date range validation warning - certificate validity dates not available (start: ${startDate || 'N/A'}, end: ${endDate || 'N/A'})`;
+                                            treatmentDateRangeValidationPassed = false;
+                                        }
+                                    } else {
+                                        treatmentDateRangeValidationMessage = 'Treatment date range validation warning - certificate data not available for date range comparison';
+                                        treatmentDateRangeValidationPassed = false;
+                                    }
+                                } else {
+                                    treatmentDateRangeValidationMessage = 'Treatment date range validation N/A - no treatment date provided';
+                                    treatmentDateRangeValidationPassed = false; // N/A is treated as skipped
+                                }
+
+                                logger.info('Treatment date range validation completed', {
+                                    treatmentDate: treatmentDate || null,
+                                    validationPassed: treatmentDateRangeValidationPassed,
+                                    validationMessage: treatmentDateRangeValidationMessage
+                                });
+
+                                const treatmentDateRangeValidationString = JSON.stringify({
+                                    treatmentDateRangeValidationPassed,
+                                    message: treatmentDateRangeValidationMessage,
+                                    treatmentDateRangeInfo: {
+                                        treatmentDate: treatmentDate || null,
+                                        isWithinRange: treatmentDateRangeValidationPassed,
+                                        certificateStartDate: jwtDecoded?.payload?.prc?.sd || jwtDecoded?.payload?.hcert?.v?.[0]?.sd || null,
+                                        certificateEndDate: jwtDecoded?.payload?.prc?.ed || jwtDecoded?.payload?.hcert?.v?.[0]?.ed || null
+                                    }
+                                }, null, 2);
+                                const treatmentDateRangeValidationSize = Buffer.byteLength(treatmentDateRangeValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 21: Treatment Date Range Validation',
+                                    data: treatmentDateRangeValidationString,
+                                    size: treatmentDateRangeValidationSize,
+                                    percentage: Math.round((treatmentDateRangeValidationSize / responseSize) * 100)
+                                });
+
+                                // Set status based on validation result
+                                const rangeStatus = !treatmentDate ? 'skipped' : (treatmentDateRangeValidationPassed ? 'success' : 'warning');
+                                validationSummary.treatmentDateRange = {
+                                    status: rangeStatus,
+                                    message: treatmentDateRangeValidationMessage
+                                };
+
+                            } catch (treatmentDateRangeError) {
+                                logger.error('Treatment date range validation failed:', treatmentDateRangeError);
+
+                                validationSummary.treatmentDateRange = {
+                                    status: 'warning',
+                                    message: `Treatment date range validation encountered an error: ${treatmentDateRangeError.message}`
                                 };
                             }
 
