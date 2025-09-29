@@ -1808,8 +1808,8 @@ router.post('/api/generate-markdown-report', async (req, res) => {
 // API endpoint for verification processing
 router.post('/api/verify', async (req, res) => {
     try {
-        const { data } = req.body;
-        const result = await processVerificationData(data);
+        const { data, treatmentDate } = req.body;
+        const result = await processVerificationData(data, treatmentDate);
 
         // Update scan record with verification result
         await updateScanVerification(data, result, null);
@@ -1818,13 +1818,71 @@ router.post('/api/verify', async (req, res) => {
     } catch (error) {
         console.error('Verification error:', error);
 
+        // Try to get partial results if processVerificationData was called
+        let partialResult = null;
+        let validationSummary = null;
+
+        // If error has a validationSummary attached, use it
+        if (error.validationSummary) {
+            validationSummary = error.validationSummary;
+        } else {
+            // Create a minimal validation summary showing what failed
+            validationSummary = {
+                qrCodeAnalysis: { status: 'pending', message: '' },
+                base45Decode: { status: 'pending', message: '' },
+                zlibDecompress: { status: 'pending', message: '' },
+                jwtParsing: { status: 'pending', message: '' },
+                schemaFileCheck: { status: 'pending', message: '' },
+                schemaValidation: { status: 'pending', message: '' },
+                signatureVerification: { status: 'pending', message: '' },
+                signatureCountValidation: { status: 'pending', message: '' },
+                countryCodeValidation: { status: 'pending', message: '' },
+                certificateValidityDate: { status: 'pending', message: '' },
+                jwtSignatureValidation: { status: 'pending', message: '' }
+            };
+
+            // Mark the step where it failed if we know it
+            if (error.step) {
+                const stepMapping = {
+                    'BASE45 decoding': 'base45Decode',
+                    'ZLIB decompression': 'zlibDecompress',
+                    'JWT parsing': 'jwtParsing',
+                    'Schema validation': 'schemaValidation',
+                    'Signature verification': 'signatureVerification'
+                };
+
+                const summaryKey = stepMapping[error.step];
+                if (summaryKey && validationSummary[summaryKey]) {
+                    validationSummary[summaryKey] = {
+                        status: 'error',
+                        message: error.message || 'Validation failed'
+                    };
+                }
+            }
+
+            // Mark all remaining as skipped
+            Object.keys(validationSummary).forEach(key => {
+                if (validationSummary[key].status === 'pending') {
+                    validationSummary[key] = {
+                        status: 'skipped',
+                        message: 'Skipped due to previous failure'
+                    };
+                }
+            });
+        }
+
         // Update scan record with verification error
         await updateScanVerification(req.body.data, null, error);
 
+        // Send response with validation summary even in error case
         res.status(500).json({
+            success: false,
             error: 'Verification failed',
-            message: error.message,
-            step: error.step || 'unknown'
+            message: error.message || 'Unknown error occurred',
+            step: error.step || 'unknown',
+            validationSummary: validationSummary,
+            overallStatus: 'error',
+            steps: [] // Empty steps array for consistency
         });
     }
 });
@@ -2244,7 +2302,7 @@ async function generateOptimalQRCodeForPDF(data) {
     };
 }
 
-async function processVerificationData(originalData) {
+async function processVerificationData(originalData, treatmentDate = null) {
     const steps = [];
     const validationSummary = {
         qrCodeAnalysis: { status: 'pending', message: '' },
@@ -2808,61 +2866,243 @@ async function processVerificationData(originalData) {
                         }
 
                         // Step 8.3: Certificate Validity Date Verification
-                        // Verify that treatment date falls within certificate validity period
+                        // Verify that document issuance date falls within certificate validity period
                         let certificateValidityPassed = false;
                         let certificateValidityMessage = '';
 
+                        // Get document issuance date (di) from JWT payload for certificate validity check
+                        const issuanceDateStr = jwtDecoded?.payload?.prc?.di || treatmentDate || new Date().toISOString().split('T')[0];
+                        const issuanceDateObj = new Date(issuanceDateStr);
+
+                        logger.info('Using document issuance date for certificate validity check', {
+                            issuanceDate: issuanceDateStr,
+                            treatmentDate: treatmentDate,
+                            source: jwtDecoded?.payload?.prc?.di ? 'JWT payload (di field)' : 'fallback'
+                        });
+
                         try {
-                            // Get treatment date from session storage (passed in verification request)
-                            const treatmentDateStr = req.body.treatmentDate || new Date().toISOString().split('T')[0];
-                            const treatmentDate = new Date(treatmentDateStr);
 
                             // Get certificate validity dates from signature response
                             let notBefore = null;
                             let notAfter = null;
 
-                            if (signatureResponse.data && signatureResponse.data[0]) {
-                                const cert = signatureResponse.data[0];
+                            // Extract certificate from EBSI response structure
+                            if (signatureResponse.data?.results?.[0]?.certificates?.[0]) {
+                                const certPem = signatureResponse.data.results[0].certificates[0];
 
-                                // Extract validity dates from certificate
-                                if (cert.notBefore) {
-                                    notBefore = new Date(cert.notBefore);
-                                } else if (cert.validFrom) {
-                                    notBefore = new Date(cert.validFrom);
-                                } else if (cert.validity && cert.validity.notBefore) {
-                                    notBefore = new Date(cert.validity.notBefore);
+                                try {
+                                    // Parse the PEM certificate to extract validity dates
+                                    const crypto = require('crypto');
+
+                                    // For now, let's try to parse basic info without node-forge
+                                    // Extract dates from the PEM certificate manually
+                                    const certBase64 = certPem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+                                    const certBuffer = Buffer.from(certBase64, 'base64');
+
+                                    // Note: This is a simplified approach. For production, we should use a proper ASN.1 parser
+                                    logger.info('Certificate extracted from EBSI response', {
+                                        certificateLength: certPem.length,
+                                        certificateStart: certPem.substring(0, 50) + '...'
+                                    });
+
+                                    // For now, we'll leave the dates as null and log that we have the certificate
+                                    // but couldn't parse the validity dates without proper ASN.1 parsing
+                                    certificateValidityMessage = 'Certificate found but validity dates require ASN.1 parsing';
+
+                                } catch (parseError) {
+                                    logger.warn('Could not parse certificate', {
+                                        error: parseError.message,
+                                        certificateLength: certPem ? certPem.length : 0
+                                    });
                                 }
 
-                                if (cert.notAfter) {
-                                    notAfter = new Date(cert.notAfter);
-                                } else if (cert.validTo) {
-                                    notAfter = new Date(cert.validTo);
-                                } else if (cert.validity && cert.validity.notAfter) {
-                                    notAfter = new Date(cert.validity.notAfter);
-                                }
+                                // Note: For a complete solution, we would need to parse the X.509 certificate
+                                // to extract the actual validity dates. For now, we'll skip this complexity.
                             }
 
-                            // Perform validity check
-                            if (notBefore && notAfter) {
-                                certificateValidityPassed = treatmentDate >= notBefore && treatmentDate <= notAfter;
+                            // Certificate validity check will be performed after extracting dates from OpenSSL output
 
-                                if (certificateValidityPassed) {
-                                    certificateValidityMessage = `Treatment date ${treatmentDateStr} is within certificate validity period (${notBefore.toISOString().split('T')[0]} to ${notAfter.toISOString().split('T')[0]})`;
-                                } else {
-                                    certificateValidityMessage = `Treatment date ${treatmentDateStr} is OUTSIDE certificate validity period (${notBefore.toISOString().split('T')[0]} to ${notAfter.toISOString().split('T')[0]})`;
+                            // Extract detailed certificate information from EBSI response structure
+                            let certificateDetails = null;
+
+                            // Debug logging to see the response structure
+                            logger.info('EBSI Response Structure Debug', {
+                                hasData: !!signatureResponse.data,
+                                hasDataData: !!signatureResponse.data?.data,
+                                hasResults: !!signatureResponse.data?.data?.results,
+                                resultsLength: signatureResponse.data?.data?.results?.length || 0,
+                                hasFirstResult: !!signatureResponse.data?.results?.[0],
+                                hasCertificates: !!signatureResponse.data?.results?.[0]?.certificates,
+                                certificatesLength: signatureResponse.data?.results?.[0]?.certificates?.length || 0,
+                                hasFirstCert: !!signatureResponse.data?.results?.[0]?.certificates?.[0]
+                            });
+
+                            if (signatureResponse.data?.results?.[0]?.certificates?.[0]) {
+                                const result = signatureResponse.data.results[0];
+                                const certPem = result.certificates[0];
+
+                                logger.info('Certificate found in EBSI response', {
+                                    certificateLength: certPem.length,
+                                    certificateStart: certPem.substring(0, 100) + '...'
+                                });
+
+                                // Clean up the PEM certificate (replace \n with actual newlines)
+                                const cleanCertPem = certPem.replace(/\\n/g, '\n');
+
+                                // Parse the X.509 certificate using OpenSSL
+                                let parsedCertInfo = null;
+                                let opensslCertDetails = null;
+                                try {
+                                    const crypto = require('crypto');
+                                    const fs = require('fs');
+                                    const path = require('path');
+                                    const { execSync } = require('child_process');
+
+                                    // Create fingerprint from certificate buffer
+                                    const certBase64 = cleanCertPem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+                                    const certBuffer = Buffer.from(certBase64, 'base64');
+                                    const fingerprint = crypto.createHash('sha256').update(certBuffer).digest('hex').toUpperCase().match(/.{2}/g).join(':');
+
+                                    // Write certificate to temporary file
+                                    const tempCertPath = path.join(__dirname, '..', 'temp', `cert_${Date.now()}.crt`);
+
+                                    // Ensure temp directory exists
+                                    const tempDir = path.dirname(tempCertPath);
+                                    if (!fs.existsSync(tempDir)) {
+                                        fs.mkdirSync(tempDir, { recursive: true });
+                                    }
+
+                                    fs.writeFileSync(tempCertPath, cleanCertPem);
+
+                                    // Use OpenSSL to parse certificate details
+                                    try {
+                                        const opensslOutput = execSync(`openssl x509 -in "${tempCertPath}" -text -noout`, {
+                                            encoding: 'utf8',
+                                            timeout: 5000 // 5 second timeout
+                                        });
+                                        // Format the OpenSSL output for better readability
+                                        // Convert Windows line endings (\r\n) to Unix line endings (\n)
+                                        opensslCertDetails = opensslOutput.trim().replace(/\r\n/g, '\n');
+
+                                        // Extract validity dates from OpenSSL output
+                                        const notBeforeMatch = opensslCertDetails.match(/Not Before:\s*(.+)/);
+                                        const notAfterMatch = opensslCertDetails.match(/Not After\s*:\s*(.+)/);
+
+                                        if (notBeforeMatch && notAfterMatch) {
+                                            try {
+                                                notBefore = new Date(notBeforeMatch[1].trim());
+                                                notAfter = new Date(notAfterMatch[1].trim());
+
+                                                logger.info('Certificate validity dates extracted from OpenSSL', {
+                                                    notBefore: notBefore.toISOString(),
+                                                    notAfter: notAfter.toISOString()
+                                                });
+                                            } catch (dateParseError) {
+                                                logger.warn('Could not parse validity dates from OpenSSL output', {
+                                                    error: dateParseError.message,
+                                                    notBeforeString: notBeforeMatch[1],
+                                                    notAfterString: notAfterMatch[1]
+                                                });
+                                            }
+                                        }
+
+                                        logger.info('Certificate parsed successfully with OpenSSL', {
+                                            outputLength: opensslOutput.length,
+                                            validityDatesExtracted: !!(notBefore && notAfter)
+                                        });
+                                    } catch (opensslError) {
+                                        logger.warn('OpenSSL parsing failed, falling back to basic info', {
+                                            error: opensslError.message
+                                        });
+                                    }
+
+                                    // Clean up temp file
+                                    try {
+                                        fs.unlinkSync(tempCertPath);
+                                    } catch (cleanupError) {
+                                        logger.warn('Could not clean up temp certificate file', {
+                                            error: cleanupError.message,
+                                            path: tempCertPath
+                                        });
+                                    }
+
+                                    parsedCertInfo = {
+                                        size: certBuffer.length + ' bytes',
+                                        format: 'X.509 PEM Certificate',
+                                        fingerprint: fingerprint,
+                                        opensslDetails: opensslCertDetails || 'OpenSSL parsing not available',
+                                        note: opensslCertDetails ? 'Complete certificate details parsed with OpenSSL' : 'Basic certificate info only'
+                                    };
+
+                                } catch (parseError) {
+                                    logger.warn('Could not parse certificate details', {
+                                        error: parseError.message,
+                                        certificateLength: cleanCertPem.length
+                                    });
+                                    parsedCertInfo = {
+                                        error: 'Could not parse certificate details',
+                                        reason: parseError.message,
+                                        certificateLength: cleanCertPem.length
+                                    };
                                 }
+
+                                certificateDetails = {
+                                    sha256Thumbprint: result.publicKeys?.[0]?.['x5t#S256'] || 'N/A',
+                                    validityPeriod: {
+                                        notBefore: notBefore ? notBefore.toISOString() : 'N/A',
+                                        notAfter: notAfter ? notAfter.toISOString() : 'N/A'
+                                    },
+                                    certificatePresent: true,
+                                    parsedInfo: parsedCertInfo,
+                                    rawCertificateLength: cleanCertPem.length,
+                                    certificateDisplay: {
+                                        format: 'X.509 PEM Certificate',
+                                        length: cleanCertPem.length + ' characters',
+                                        note: 'Full certificate data shown in rawCertificateData section'
+                                    },
+                                    fullCertificatePEM: cleanCertPem
+                                };
+
+                                logger.info('Certificate details extracted successfully', {
+                                    thumbprint: certificateDetails.sha256Thumbprint,
+                                    length: certificateDetails.rawCertificateLength,
+                                    hasFullPEM: !!certificateDetails.fullCertificatePEM
+                                });
+
                             } else {
-                                certificateValidityMessage = 'Certificate validity dates not found in signature response';
-                                logger.warn('Certificate validity dates not found', { signatureResponse: signatureResponse.data });
+                                logger.warn('Certificate not found in expected EBSI response location');
+                                certificateDetails = {
+                                    message: 'Certificate not found in EBSI response - check response structure'
+                                };
                             }
 
+                            // Now that we have extracted dates from OpenSSL, perform proper validity check
+                            if (notBefore && notAfter) {
+                                const isValid = issuanceDateObj >= notBefore && issuanceDateObj <= notAfter;
+
+                                certificateValidityPassed = isValid;
+                                certificateValidityMessage = isValid
+                                    ? `Document issuance date ${issuanceDateStr} is within certificate validity period (${notBefore.toISOString().split('T')[0]} to ${notAfter.toISOString().split('T')[0]})`
+                                    : `Document issuance date ${issuanceDateStr} is OUTSIDE certificate validity period (${notBefore.toISOString().split('T')[0]} to ${notAfter.toISOString().split('T')[0]})`;
+
+                                logger.info('Certificate validity check completed with extracted dates', {
+                                    issuanceDate: issuanceDateStr,
+                                    treatmentDate: treatmentDate,
+                                    notBefore: notBefore.toISOString(),
+                                    notAfter: notAfter.toISOString(),
+                                    isValid: isValid
+                                });
+                            }
+
+                            // Create a clean, minimal response for the step data
                             const certificateValidityResult = {
-                                passed: certificateValidityPassed,
-                                treatmentDate: treatmentDateStr,
-                                certificateNotBefore: notBefore ? notBefore.toISOString() : null,
-                                certificateNotAfter: notAfter ? notAfter.toISOString() : null,
-                                message: certificateValidityMessage,
-                                timestamp: new Date().toISOString()
+                                validityCheck: {
+                                    passed: certificateValidityPassed,
+                                    documentIssuanceDate: issuanceDateStr,
+                                    certificateNotBefore: notBefore ? notBefore.toISOString().split('T')[0] : null,
+                                    certificateNotAfter: notAfter ? notAfter.toISOString().split('T')[0] : null,
+                                    message: certificateValidityMessage
+                                }
                             };
 
                             const validityString = JSON.stringify(certificateValidityResult, null, 2);
@@ -2872,22 +3112,135 @@ async function processVerificationData(originalData) {
                                 name: 'Step 8.3: Certificate Validity Date Verification',
                                 data: validityString,
                                 size: validitySize,
-                                percentage: Math.round((validitySize / responseSize) * 100)
+                                percentage: Math.round((validitySize / responseSize) * 100),
+                                certificateDetails: certificateDetails // Add certificate details to step for frontend access
                             });
 
                             validationSummary.certificateValidityDate = {
                                 status: certificateValidityPassed ? 'success' : 'error',
-                                message: certificateValidityMessage
+                                message: certificateValidityMessage,
+                                opensslDetails: certificateDetails?.parsedInfo?.opensslDetails || null
                             };
+
+                            // Debug logging
+                            logger.info('Certificate validation summary created', {
+                                hasOpensslDetails: !!certificateDetails?.parsedInfo?.opensslDetails,
+                                opensslDetailsLength: certificateDetails?.parsedInfo?.opensslDetails?.length || 0,
+                                opensslDetailsPreview: certificateDetails?.parsedInfo?.opensslDetails?.substring(0, 100) || 'N/A'
+                            });
 
                             logger.info('Certificate validity date check completed', certificateValidityResult);
 
                         } catch (validityError) {
                             logger.error('Certificate validity date verification failed:', validityError);
 
+                            // Still try to extract certificate details even if validity check failed
+                            let certificateDetails = null;
+                            if (signatureResponse.data?.results?.[0]) {
+                                const result = signatureResponse.data.results[0];
+
+                                // Get the first certificate from the certificates array (it's a string, not an object)
+                                const certPem = result.certificates?.[0];
+
+                                // Try to parse the X.509 certificate for more details using OpenSSL
+                                let parsedCertInfo = null;
+                                if (certPem && typeof certPem === 'string') {
+                                    try {
+                                        const crypto = require('crypto');
+                                        const fs = require('fs');
+                                        const path = require('path');
+                                        const { execSync } = require('child_process');
+
+                                        // Clean up the PEM certificate
+                                        const cleanCertPem = certPem.replace(/\\n/g, '\n');
+                                        const certBuffer = Buffer.from(cleanCertPem.replace(/-----[^-]+-----/g, '').replace(/\s/g, ''), 'base64');
+                                        const fingerprint = crypto.createHash('sha256').update(certBuffer).digest('hex').toUpperCase().match(/.{2}/g).join(':');
+
+                                        // Try OpenSSL parsing (in error case too)
+                                        let opensslCertDetails = null;
+                                        try {
+                                            const tempCertPath = path.join(__dirname, '..', 'temp', `cert_error_${Date.now()}.crt`);
+                                            const tempDir = path.dirname(tempCertPath);
+                                            if (!fs.existsSync(tempDir)) {
+                                                fs.mkdirSync(tempDir, { recursive: true });
+                                            }
+
+                                            fs.writeFileSync(tempCertPath, cleanCertPem);
+                                            const opensslOutput = execSync(`openssl x509 -in "${tempCertPath}" -text -noout`, {
+                                                encoding: 'utf8',
+                                                timeout: 5000
+                                            });
+                                            opensslCertDetails = opensslOutput.trim().replace(/\r\n/g, '\n');
+
+                                            // Clean up temp file
+                                            try {
+                                                fs.unlinkSync(tempCertPath);
+                                            } catch (cleanupError) {
+                                                logger.warn('Could not clean up temp certificate file in error case', {
+                                                    error: cleanupError.message
+                                                });
+                                            }
+                                        } catch (opensslError) {
+                                            logger.warn('OpenSSL parsing failed in error case', {
+                                                error: opensslError.message
+                                            });
+                                        }
+
+                                        parsedCertInfo = {
+                                            size: certBuffer.length + ' bytes',
+                                            format: 'X.509 PEM Certificate',
+                                            fingerprint: fingerprint,
+                                            opensslDetails: opensslCertDetails || 'OpenSSL parsing not available in error case',
+                                            note: opensslCertDetails ? 'Complete certificate details parsed with OpenSSL (despite validation error)' : 'Basic certificate info only'
+                                        };
+                                    } catch (parseError) {
+                                        parsedCertInfo = {
+                                            error: 'Could not parse certificate details',
+                                            reason: parseError.message
+                                        };
+                                    }
+                                }
+
+                                certificateDetails = {
+                                    sha256Thumbprint: result.publicKeys?.[0]?.['x5t#S256'] || 'N/A',
+                                    validityPeriod: {
+                                        notBefore: 'Error occurred during validity check',
+                                        notAfter: 'Error occurred during validity check'
+                                    },
+                                    certificatePresent: !!certPem,
+                                    parsedInfo: parsedCertInfo || 'Certificate parsing not available',
+                                    rawCertificateLength: certPem ? certPem.length : 0,
+                                    certificateDisplay: {
+                                        format: 'X.509 PEM Certificate',
+                                        length: certPem ? certPem.length + ' characters' : '0',
+                                        note: 'Full certificate data shown below'
+                                    },
+                                    fullCertificatePEM: certPem || 'Certificate data not available'
+                                };
+                            }
+
                             const errorResult = {
-                                passed: false,
-                                error: validityError.message,
+                                validityCheck: {
+                                    passed: false,
+                                    documentIssuanceDate: issuanceDateStr,
+                                    error: validityError.message,
+                                    message: 'Certificate validity date verification failed'
+                                },
+                                issuerInfo: signatureResponse.data?.results?.[0] ? {
+                                    name: signatureResponse.data.results[0].name || 'Unknown',
+                                    countryCode: signatureResponse.data.results[0].countryCode || 'Unknown',
+                                    officialId: signatureResponse.data.results[0].officialId || 'Unknown',
+                                    did: signatureResponse.data.results[0].did || 'Not available'
+                                } : {
+                                    message: 'No issuer information available'
+                                },
+                                certificateDetails: certificateDetails || {
+                                    message: 'No certificate details available from EBSI response'
+                                },
+                                rawCertificateData: {
+                                    description: 'Complete X.509 Certificate in PEM Format (despite validation error)',
+                                    certificate: certificateDetails?.fullCertificatePEM || 'No certificate available'
+                                },
                                 timestamp: new Date().toISOString()
                             };
 
@@ -2900,7 +3253,8 @@ async function processVerificationData(originalData) {
 
                             validationSummary.certificateValidityDate = {
                                 status: 'error',
-                                message: `Verification failed: ${validityError.message}`
+                                message: `Verification failed: ${validityError.message}`,
+                                opensslDetails: certificateDetails?.parsedInfo?.opensslDetails || null
                             };
                         }
 
@@ -2959,7 +3313,18 @@ async function processVerificationData(originalData) {
                             status: 'error',
                             message: `Signature verification failed: ${signatureError.message}`
                         };
+                        // Mark all remaining validations as skipped
+                        Object.keys(validationSummary).forEach(key => {
+                            if (validationSummary[key].status === 'pending') {
+                                validationSummary[key] = {
+                                    status: 'skipped',
+                                    message: 'Validation skipped due to previous failure'
+                                };
+                            }
+                        });
+
                         signatureError.step = 'Signature verification';
+                        signatureError.validationSummary = validationSummary;
                         throw signatureError;
                     }
                 } else {
@@ -2974,11 +3339,38 @@ async function processVerificationData(originalData) {
                     status: 'error',
                     message: `JWT parsing failed: ${jwtError.message}`
                 };
+                // Mark all remaining validations as skipped
+                Object.keys(validationSummary).forEach(key => {
+                    if (validationSummary[key].status === 'pending') {
+                        validationSummary[key] = {
+                            status: 'skipped',
+                            message: 'Validation skipped due to previous failure'
+                        };
+                    }
+                });
+
                 jwtError.step = 'JWT parsing';
+                jwtError.validationSummary = validationSummary;
                 throw jwtError;
             }
         } catch (zlibError) {
+            validationSummary.zlibDecompress = {
+                status: 'error',
+                message: `ZLIB decompression failed: ${zlibError.message}`
+            };
+
+            // Mark all remaining validations as skipped
+            Object.keys(validationSummary).forEach(key => {
+                if (validationSummary[key].status === 'pending') {
+                    validationSummary[key] = {
+                        status: 'skipped',
+                        message: 'Validation skipped due to previous failure'
+                    };
+                }
+            });
+
             zlibError.step = 'ZLIB decompression';
+            zlibError.validationSummary = validationSummary;
             throw zlibError;
         }
     } catch (base45Error) {
@@ -2986,13 +3378,35 @@ async function processVerificationData(originalData) {
             status: 'error',
             message: `BASE45 decoding failed: ${base45Error.message}`
         };
+
+        // Mark all remaining validations as skipped
+        Object.keys(validationSummary).forEach(key => {
+            if (validationSummary[key].status === 'pending') {
+                validationSummary[key] = {
+                    status: 'skipped',
+                    message: 'Validation skipped due to previous failure'
+                };
+            }
+        });
+
         base45Error.step = 'BASE45 decoding';
+        base45Error.validationSummary = validationSummary;
         throw base45Error;
     }
 
+    // Mark any remaining 'pending' validations as 'skipped'
+    Object.keys(validationSummary).forEach(key => {
+        if (validationSummary[key].status === 'pending') {
+            validationSummary[key] = {
+                status: 'skipped',
+                message: 'Validation skipped due to previous failure'
+            };
+        }
+    });
+
     // Determine overall validation status
     const overallStatus = Object.values(validationSummary).every(v =>
-        v.status === 'success' || v.status === 'pending'
+        v.status === 'success' || v.status === 'skipped'
     ) ? 'success' :
     Object.values(validationSummary).some(v => v.status === 'error') ? 'error' : 'warning';
 

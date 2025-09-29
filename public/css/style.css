@@ -1638,6 +1638,7 @@ body {
 
 .date-input-wrapper {
     position: relative;
+    width: 100%;
 }
 
 .form-input {
@@ -1656,9 +1657,52 @@ body {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.form-input.error {
+    border-color: #e53e3e;
+    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+}
+
+.form-input.error:focus {
+    border-color: #e53e3e;
+    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+}
+
 .date-input {
     position: relative;
     z-index: 2;
+    cursor: pointer;
+    font-size: 16px; /* Prevents zoom on iOS */
+    -webkit-appearance: none; /* Reset Safari styles */
+    appearance: none;
+    background-color: white;
+}
+
+/* Style the date picker button for better visibility */
+.date-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    font-size: 20px;
+    padding: 8px;
+    opacity: 0.7;
+}
+
+.date-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background-color: rgba(102, 126, 234, 0.1);
+    border-radius: 4px;
+}
+
+/* Ensure date input works well on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    .date-input {
+        font-size: 16px; /* Prevent zoom on mobile */
+        min-height: 50px; /* Better touch target */
+    }
+
+    .date-input::-webkit-calendar-picker-indicator {
+        padding: 12px;
+        min-width: 44px;
+        min-height: 44px;
+    }
 }
 
 .date-input-overlay {
@@ -2548,6 +2592,11 @@ body {
     background-color: #f5f5f5;
 }
 
+.summary-item.skipped {
+    background-color: #e0e0e0;
+    opacity: 0.8;
+}
+
 .status-icon {
     font-weight: bold;
     width: 20px;
@@ -2568,6 +2617,10 @@ body {
 
 .summary-item.pending .status-icon {
     color: #999;
+}
+
+.summary-item.skipped .status-icon {
+    color: #757575;
 }
 
 .step-label {
@@ -2611,8 +2664,65 @@ body {
     color: #ff9800;
 }
 
+/* Certificate Details Styling */
+.certificate-details {
+    margin-top: 10px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.certificate-details h5 {
+    margin-bottom: 10px;
+    color: #495057;
+    font-weight: 600;
+}
+
+.openssl-output {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 3px;
+    padding: 12px;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #333;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.cert-line {
+    margin: 0;
+    padding: 1px 0;
+    font-family: 'Courier New', Consolas, monospace;
+    white-space: pre;
+    word-wrap: break-word;
+}
+
+/* Certificate Details in Step Section */
+.certificate-details-step {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.certificate-details-step h4 {
+    margin-bottom: 15px;
+    color: #495057;
+    font-weight: 600;
+    font-size: 16px;
+}
+
 @media (max-width: 768px) {
     .summary-items {
         grid-template-columns: 1fr;
+    }
+
+    .openssl-output {
+        font-size: 11px;
+        padding: 8px;
     }
 }

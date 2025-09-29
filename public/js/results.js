@@ -46,16 +46,46 @@ async function processVerification() {
         const result = await response.json();
         loadingDiv.style.display = 'none';
 
-        if (response.ok && result.success) {
-            displayVerificationResults(result.steps, result.validationSummary, result.overallStatus);
+        if (response.ok) {
+            // Always display validation results, regardless of success/failure
+            displayVerificationResults(result.steps || [], result.validationSummary || {}, result.overallStatus || 'error');
+
+            // If there's an error, also show the error details
+            if (!result.success) {
+                displayError(result.error || 'Verification failed', result.message || 'One or more validation steps failed', result.step || 'validation');
+            }
             actionButtons.style.display = 'block';
         } else {
-            displayError(result.error || 'Unknown error', result.message, result.step);
+            // Network or server error - still try to show what we can
+            displayError(result.error || 'Server error', result.message || response.statusText, result.step || 'server');
+
+            // Try to display any validation summary if available
+            if (result.validationSummary) {
+                displayVerificationResults(result.steps || [], result.validationSummary, result.overallStatus || 'error');
+            }
             actionButtons.style.display = 'block';
         }
     } catch (error) {
         loadingDiv.style.display = 'none';
-        displayError('Network Error', error.message, 'network');
+        displayError('Network Error', error.message || 'Unable to connect to verification service', 'network');
+
+        // Create a minimal validation summary showing all steps as skipped
+        const skippedValidationSummary = {
+            qrCodeAnalysis: { status: 'skipped', message: 'Skipped due to network error' },
+            base45Decode: { status: 'skipped', message: 'Skipped due to network error' },
+            zlibDecompress: { status: 'skipped', message: 'Skipped due to network error' },
+            jwtParsing: { status: 'skipped', message: 'Skipped due to network error' },
+            schemaFileCheck: { status: 'skipped', message: 'Skipped due to network error' },
+            schemaValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            signatureVerification: { status: 'skipped', message: 'Skipped due to network error' },
+            signatureCountValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            countryCodeValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            certificateValidityDate: { status: 'skipped', message: 'Skipped due to network error' },
+            jwtSignatureValidation: { status: 'skipped', message: 'Skipped due to network error' }
+        };
+
+        // Display the validation summary with all steps marked as skipped
+        displayVerificationResults([], skippedValidationSummary, 'error');
         actionButtons.style.display = 'block';
     }
 }
@@ -172,11 +202,47 @@ function displayValidationSummary(validationSummary, overallStatus, container) {
         const statusIcon = getStatusIcon(validation.status);
         const statusClass = validation.status;
 
+        // Special handling for certificate details with OpenSSL formatting
+        let messageContent = '';
+        if (validation.message) {
+            if (step.key === 'certificateValidityDate' && validation.opensslDetails) {
+                // Debug logging
+                console.log('Certificate validation data:', {
+                    hasOpensslDetails: !!validation.opensslDetails,
+                    opensslDetailsType: typeof validation.opensslDetails,
+                    opensslDetailsLength: validation.opensslDetails ? validation.opensslDetails.length : 0,
+                    firstChars: validation.opensslDetails ? validation.opensslDetails.substring(0, 100) : 'N/A'
+                });
+
+                // Parse OpenSSL output into array of strings split by newlines
+                // Handle different line ending formats: \r\n, \n, \r
+                const opensslLines = validation.opensslDetails.split(/\r?\n|\r/);
+                console.log('Split into lines:', opensslLines.length, 'lines');
+                console.log('First few lines:', opensslLines.slice(0, 5));
+                console.log('Raw string preview:', JSON.stringify(validation.opensslDetails.substring(0, 200)));
+
+                let opensslHTML = '';
+                opensslLines.forEach((line, index) => {
+                    // Escape HTML characters and convert empty lines to non-breaking space
+                    const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') || '&nbsp;';
+                    opensslHTML += `<div class="cert-line">${escapedLine}</div>`;
+                });
+
+                messageContent = `<span class="step-message">${validation.message}</span>
+                    <div class="certificate-details">
+                        <h5>Certificate Details:</h5>
+                        <div class="openssl-output">${opensslHTML}</div>
+                    </div>`;
+            } else {
+                messageContent = `<span class="step-message">${validation.message}</span>`;
+            }
+        }
+
         summaryHTML += `
             <div class="summary-item ${statusClass}">
                 <span class="status-icon">${statusIcon}</span>
                 <span class="step-label">${step.label}</span>
-                ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
+                ${messageContent}
                 ${validation.errorCount !== undefined && validation.errorCount > 0 ?
                     `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
             </div>
@@ -222,6 +288,7 @@ function getStatusIcon(status) {
         case 'error': return '✗';
         case 'warning': return '⚠';
         case 'pending': return '○';
+        case 'skipped': return '○';
         default: return '?';
     }
 }
@@ -238,10 +305,15 @@ function displayError(error, message, step) {
         <div data-i18n-key="results-verification-failed">Verification Failed</div>
     `;
 
+    // Provide better default values for undefined parameters
+    const errorText = error || 'Verification error';
+    const messageText = message || 'The verification process encountered an error';
+    const stepText = step || 'Unknown step';
+
     errorMessage.innerHTML = `
-        <p><strong>Error:</strong> ${error}</p>
-        <p><strong>Message:</strong> ${message}</p>
-        <p><strong>Failed at:</strong> ${step}</p>
+        <p><strong>Error:</strong> ${errorText}</p>
+        <p><strong>Details:</strong> ${messageText !== 'undefined' ? messageText : 'No additional details available'}</p>
+        <p><strong>Failed at:</strong> ${stepText !== 'undefined' ? stepText : 'Validation process'}</p>
     `;
 
     errorContainer.style.display = 'block';

@@ -273,6 +273,7 @@ function getValidationStatusIcon(status) {
         case 'error': return '✗';
         case 'warning': return '⚠';
         case 'pending': return '○';
+        case 'skipped': return '○';
         default: return '?';
     }
 }

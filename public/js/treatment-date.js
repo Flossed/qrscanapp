@@ -1,18 +1,24 @@
 // Treatment Date Page JavaScript
-// Set date range: today to 30 days in the future
+// Set date range: 1900-01-01 to today (inclusive)
 const today = new Date();
-const maxDate = new Date();
-maxDate.setDate(today.getDate() + 30);
+const minDate = new Date('1900-01-01');
 
+// Format dates to YYYY-MM-DD
 const todayStr = today.toISOString().split('T')[0];
-const maxDateStr = maxDate.toISOString().split('T')[0];
+const minDateStr = '1900-01-01';
 
 const dateInput = document.getElementById('treatmentDate');
-dateInput.min = todayStr;
-dateInput.max = maxDateStr;
+dateInput.min = minDateStr;
+dateInput.max = todayStr;
 
 // Set default value to today
 dateInput.value = todayStr;
+
+// Add mobile-specific attributes for better UX
+if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+    dateInput.setAttribute('autocomplete', 'off');
+    dateInput.setAttribute('inputmode', 'none'); // Prevents keyboard, shows date picker
+}
 
 const dateOverlay = document.getElementById('dateOverlay');
 
@@ -32,6 +38,46 @@ updateOverlay();
 dateInput.addEventListener('input', updateOverlay);
 dateInput.addEventListener('change', updateOverlay);
 
+// Add date validation
+function validateDate(dateStr) {
+    const date = new Date(dateStr);
+    const min = new Date(minDateStr);
+    const max = new Date(todayStr);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+        return false;
+    }
+
+    // Check if date is within allowed range
+    return date >= min && date <= max;
+}
+
+// Add visual feedback for date validation
+dateInput.addEventListener('change', function() {
+    if (this.value && !validateDate(this.value)) {
+        this.setCustomValidity('Please select a date between January 1, 1900 and today');
+        this.classList.add('error');
+
+        // Show a user-friendly message
+        const helpText = this.closest('.form-group').querySelector('.input-help span:last-child');
+        if (helpText) {
+            helpText.textContent = '⚠️ Date must be between January 1, 1900 and today';
+            helpText.style.color = '#e53e3e';
+        }
+    } else {
+        this.setCustomValidity('');
+        this.classList.remove('error');
+
+        // Restore original help text
+        const helpText = this.closest('.form-group').querySelector('.input-help span:last-child');
+        if (helpText) {
+            helpText.textContent = 'Defaults to today. Select any date from January 1, 1900 to today';
+            helpText.style.color = '';
+        }
+    }
+});
+
 // Handle form submission
 document.getElementById('treatmentDateForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -41,6 +87,12 @@ document.getElementById('treatmentDateForm').addEventListener('submit', function
     if (!treatmentDate) {
         treatmentDate = todayStr;
         document.getElementById('treatmentDate').value = todayStr;
+    }
+
+    // Validate date before submission
+    if (!validateDate(treatmentDate)) {
+        alert('Please select a valid date between January 1, 1900 and today');
+        return;
     }
 
     // Store form data in sessionStorage

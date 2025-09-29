@@ -31,6 +31,16 @@ document.getElementById('process-verification').addEventListener('click', async 
     const errorContainer = document.getElementById('error-container');
     const stepsContainer = document.getElementById('verification-steps');
 
+    // Check if we have data to verify
+    if (!originalData) {
+        displayError(
+            'No data available',
+            'No QR code data found. Please scan a QR code first.',
+            'initialization'
+        );
+        return;
+    }
+
     // Show loading, hide error and steps
     loadingDiv.style.display = 'block';
     errorContainer.style.display = 'none';
@@ -54,15 +64,62 @@ document.getElementById('process-verification').addEventListener('click', async 
         const result = await response.json();
         loadingDiv.style.display = 'none';
 
-        if (response.ok && result.success) {
-            displayValidationSummary(result.validationSummary, result.overallStatus);
-            displayVerificationSteps(result.steps);
+        if (response.ok) {
+            // Always display validation summary, even if verification failed
+            if (result.validationSummary) {
+                displayValidationSummary(result.validationSummary, result.overallStatus || 'error');
+            }
+
+            // Display steps if available
+            if (result.steps && result.steps.length > 0) {
+                displayVerificationSteps(result.steps);
+            }
+
+            // If there's an error, show error details too
+            if (!result.success) {
+                displayError(
+                    result.error || 'Verification failed',
+                    result.message || 'One or more validation steps failed',
+                    result.step || 'validation'
+                );
+            }
         } else {
-            displayError(result.error || getTranslatedText('verify-network-error', 'Unknown error'), result.message, result.step);
+            // Server error - still try to show validation summary if available
+            displayError(
+                result.error || 'Server error',
+                result.message || response.statusText || 'Server communication error',
+                result.step || 'server'
+            );
+
+            if (result.validationSummary) {
+                displayValidationSummary(result.validationSummary, result.overallStatus || 'error');
+            }
         }
     } catch (error) {
         loadingDiv.style.display = 'none';
-        displayError(getTranslatedText('verify-network-error', 'Network Error'), error.message, 'network');
+        displayError(
+            'Network Error',
+            error.message || 'Unable to connect to verification service',
+            'network'
+        );
+
+        // Create a minimal validation summary showing all steps as skipped
+        const skippedValidationSummary = {
+            qrCodeAnalysis: { status: 'skipped', message: 'Skipped due to network error' },
+            base45Decode: { status: 'skipped', message: 'Skipped due to network error' },
+            zlibDecompress: { status: 'skipped', message: 'Skipped due to network error' },
+            jwtParsing: { status: 'skipped', message: 'Skipped due to network error' },
+            schemaFileCheck: { status: 'skipped', message: 'Skipped due to network error' },
+            schemaValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            signatureVerification: { status: 'skipped', message: 'Skipped due to network error' },
+            signatureCountValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            countryCodeValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            certificateValidityDate: { status: 'skipped', message: 'Skipped due to network error' },
+            jwtSignatureValidation: { status: 'skipped', message: 'Skipped due to network error' }
+        };
+
+        // Display the validation summary with all steps marked as skipped
+        displayValidationSummary(skippedValidationSummary, 'error');
     }
 });
 
@@ -106,11 +163,16 @@ function displayValidationSummary(summary, overallStatus) {
         const statusIcon = getStatusIcon(validation.status);
         const statusClass = validation.status;
 
+        let messageContent = '';
+        if (validation.message) {
+            messageContent = `<span class="step-message">${validation.message}</span>`;
+        }
+
         summaryHTML += `
             <div class="summary-item ${statusClass}">
                 <span class="status-icon">${statusIcon}</span>
                 <span class="step-label">${step.label}</span>
-                ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
+                ${messageContent}
                 ${validation.errorCount !== undefined && validation.errorCount > 0 ?
                     `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
             </div>
@@ -167,6 +229,7 @@ function getStatusIcon(status) {
         case 'error': return '✗';
         case 'warning': return '⚠';
         case 'pending': return '○';
+        case 'skipped': return '○';
         default: return '?';
     }
 }
@@ -181,6 +244,57 @@ function displayVerificationSteps(steps) {
         const previousSize = index > 0 ? steps[index - 1].size : step.size;
         const compressionRatio = index > 0 ? Math.round((step.size / previousSize) * 100) : 100;
 
+        // Check if this is the Certificate Validity Date Verification step
+        const isCertificateStep = step.name && step.name.includes('Certificate Validity Date Verification');
+        let certificateDetailsHTML = '';
+
+        if (isCertificateStep) {
+            // Check if certificate details are attached to the step object
+            const opensslDetails = step.certificateDetails?.parsedInfo?.opensslDetails;
+
+            if (opensslDetails) {
+                console.log('Found certificate details in step object');
+                // Parse OpenSSL output into array of strings split by newlines
+                const opensslLines = opensslDetails.split(/\r?\n|\r/);
+                console.log('Certificate step - Split into lines:', opensslLines.length, 'lines');
+
+                let opensslHTML = '';
+                opensslLines.forEach((line) => {
+                    const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') || '&nbsp;';
+                    opensslHTML += `<div class="cert-line">${escapedLine}</div>`;
+                });
+
+                certificateDetailsHTML = `
+                    <div class="certificate-details-step">
+                        <h4>Certificate Details (OpenSSL Format):</h4>
+                        <div class="openssl-output">${opensslHTML}</div>
+                    </div>`;
+            } else {
+                // Fallback: try to parse from JSON if certificate details not found in step object
+                try {
+                    const stepDataObj = JSON.parse(step.data);
+                    const fallbackOpensslDetails = stepDataObj?.certificateDetails?.parsedInfo?.opensslDetails;
+
+                    if (fallbackOpensslDetails) {
+                        console.log('Found certificate details in step JSON data (fallback)');
+                        const opensslLines = fallbackOpensslDetails.split(/\r?\n|\r/);
+                        let opensslHTML = '';
+                        opensslLines.forEach((line) => {
+                            const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') || '&nbsp;';
+                            opensslHTML += `<div class="cert-line">${escapedLine}</div>`;
+                        });
+                        certificateDetailsHTML = `
+                            <div class="certificate-details-step">
+                                <h4>Certificate Details (OpenSSL Format):</h4>
+                                <div class="openssl-output">${opensslHTML}</div>
+                            </div>`;
+                    }
+                } catch (e) {
+                    console.log('Could not parse certificate details from step data:', e);
+                }
+            }
+        }
+
         stepDiv.innerHTML = `
             <div class="step-header">
                 <h3>${getTranslatedText('verify-step', 'Step')} ${index + 1}: ${step.name}</h3>
@@ -192,6 +306,7 @@ function displayVerificationSteps(steps) {
             <div class="step-content">
                 <textarea readonly class="data-box" rows="${Math.min(Math.max(Math.ceil(step.data.length / 80), 3), 15)}">${step.data}</textarea>
                 <button class="btn btn-small btn-copy" data-content="${step.data}">${getTranslatedText('verify-copy-button', 'Copy')}</button>
+                ${certificateDetailsHTML}
             </div>
         `;
 
@@ -219,10 +334,15 @@ function displayError(error, message, step) {
     const errorContainer = document.getElementById('error-container');
     const errorMessage = document.getElementById('error-message');
 
+    // Provide better default values for undefined parameters
+    const errorText = error || 'Verification error';
+    const messageText = message || 'The verification process encountered an error';
+    const stepText = step || 'Unknown step';
+
     errorMessage.innerHTML = `
-        <p><strong>${getTranslatedText('verify-error-label', 'Error:')}</strong> ${error}</p>
-        <p><strong>${getTranslatedText('verify-message-label', 'Message:')}</strong> ${message}</p>
-        <p><strong>${getTranslatedText('verify-failed-at', 'Failed at:')}</strong> ${step}</p>
+        <p><strong>${getTranslatedText('verify-error-label', 'Error:')}</strong> ${errorText}</p>
+        <p><strong>${getTranslatedText('verify-message-label', 'Details:')}</strong> ${messageText !== 'undefined' ? messageText : 'No additional details available'}</p>
+        <p><strong>${getTranslatedText('verify-failed-at', 'Failed at:')}</strong> ${stepText !== 'undefined' ? stepText : 'Validation process'}</p>
     `;
 
     errorContainer.style.display = 'block';
