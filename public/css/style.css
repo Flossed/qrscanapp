@@ -837,6 +837,62 @@ body {
     }
 }
 
+/* Clickable tiles styles */
+.clickable-tile {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.clickable-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.clickable-tile.clicked {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.click-indicator {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: bold;
+    color: #666;
+    transition: all 0.3s ease;
+    opacity: 0.7;
+}
+
+.clickable-tile:hover .click-indicator {
+    opacity: 1;
+    transform: translateY(-50%) translateX(3px);
+    color: #007bff;
+}
+
+/* Highlighted section styles */
+.highlighted {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107 !important;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Enhanced verification step hover */
+.verification-step {
+    transition: all 0.3s ease;
+}
+
+.verification-step:target,
+.verification-step.highlighted {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    transform: translateX(5px);
+}
+
 .verification-step {
     background: var(--light-color);
     border-radius: var(--border-radius);

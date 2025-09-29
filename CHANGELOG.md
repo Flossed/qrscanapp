@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2025-09-29
+
+### Added
+- **Interactive Validation Tiles**: Validation tiles in `/verify` page are now clickable and navigate to corresponding verification sections
+- **Smart Navigation System**: Click tiles to smoothly scroll to related verification step details
+- **Visual Feedback System**: Hover effects, click animations, and temporary highlighting of target sections
+- **Step Name Mapping**: Intelligent mapping system that connects validation tiles to both basic and detailed verification steps
+
+### Enhanced
+- **User Experience**: Improved navigation with smooth scrolling and visual indicators
+- **Verification Display**: Enhanced interactivity makes it easier to connect validation results with detailed data
+- **Visual Design**: Added hover effects, click animations, and section highlighting for better user feedback
+- **Navigation Arrows**: Added right-pointing arrows (→) to indicate clickable tiles
+
+### Technical Improvements
+- **CSS Transitions**: Smooth animations for all interactive elements
+- **Event Handling**: Robust click handlers with fallback navigation
+- **ID Management**: Unique IDs for all verification step sections for precise navigation
+- **Responsive Design**: Interactive features work seamlessly on mobile and desktop
+
+### UI/UX Improvements
+- **Immediate Feedback**: Visual confirmation when tiles are clicked
+- **Clear Indication**: Users can easily identify clickable elements
+- **Smooth Experience**: No jarring jumps - all navigation is smooth and fluid
+- **Temporary Highlights**: Target sections are highlighted briefly to show connection
+
 ## [0.8.0] - 2025-09-29
 
 ### Fixed
@@ -228,6 +254,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.9.0**: Added interactive validation tiles with click navigation and enhanced user experience
 - **v0.8.0**: Fixed treatment date persistence, standardized validation nomenclature, and enhanced verification display
 - **v0.7.0**: Enhanced certificate display and cleaned up validation summary tiles
 - **v0.6.0**: Certificate validity date verification with OpenSSL parsing and document issuance date validation

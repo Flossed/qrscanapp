@@ -225,12 +225,13 @@ function displayValidationSummary(summary, overallStatus) {
         }
 
         summaryHTML += `
-            <div class="summary-item ${statusClass}">
+            <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
                 <span class="status-icon">${statusIcon}</span>
                 <span class="step-label">${step.label}</span>
                 ${messageContent}
                 ${validation.errorCount !== undefined && validation.errorCount > 0 ?
                     `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+                <span class="click-indicator">→</span>
             </div>
         `;
     });
@@ -277,6 +278,90 @@ function displayValidationSummary(summary, overallStatus) {
 
     // Insert at the beginning of the container
     container.insertBefore(summaryDiv, container.firstChild);
+
+    // Add click functionality to tiles
+    addTileClickHandlers();
+}
+
+function getStepIdFromName(stepName) {
+    // Map step names from backend to validation keys
+    const stepMappings = {
+        'QR Code Analysis': 'qrCodeAnalysis',
+        'Original BASE45 String': 'base45Decode',
+        'Decoded BASE45': 'base45Decode',
+        'Decompressed ZLIB': 'zlibDecompress',
+        'Parsed JWT': 'jwtParsing',
+        'Schema File Check': 'schemaFileCheck',
+        'Schema Validation': 'schemaValidation',
+        'Signature Verification Response': 'signatureVerification',
+        'Signature Count Validation': 'signatureCountValidation',
+        'Country Code Validation': 'countryCodeValidation',
+        'Certificate Validity Date Verification': 'certificateValidityDate',
+        'JWT Signature Validation': 'jwtSignatureValidation'
+    };
+
+    // Find exact match first
+    for (const [name, key] of Object.entries(stepMappings)) {
+        if (stepName.includes(name)) {
+            return key;
+        }
+    }
+
+    // Fallback for partial matches
+    if (stepName.includes('BASE45')) return 'base45Decode';
+    if (stepName.includes('ZLIB')) return 'zlibDecompress';
+    if (stepName.includes('JWT')) {
+        if (stepName.includes('Signature')) return 'jwtSignatureValidation';
+        return 'jwtParsing';
+    }
+    if (stepName.includes('Schema')) {
+        if (stepName.includes('File')) return 'schemaFileCheck';
+        return 'schemaValidation';
+    }
+    if (stepName.includes('Signature')) return 'signatureVerification';
+    if (stepName.includes('Country')) return 'countryCodeValidation';
+    if (stepName.includes('Certificate')) return 'certificateValidityDate';
+
+    return null;
+}
+
+function addTileClickHandlers() {
+    const clickableTiles = document.querySelectorAll('.clickable-tile');
+
+    clickableTiles.forEach(tile => {
+        tile.addEventListener('click', (e) => {
+            const stepKey = e.currentTarget.dataset.stepKey;
+            const targetElement = document.getElementById(`step-${stepKey}`);
+
+            if (targetElement) {
+                // Add visual feedback
+                tile.classList.add('clicked');
+                setTimeout(() => tile.classList.remove('clicked'), 200);
+
+                // Smooth scroll to the target element
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+
+                // Add temporary highlight to target section
+                targetElement.classList.add('highlighted');
+                setTimeout(() => targetElement.classList.remove('highlighted'), 2000);
+            } else {
+                // If specific step not found, scroll to verification steps section
+                const stepsContainer = document.getElementById('verification-steps');
+                if (stepsContainer) {
+                    stepsContainer.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            }
+        });
+
+        // Add hover effect
+        tile.style.cursor = 'pointer';
+    });
 }
 
 function getStatusIcon(status) {
@@ -324,6 +409,7 @@ function displayBasicVerificationSteps(validationSummary) {
 
         const stepDiv = document.createElement('div');
         stepDiv.className = `verification-step basic-step ${statusClass}`;
+        stepDiv.id = `step-${step.key}`;  // Add unique ID for navigation
         stepDiv.innerHTML = `
             <div class="step-header">
                 <h3><span class="status-icon">${statusIcon}</span> Step ${index + 1}: ${step.label}</h3>
@@ -405,6 +491,12 @@ function displayVerificationSteps(steps) {
                     console.log('Could not parse certificate details from step data:', e);
                 }
             }
+        }
+
+        // Create ID based on step name mapping
+        const stepId = getStepIdFromName(step.name);
+        if (stepId) {
+            stepDiv.id = `step-${stepId}`;
         }
 
         stepDiv.innerHTML = `
