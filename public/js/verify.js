@@ -129,6 +129,13 @@ document.getElementById('process-verification').addEventListener('click', async 
             signatureCountValidation: { status: 'skipped', message: 'Skipped due to network error' },
             countryCodeValidation: { status: 'skipped', message: 'Skipped due to network error' },
             certificateValidityDate: { status: 'skipped', message: 'Skipped due to network error' },
+            ehicAccreditation: { status: 'skipped', message: 'Skipped due to network error' },
+            dateOfBirthValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            dateRangeValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            startIssuanceValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            issuanceEndValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            institutionLengthValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            cardIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
             jwtSignatureValidation: { status: 'skipped', message: 'Skipped due to network error' }
         };
 
@@ -200,13 +207,20 @@ function displayValidationSummary(summary, overallStatus) {
         { key: 'signatureVerification', label: 'Signature Retrieval' },
         { key: 'signatureCountValidation', label: 'Signature Count Validation' },
         { key: 'countryCodeValidation', label: 'Country Code Validation' },
-        { key: 'certificateValidityDate', label: 'Certificate Validity Date' },
         { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
     ];
 
-    // Business Validations (placeholder for future validations)
+    // Business Validations
     const businessSteps = [
-        // Add business validation steps here when needed
+        { key: 'certificateValidityDate', label: 'Certificate Validity Date' },
+        { key: 'ehicAccreditation', label: 'EHIC Accreditation' },
+        { key: 'dateOfBirthValidation', label: 'Date of Birth Validation' },
+        { key: 'dateRangeValidation', label: 'Start/End Date Validation' },
+        { key: 'startIssuanceValidation', label: 'Start/Issuance Date Validation' },
+        { key: 'issuanceEndValidation', label: 'Issuance/End Date Validation' },
+        { key: 'institutionLengthValidation', label: 'Institution Length Validation' },
+        { key: 'cardIdDigitValidation', label: 'Card ID Digit Validation' },
+        { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation' }
     ];
 
     let summaryHTML = '<h3>Validation Summary</h3>';
@@ -254,12 +268,13 @@ function displayValidationSummary(summary, overallStatus) {
             const statusClass = validation.status;
 
             summaryHTML += `
-                <div class="summary-item ${statusClass}">
+                <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
                     <span class="status-icon">${statusIcon}</span>
                     <span class="step-label">${step.label}</span>
                     ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
                     ${validation.errorCount !== undefined && validation.errorCount > 0 ?
                         `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+                    <span class="click-indicator">→</span>
                 </div>
             `;
         });
@@ -301,6 +316,14 @@ function getStepIdFromName(stepName) {
         'Signature Count Validation': 'signatureCountValidation',
         'Country Code Validation': 'countryCodeValidation',
         'Certificate Validity Date Verification': 'certificateValidityDate',
+        'EHIC Accreditation Validation': 'ehicAccreditation',
+        'Date of Birth Validation': 'dateOfBirthValidation',
+        'Start/End Date Validation': 'dateRangeValidation',
+        'Start/Issuance Date Validation': 'startIssuanceValidation',
+        'Issuance/End Date Validation': 'issuanceEndValidation',
+        'Institution ID/Name Length Validation (Optional)': 'institutionLengthValidation',
+        'Card ID Digit Validation (Optional)': 'cardIdDigitValidation',
+        'Institution ID Digit Validation (Optional)': 'institutionIdDigitValidation',
         'JWT Signature Validation': 'jwtSignatureValidation'
     };
 
@@ -325,6 +348,13 @@ function getStepIdFromName(stepName) {
     if (stepName.includes('Signature')) return 'signatureVerification';
     if (stepName.includes('Country')) return 'countryCodeValidation';
     if (stepName.includes('Certificate')) return 'certificateValidityDate';
+    if (stepName.includes('EHIC') || stepName.includes('Accreditation')) return 'ehicAccreditation';
+    if (stepName.includes('Date of Birth') || stepName.includes('Birth')) return 'dateOfBirthValidation';
+    if (stepName.includes('Start/End') || stepName.includes('Date Range') || (stepName.includes('Start') && stepName.includes('End'))) return 'dateRangeValidation';
+    if (stepName.includes('Start/Issuance') || (stepName.includes('Start') && stepName.includes('Issuance'))) return 'startIssuanceValidation';
+    if (stepName.includes('Issuance/End') || (stepName.includes('Issuance') && stepName.includes('End'))) return 'issuanceEndValidation';
+    if (stepName.includes('Institution') || stepName.includes('Length')) return 'institutionLengthValidation';
+    if (stepName.includes('Card ID') || stepName.includes('Digit')) return 'cardIdDigitValidation';
 
     return null;
 }
@@ -404,9 +434,25 @@ function displayBasicVerificationSteps(validationSummary) {
         { key: 'signatureVerification', label: 'Signature Retrieval', description: 'Retrieved digital signatures from EBSI' },
         { key: 'signatureCountValidation', label: 'Signature Count Validation', description: 'Validated signature count' },
         { key: 'countryCodeValidation', label: 'Country Code Validation', description: 'Validated country codes' },
-        { key: 'certificateValidityDate', label: 'Certificate Validity Date', description: 'Verified certificate validity period' },
         { key: 'jwtSignatureValidation', label: 'JWT Signature Validation', description: 'Cryptographically validated JWT signature' }
     ];
+
+    const businessSteps = [
+        { key: 'certificateValidityDate', label: 'Certificate Validity Date', description: 'Verified certificate validity period' },
+        { key: 'ehicAccreditation', label: 'EHIC Accreditation', description: 'Verified issuer is accredited to issue EHIC documents' },
+        { key: 'dateOfBirthValidation', label: 'Date of Birth Validation', description: 'Verified date of birth is before or on EHIC start date' },
+        { key: 'dateRangeValidation', label: 'Start/End Date Validation', description: 'Verified EHIC start date is before or on end date' },
+        { key: 'startIssuanceValidation', label: 'Start/Issuance Date Validation', description: 'Verified EHIC start date is before or on issuance date' },
+        { key: 'issuanceEndValidation', label: 'Issuance/End Date Validation', description: 'Verified EHIC issuance date is before or on end date' },
+        { key: 'institutionLengthValidation', label: 'Institution Length Validation', description: 'Optional validation of institution ID/name length (warning only)' },
+        { key: 'cardIdDigitValidation', label: 'Card ID Digit Validation', description: 'Optional validation that card ID contains only digits (warning only)' }
+    ];
+
+    // Add Technical Validations section header
+    const technicalHeader = document.createElement('div');
+    technicalHeader.className = 'validation-category-header';
+    technicalHeader.innerHTML = '<h3 class="category-banner technical-banner">Technical Validations</h3>';
+    container.appendChild(technicalHeader);
 
     technicalSteps.forEach((step, index) => {
         const validation = validationSummary[step.key] || { status: 'pending', message: 'Not processed' };
@@ -419,6 +465,32 @@ function displayBasicVerificationSteps(validationSummary) {
         stepDiv.innerHTML = `
             <div class="step-header">
                 <h3><span class="status-icon">${statusIcon}</span> Step ${index + 1}: ${step.label}</h3>
+            </div>
+            <div class="step-content">
+                <p class="step-description">${step.description}</p>
+                <p class="step-status"><strong>Status:</strong> ${validation.message || validation.status}</p>
+            </div>
+        `;
+        container.appendChild(stepDiv);
+    });
+
+    // Add Business Validations section header
+    const businessHeader = document.createElement('div');
+    businessHeader.className = 'validation-category-header';
+    businessHeader.innerHTML = '<h3 class="category-banner business-banner">Business Validations</h3>';
+    container.appendChild(businessHeader);
+
+    businessSteps.forEach((step, index) => {
+        const validation = validationSummary[step.key] || { status: 'pending', message: 'Not processed' };
+        const statusIcon = getStatusIcon(validation.status);
+        const statusClass = validation.status;
+
+        const stepDiv = document.createElement('div');
+        stepDiv.className = `verification-step basic-step ${statusClass}`;
+        stepDiv.id = `step-${step.key}`;  // Add unique ID for navigation
+        stepDiv.innerHTML = `
+            <div class="step-header">
+                <h3><span class="status-icon">${statusIcon}</span> Business Step ${index + 1}: ${step.label}</h3>
             </div>
             <div class="step-content">
                 <p class="step-description">${step.description}</p>

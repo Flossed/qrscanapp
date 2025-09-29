@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 0.10.0
+## Current Status - Version 0.11.0
 
 ### ✅ Completed Features
 
@@ -46,6 +46,7 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **Email Integration** - Sends verification summaries with detailed test status
 - **Complete Multi-language Support** - Full localization for all 26 EEA/EFTA languages
 - **Technical/Business Validation Categories** - Clear separation of technical and business validations
+- **Comprehensive Business Validations** - Date validations, institution validation, and card ID validation
 
 #### Internationalization & Localization
 - **26 Language Support** - Complete translations for all EEA/EFTA countries
@@ -134,6 +135,38 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 13. **JWT Signature Validation** ✅
     - Cryptographic signature verification
     - Public key validation using EBSI
+
+### 🏢 Business Validations (Complete)
+
+1. **Certificate Validity Date** ✅
+   - Validates certificate validity period against document issuance date
+
+2. **EHIC Accreditation** ✅
+   - European Health Insurance Card accreditation validation
+
+3. **Date of Birth Validation** ✅
+   - Validates date of birth ≤ start date of EHIC
+
+4. **Start/End Date Validation** ✅
+   - Validates start date ≤ end date of EHIC
+
+5. **Start/Issuance Date Validation** ✅
+   - Validates start date ≤ issuance date of EHIC
+
+6. **Issuance/End Date Validation** ✅
+   - Validates issuance date ≤ end date of EHIC
+
+7. **Institution Length Validation** ✅ *(Optional - Warning Only)*
+   - Validates combined institution ID + name length ≤ 25 characters
+   - Only triggers when expiry date is present
+
+8. **Card ID Digit Validation** ✅ *(Optional - Warning Only)*
+   - Validates card ID contains only digits
+   - Only triggers when card ID is present
+
+9. **Institution ID Digit Validation** ✅ *(Optional - Warning Only)*
+   - Validates institution ID contains only digits
+   - Only triggers when institution ID is present
 
 ### 📋 Current Limitations
 
@@ -232,4 +265,4 @@ SMTP_PASS=your_smtp_password
 
 ---
 
-**Version 0.10.0** - Implementation of header verification (Kid and Algorithm header validation) - *September 29, 2025*
+**Version 0.11.0** - Addition of business validations (Date, institution, and card ID validations) - *September 29, 2025*

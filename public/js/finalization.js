@@ -210,13 +210,20 @@ function displayValidationSummary() {
             { key: 'signatureVerification', label: 'Signature Retrieval' },
             { key: 'signatureCountValidation', label: 'Signature Count Validation' },
             { key: 'countryCodeValidation', label: 'Country Code Validation' },
-            { key: 'certificateValidityDate', label: 'Certificate Validity Date' },
             { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
         ];
 
-        // Business Validations (placeholder for future validations)
+        // Business Validations
         const businessSteps = [
-            // Add business validation steps here when needed
+            { key: 'certificateValidityDate', label: 'Certificate Validity Date' },
+            { key: 'ehicAccreditation', label: 'EHIC Accreditation' },
+            { key: 'dateOfBirthValidation', label: 'Date of Birth Validation' },
+            { key: 'dateRangeValidation', label: 'Start/End Date Validation' },
+            { key: 'startIssuanceValidation', label: 'Start/Issuance Date Validation' },
+            { key: 'issuanceEndValidation', label: 'Issuance/End Date Validation' },
+            { key: 'institutionLengthValidation', label: 'Institution Length Validation' },
+            { key: 'cardIdDigitValidation', label: 'Card ID Digit Validation' },
+            { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation' }
         ];
 
         let summaryHTML = `<div class="validation-summary ${overallStatus}">`;

@@ -1834,10 +1834,19 @@ router.post('/api/verify', async (req, res) => {
                 jwtParsing: { status: 'pending', message: '' },
                 schemaFileCheck: { status: 'pending', message: '' },
                 schemaValidation: { status: 'pending', message: '' },
+                kidHeaderValidation: { status: 'pending', message: '' },
+                algorithmHeaderValidation: { status: 'pending', message: '' },
                 signatureVerification: { status: 'pending', message: '' },
                 signatureCountValidation: { status: 'pending', message: '' },
                 countryCodeValidation: { status: 'pending', message: '' },
                 certificateValidityDate: { status: 'pending', message: '' },
+                ehicAccreditation: { status: 'pending', message: '' },
+                dateOfBirthValidation: { status: 'pending', message: '' },
+                dateRangeValidation: { status: 'pending', message: '' },
+                startIssuanceValidation: { status: 'pending', message: '' },
+                issuanceEndValidation: { status: 'pending', message: '' },
+                institutionLengthValidation: { status: 'pending', message: '' },
+                cardIdDigitValidation: { status: 'pending', message: '' },
                 jwtSignatureValidation: { status: 'pending', message: '' }
             };
 
@@ -2311,9 +2320,19 @@ async function processVerificationData(originalData, treatmentDate = null) {
         jwtParsing: { status: 'pending', message: '' },
         schemaFileCheck: { status: 'pending', message: '' },
         schemaValidation: { status: 'pending', message: '' },
+        kidHeaderValidation: { status: 'pending', message: '' },
+        algorithmHeaderValidation: { status: 'pending', message: '' },
         signatureVerification: { status: 'pending', message: '' },
         signatureCountValidation: { status: 'pending', message: '' },
         countryCodeValidation: { status: 'pending', message: '' },
+        certificateValidityDate: { status: 'pending', message: '' },
+        ehicAccreditation: { status: 'pending', message: '' },
+        dateOfBirthValidation: { status: 'pending', message: '' },
+        dateRangeValidation: { status: 'pending', message: '' },
+        startIssuanceValidation: { status: 'pending', message: '' },
+        issuanceEndValidation: { status: 'pending', message: '' },
+        institutionLengthValidation: { status: 'pending', message: '' },
+        cardIdDigitValidation: { status: 'pending', message: '' },
         jwtSignatureValidation: { status: 'pending', message: '' }
     };
 
@@ -3424,6 +3443,614 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                     'JWT signature validation successful' :
                                     'JWT signature validation failed'
                             };
+
+                            // Step 10: EHIC Accreditation Validation
+                            try {
+                                let accreditationPassed = false;
+                                let accreditationMessage = 'EHIC accreditation check failed';
+
+                                if (signatureResponse.data?.results?.[0]) {
+                                    const issuerInfo = signatureResponse.data.results[0];
+                                    const accreditedFor = issuerInfo.accreditedFor || [];
+
+                                    accreditationPassed = accreditedFor.includes('EHIC');
+                                    accreditationMessage = accreditationPassed
+                                        ? `Issuer "${issuerInfo.name || issuerInfo.officialId}" is accredited to issue EHIC documents`
+                                        : `Issuer "${issuerInfo.name || issuerInfo.officialId}" is not accredited to issue EHIC documents. Accredited for: [${accreditedFor.join(', ')}]`;
+
+                                    logger.info('EHIC accreditation check completed', {
+                                        issuerName: issuerInfo.name,
+                                        officialId: issuerInfo.officialId,
+                                        accreditedFor: accreditedFor,
+                                        isEHICAccredited: accreditationPassed
+                                    });
+                                } else {
+                                    accreditationMessage = 'EHIC accreditation check failed: No issuer information available';
+                                    logger.warn('EHIC accreditation check failed: No issuer information in signature response');
+                                }
+
+                                const accreditationString = JSON.stringify({
+                                    accreditationPassed,
+                                    message: accreditationMessage,
+                                    issuerInfo: signatureResponse.data?.results?.[0] ? {
+                                        name: signatureResponse.data.results[0].name,
+                                        officialId: signatureResponse.data.results[0].officialId,
+                                        countryCode: signatureResponse.data.results[0].countryCode,
+                                        accreditedFor: signatureResponse.data.results[0].accreditedFor
+                                    } : null
+                                }, null, 2);
+                                const accreditationSize = Buffer.byteLength(accreditationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 10: EHIC Accreditation Validation',
+                                    data: accreditationString,
+                                    size: accreditationSize,
+                                    percentage: Math.round((accreditationSize / responseSize) * 100)
+                                });
+
+                                validationSummary.ehicAccreditation = {
+                                    status: accreditationPassed ? 'success' : 'error',
+                                    message: accreditationMessage
+                                };
+
+                            } catch (accreditationError) {
+                                logger.error('EHIC accreditation validation failed:', accreditationError);
+
+                                validationSummary.ehicAccreditation = {
+                                    status: 'error',
+                                    message: `EHIC accreditation validation failed: ${accreditationError.message}`
+                                };
+                            }
+
+                            // Step 11: Date of Birth Validation
+                            try {
+                                let dobValidationPassed = false;
+                                let dobValidationMessage = 'Date of birth validation failed';
+
+                                const prcData = jwtDecoded?.payload?.prc;
+                                if (prcData?.dob && prcData?.sd) {
+                                    const dobDate = new Date(prcData.dob);
+                                    const startDate = new Date(prcData.sd);
+
+                                    // Check if dates are valid
+                                    if (!isNaN(dobDate.getTime()) && !isNaN(startDate.getTime())) {
+                                        dobValidationPassed = dobDate <= startDate;
+
+                                        if (dobValidationPassed) {
+                                            dobValidationMessage = `Date of birth (${dobDate.toISOString().split('T')[0]}) is valid - occurs before or on EHIC start date (${startDate.toISOString().split('T')[0]})`;
+                                        } else {
+                                            dobValidationMessage = `Date of birth (${dobDate.toISOString().split('T')[0]}) is invalid - occurs after EHIC start date (${startDate.toISOString().split('T')[0]})`;
+                                        }
+
+                                        logger.info('Date of birth validation completed', {
+                                            dateOfBirth: dobDate.toISOString(),
+                                            startDate: startDate.toISOString(),
+                                            isValid: dobValidationPassed
+                                        });
+                                    } else {
+                                        dobValidationMessage = 'Date of birth validation failed: Invalid date format';
+                                        logger.warn('Date of birth validation failed: Invalid date format', {
+                                            dob: prcData.dob,
+                                            sd: prcData.sd,
+                                            dobValid: !isNaN(dobDate.getTime()),
+                                            sdValid: !isNaN(startDate.getTime())
+                                        });
+                                    }
+                                } else {
+                                    dobValidationMessage = 'Date of birth validation failed: Missing date of birth or start date in PRC data';
+                                    logger.warn('Date of birth validation failed: Missing required fields', {
+                                        hasDob: !!prcData?.dob,
+                                        hasSd: !!prcData?.sd,
+                                        prcDataExists: !!prcData
+                                    });
+                                }
+
+                                const dobValidationString = JSON.stringify({
+                                    dobValidationPassed,
+                                    message: dobValidationMessage,
+                                    dateOfBirth: prcData?.dob || null,
+                                    startDate: prcData?.sd || null,
+                                    dateComparison: prcData?.dob && prcData?.sd ? {
+                                        dobParsed: new Date(prcData.dob).toISOString(),
+                                        sdParsed: new Date(prcData.sd).toISOString(),
+                                        dobBeforeOrEqualSd: new Date(prcData.dob) <= new Date(prcData.sd)
+                                    } : null
+                                }, null, 2);
+                                const dobValidationSize = Buffer.byteLength(dobValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 11: Date of Birth Validation',
+                                    data: dobValidationString,
+                                    size: dobValidationSize,
+                                    percentage: Math.round((dobValidationSize / responseSize) * 100)
+                                });
+
+                                validationSummary.dateOfBirthValidation = {
+                                    status: dobValidationPassed ? 'success' : 'error',
+                                    message: dobValidationMessage
+                                };
+
+                            } catch (dobError) {
+                                logger.error('Date of birth validation failed:', dobError);
+
+                                validationSummary.dateOfBirthValidation = {
+                                    status: 'error',
+                                    message: `Date of birth validation failed: ${dobError.message}`
+                                };
+                            }
+
+                            // Step 12: Start Date vs End Date Validation
+                            try {
+                                let dateRangeValidationPassed = false;
+                                let dateRangeValidationMessage = 'Start/End date validation failed';
+
+                                const prcData = jwtDecoded?.payload?.prc;
+                                if (prcData?.sd && prcData?.ed) {
+                                    const startDate = new Date(prcData.sd);
+                                    const endDate = new Date(prcData.ed);
+
+                                    // Check if dates are valid
+                                    if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                                        dateRangeValidationPassed = startDate <= endDate;
+
+                                        if (dateRangeValidationPassed) {
+                                            dateRangeValidationMessage = `EHIC date range is valid - start date (${startDate.toISOString().split('T')[0]}) is before or on end date (${endDate.toISOString().split('T')[0]})`;
+                                        } else {
+                                            dateRangeValidationMessage = `EHIC date range is invalid - start date (${startDate.toISOString().split('T')[0]}) is after end date (${endDate.toISOString().split('T')[0]})`;
+                                        }
+
+                                        logger.info('Start/End date validation completed', {
+                                            startDate: startDate.toISOString(),
+                                            endDate: endDate.toISOString(),
+                                            isValid: dateRangeValidationPassed,
+                                            daysDifference: Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24))
+                                        });
+                                    } else {
+                                        dateRangeValidationMessage = 'Start/End date validation failed: Invalid date format';
+                                        logger.warn('Start/End date validation failed: Invalid date format', {
+                                            sd: prcData.sd,
+                                            ed: prcData.ed,
+                                            sdValid: !isNaN(startDate.getTime()),
+                                            edValid: !isNaN(endDate.getTime())
+                                        });
+                                    }
+                                } else {
+                                    dateRangeValidationMessage = 'Start/End date validation failed: Missing start date or end date in PRC data';
+                                    logger.warn('Start/End date validation failed: Missing required fields', {
+                                        hasSd: !!prcData?.sd,
+                                        hasEd: !!prcData?.ed,
+                                        prcDataExists: !!prcData
+                                    });
+                                }
+
+                                const dateRangeValidationString = JSON.stringify({
+                                    dateRangeValidationPassed,
+                                    message: dateRangeValidationMessage,
+                                    startDate: prcData?.sd || null,
+                                    endDate: prcData?.ed || null,
+                                    dateComparison: prcData?.sd && prcData?.ed ? {
+                                        sdParsed: new Date(prcData.sd).toISOString(),
+                                        edParsed: new Date(prcData.ed).toISOString(),
+                                        sdBeforeOrEqualEd: new Date(prcData.sd) <= new Date(prcData.ed),
+                                        daysDifference: Math.floor((new Date(prcData.ed) - new Date(prcData.sd)) / (1000 * 60 * 60 * 24))
+                                    } : null
+                                }, null, 2);
+                                const dateRangeValidationSize = Buffer.byteLength(dateRangeValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 12: Start/End Date Validation',
+                                    data: dateRangeValidationString,
+                                    size: dateRangeValidationSize,
+                                    percentage: Math.round((dateRangeValidationSize / responseSize) * 100)
+                                });
+
+                                validationSummary.dateRangeValidation = {
+                                    status: dateRangeValidationPassed ? 'success' : 'error',
+                                    message: dateRangeValidationMessage
+                                };
+
+                            } catch (dateRangeError) {
+                                logger.error('Start/End date validation failed:', dateRangeError);
+
+                                validationSummary.dateRangeValidation = {
+                                    status: 'error',
+                                    message: `Start/End date validation failed: ${dateRangeError.message}`
+                                };
+                            }
+
+                            // Step 13: Start Date vs Issuance Date Validation
+                            try {
+                                let startIssuanceValidationPassed = false;
+                                let startIssuanceValidationMessage = 'Start/Issuance date validation failed';
+
+                                const prcData = jwtDecoded?.payload?.prc;
+                                if (prcData?.sd && prcData?.di) {
+                                    const startDate = new Date(prcData.sd);
+                                    const issuanceDate = new Date(prcData.di);
+
+                                    // Check if dates are valid
+                                    if (!isNaN(startDate.getTime()) && !isNaN(issuanceDate.getTime())) {
+                                        startIssuanceValidationPassed = startDate <= issuanceDate;
+
+                                        if (startIssuanceValidationPassed) {
+                                            startIssuanceValidationMessage = `EHIC start/issuance date validation passed - start date (${startDate.toISOString().split('T')[0]}) is before or on issuance date (${issuanceDate.toISOString().split('T')[0]})`;
+                                        } else {
+                                            startIssuanceValidationMessage = `EHIC start/issuance date validation failed - start date (${startDate.toISOString().split('T')[0]}) is after issuance date (${issuanceDate.toISOString().split('T')[0]})`;
+                                        }
+
+                                        logger.info('Start/Issuance date validation completed', {
+                                            startDate: startDate.toISOString(),
+                                            issuanceDate: issuanceDate.toISOString(),
+                                            isValid: startIssuanceValidationPassed,
+                                            daysDifference: Math.floor((issuanceDate - startDate) / (1000 * 60 * 60 * 24))
+                                        });
+                                    } else {
+                                        startIssuanceValidationMessage = 'Start/Issuance date validation failed: Invalid date format';
+                                        logger.warn('Start/Issuance date validation failed: Invalid date format', {
+                                            sd: prcData.sd,
+                                            di: prcData.di,
+                                            sdValid: !isNaN(startDate.getTime()),
+                                            diValid: !isNaN(issuanceDate.getTime())
+                                        });
+                                    }
+                                } else {
+                                    startIssuanceValidationMessage = 'Start/Issuance date validation failed: Missing start date or issuance date in PRC data';
+                                    logger.warn('Start/Issuance date validation failed: Missing required fields', {
+                                        hasSd: !!prcData?.sd,
+                                        hasDi: !!prcData?.di,
+                                        prcDataExists: !!prcData
+                                    });
+                                }
+
+                                const startIssuanceValidationString = JSON.stringify({
+                                    startIssuanceValidationPassed,
+                                    message: startIssuanceValidationMessage,
+                                    startDate: prcData?.sd || null,
+                                    issuanceDate: prcData?.di || null,
+                                    dateComparison: prcData?.sd && prcData?.di ? {
+                                        sdParsed: new Date(prcData.sd).toISOString(),
+                                        diParsed: new Date(prcData.di).toISOString(),
+                                        sdBeforeOrEqualDi: new Date(prcData.sd) <= new Date(prcData.di),
+                                        daysDifference: Math.floor((new Date(prcData.di) - new Date(prcData.sd)) / (1000 * 60 * 60 * 24))
+                                    } : null
+                                }, null, 2);
+                                const startIssuanceValidationSize = Buffer.byteLength(startIssuanceValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 13: Start/Issuance Date Validation',
+                                    data: startIssuanceValidationString,
+                                    size: startIssuanceValidationSize,
+                                    percentage: Math.round((startIssuanceValidationSize / responseSize) * 100)
+                                });
+
+                                validationSummary.startIssuanceValidation = {
+                                    status: startIssuanceValidationPassed ? 'success' : 'error',
+                                    message: startIssuanceValidationMessage
+                                };
+
+                            } catch (startIssuanceError) {
+                                logger.error('Start/Issuance date validation failed:', startIssuanceError);
+
+                                validationSummary.startIssuanceValidation = {
+                                    status: 'error',
+                                    message: `Start/Issuance date validation failed: ${startIssuanceError.message}`
+                                };
+                            }
+
+                            // Step 14: Issuance Date vs End Date Validation
+                            try {
+                                let issuanceEndValidationPassed = false;
+                                let issuanceEndValidationMessage = 'Issuance/End date validation failed';
+
+                                const prcData = jwtDecoded?.payload?.prc;
+                                if (prcData?.di && prcData?.ed) {
+                                    const issuanceDate = new Date(prcData.di);
+                                    const endDate = new Date(prcData.ed);
+
+                                    // Check if dates are valid
+                                    if (!isNaN(issuanceDate.getTime()) && !isNaN(endDate.getTime())) {
+                                        issuanceEndValidationPassed = issuanceDate <= endDate;
+
+                                        if (issuanceEndValidationPassed) {
+                                            issuanceEndValidationMessage = `EHIC issuance/end date validation passed - issuance date (${issuanceDate.toISOString().split('T')[0]}) is before or on end date (${endDate.toISOString().split('T')[0]})`;
+                                        } else {
+                                            issuanceEndValidationMessage = `EHIC issuance/end date validation failed - issuance date (${issuanceDate.toISOString().split('T')[0]}) is after end date (${endDate.toISOString().split('T')[0]})`;
+                                        }
+
+                                        logger.info('Issuance/End date validation completed', {
+                                            issuanceDate: issuanceDate.toISOString(),
+                                            endDate: endDate.toISOString(),
+                                            isValid: issuanceEndValidationPassed,
+                                            daysDifference: Math.floor((endDate - issuanceDate) / (1000 * 60 * 60 * 24))
+                                        });
+                                    } else {
+                                        issuanceEndValidationMessage = 'Issuance/End date validation failed: Invalid date format';
+                                        logger.warn('Issuance/End date validation failed: Invalid date format', {
+                                            di: prcData.di,
+                                            ed: prcData.ed,
+                                            diValid: !isNaN(issuanceDate.getTime()),
+                                            edValid: !isNaN(endDate.getTime())
+                                        });
+                                    }
+                                } else {
+                                    issuanceEndValidationMessage = 'Issuance/End date validation failed: Missing issuance date or end date in PRC data';
+                                    logger.warn('Issuance/End date validation failed: Missing required fields', {
+                                        hasDi: !!prcData?.di,
+                                        hasEd: !!prcData?.ed,
+                                        prcDataExists: !!prcData
+                                    });
+                                }
+
+                                const issuanceEndValidationString = JSON.stringify({
+                                    issuanceEndValidationPassed,
+                                    message: issuanceEndValidationMessage,
+                                    issuanceDate: prcData?.di || null,
+                                    endDate: prcData?.ed || null,
+                                    dateComparison: prcData?.di && prcData?.ed ? {
+                                        diParsed: new Date(prcData.di).toISOString(),
+                                        edParsed: new Date(prcData.ed).toISOString(),
+                                        diBeforeOrEqualEd: new Date(prcData.di) <= new Date(prcData.ed),
+                                        daysDifference: Math.floor((new Date(prcData.ed) - new Date(prcData.di)) / (1000 * 60 * 60 * 24))
+                                    } : null
+                                }, null, 2);
+                                const issuanceEndValidationSize = Buffer.byteLength(issuanceEndValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 14: Issuance/End Date Validation',
+                                    data: issuanceEndValidationString,
+                                    size: issuanceEndValidationSize,
+                                    percentage: Math.round((issuanceEndValidationSize / responseSize) * 100)
+                                });
+
+                                validationSummary.issuanceEndValidation = {
+                                    status: issuanceEndValidationPassed ? 'success' : 'error',
+                                    message: issuanceEndValidationMessage
+                                };
+
+                            } catch (issuanceEndError) {
+                                logger.error('Issuance/End date validation failed:', issuanceEndError);
+
+                                validationSummary.issuanceEndValidation = {
+                                    status: 'error',
+                                    message: `Issuance/End date validation failed: ${issuanceEndError.message}`
+                                };
+                            }
+
+                            // Step 15: Institution ID/Name Length Validation (Optional - Warning Only)
+                            try {
+                                let institutionValidationPassed = true; // Default to passed (warning only)
+                                let institutionValidationMessage = 'Institution ID/Name length validation skipped - no expiry date found';
+                                let validationTriggered = false;
+
+                                const prcData = jwtDecoded?.payload?.prc;
+
+                                // Only perform validation if expiry date exists (ed field)
+                                if (prcData?.ed) {
+                                    validationTriggered = true;
+                                    const institutionId = prcData?.ii || '';
+                                    const institutionName = prcData?.in || '';
+                                    const combinedLength = institutionId.length + institutionName.length;
+                                    const maxLength = 25;
+
+                                    if (combinedLength <= maxLength) {
+                                        institutionValidationMessage = `Institution validation passed - combined ID/Name length (${combinedLength}) is within limit (${maxLength} characters). ID: "${institutionId}" (${institutionId.length}), Name: "${institutionName}" (${institutionName.length})`;
+                                        institutionValidationPassed = true;
+                                    } else {
+                                        institutionValidationMessage = `Institution validation warning - combined ID/Name length (${combinedLength}) exceeds recommended limit (${maxLength} characters). ID: "${institutionId}" (${institutionId.length}), Name: "${institutionName}" (${institutionName.length})`;
+                                        institutionValidationPassed = false; // This will show as warning, not error
+                                    }
+
+                                    logger.info('Institution ID/Name length validation completed', {
+                                        institutionId: institutionId,
+                                        institutionName: institutionName,
+                                        idLength: institutionId.length,
+                                        nameLength: institutionName.length,
+                                        combinedLength: combinedLength,
+                                        maxLength: maxLength,
+                                        isWithinLimit: combinedLength <= maxLength,
+                                        hasExpiryDate: !!prcData.ed
+                                    });
+                                } else {
+                                    logger.info('Institution ID/Name length validation skipped - no expiry date found', {
+                                        hasExpiryDate: false,
+                                        prcDataExists: !!prcData
+                                    });
+                                }
+
+                                const institutionValidationString = JSON.stringify({
+                                    institutionValidationPassed,
+                                    validationTriggered,
+                                    message: institutionValidationMessage,
+                                    institutionId: prcData?.ii || null,
+                                    institutionName: prcData?.in || null,
+                                    expiryDate: prcData?.ed || null,
+                                    lengthAnalysis: validationTriggered ? {
+                                        idLength: (prcData?.ii || '').length,
+                                        nameLength: (prcData?.in || '').length,
+                                        combinedLength: (prcData?.ii || '').length + (prcData?.in || '').length,
+                                        maxRecommendedLength: 25,
+                                        isWithinLimit: ((prcData?.ii || '').length + (prcData?.in || '').length) <= 25
+                                    } : null
+                                }, null, 2);
+                                const institutionValidationSize = Buffer.byteLength(institutionValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 15: Institution ID/Name Length Validation (Optional)',
+                                    data: institutionValidationString,
+                                    size: institutionValidationSize,
+                                    percentage: Math.round((institutionValidationSize / responseSize) * 100)
+                                });
+
+                                // Set status as warning for failed validation (not error), success for passed, or skipped if not triggered
+                                validationSummary.institutionLengthValidation = {
+                                    status: !validationTriggered ? 'skipped' : (institutionValidationPassed ? 'success' : 'warning'),
+                                    message: institutionValidationMessage
+                                };
+
+                            } catch (institutionError) {
+                                logger.error('Institution ID/Name length validation failed:', institutionError);
+
+                                validationSummary.institutionLengthValidation = {
+                                    status: 'warning', // Still warning, not error
+                                    message: `Institution ID/Name length validation encountered an error: ${institutionError.message}`
+                                };
+                            }
+
+                            // Step 16: Card ID Digit Validation (Optional - Warning Only)
+                            try {
+                                let cardIdValidationPassed = true; // Default to passed (warning only)
+                                let cardIdValidationMessage = 'Card ID digit validation skipped - no card ID found';
+                                let validationTriggered = false;
+
+                                const prcData = jwtDecoded?.payload?.prc;
+
+                                // Only perform validation if card ID exists (ci field)
+                                if (prcData?.ci) {
+                                    validationTriggered = true;
+                                    const cardId = String(prcData.ci); // Convert to string to handle potential numbers
+                                    const isAllDigits = /^\d+$/.test(cardId);
+
+                                    if (isAllDigits) {
+                                        cardIdValidationMessage = `Card ID digit validation passed - card ID "${cardId}" contains only digits (${cardId.length} characters)`;
+                                        cardIdValidationPassed = true;
+                                    } else {
+                                        // Find non-digit characters for detailed reporting
+                                        const nonDigits = cardId.split('').filter(char => !/\d/.test(char));
+                                        const uniqueNonDigits = [...new Set(nonDigits)];
+
+                                        cardIdValidationMessage = `Card ID digit validation warning - card ID "${cardId}" contains non-digit characters: [${uniqueNonDigits.join(', ')}]. Expected all digits only.`;
+                                        cardIdValidationPassed = false; // This will show as warning, not error
+                                    }
+
+                                    logger.info('Card ID digit validation completed', {
+                                        cardId: cardId,
+                                        length: cardId.length,
+                                        isAllDigits: isAllDigits,
+                                        nonDigitCount: cardId.split('').filter(char => !/\d/.test(char)).length,
+                                        nonDigitChars: cardId.split('').filter(char => !/\d/.test(char))
+                                    });
+                                } else {
+                                    logger.info('Card ID digit validation skipped - no card ID found', {
+                                        hasCardId: false,
+                                        prcDataExists: !!prcData
+                                    });
+                                }
+
+                                const cardIdValidationString = JSON.stringify({
+                                    cardIdValidationPassed,
+                                    validationTriggered,
+                                    message: cardIdValidationMessage,
+                                    cardId: prcData?.ci || null,
+                                    digitAnalysis: validationTriggered ? {
+                                        cardIdValue: String(prcData.ci),
+                                        length: String(prcData.ci).length,
+                                        isAllDigits: /^\d+$/.test(String(prcData.ci)),
+                                        digitCount: String(prcData.ci).split('').filter(char => /\d/.test(char)).length,
+                                        nonDigitCount: String(prcData.ci).split('').filter(char => !/\d/.test(char)).length,
+                                        nonDigitChars: String(prcData.ci).split('').filter(char => !/\d/.test(char))
+                                    } : null
+                                }, null, 2);
+                                const cardIdValidationSize = Buffer.byteLength(cardIdValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 16: Card ID Digit Validation (Optional)',
+                                    data: cardIdValidationString,
+                                    size: cardIdValidationSize,
+                                    percentage: Math.round((cardIdValidationSize / responseSize) * 100)
+                                });
+
+                                // Set status as warning for failed validation (not error), success for passed, or skipped if not triggered
+                                validationSummary.cardIdDigitValidation = {
+                                    status: !validationTriggered ? 'skipped' : (cardIdValidationPassed ? 'success' : 'warning'),
+                                    message: cardIdValidationMessage
+                                };
+
+                            } catch (cardIdError) {
+                                logger.error('Card ID digit validation failed:', cardIdError);
+
+                                validationSummary.cardIdDigitValidation = {
+                                    status: 'warning', // Still warning, not error
+                                    message: `Card ID digit validation encountered an error: ${cardIdError.message}`
+                                };
+                            }
+
+                            // Step 17: Institution ID Digit Validation (Optional - Warning Only)
+                            try {
+                                let institutionIdValidationPassed = true; // Default to passed (warning only)
+                                let institutionIdValidationMessage = 'Institution ID digit validation skipped - no institution ID found';
+                                let validationTriggered = false;
+
+                                const prcData = jwtDecoded?.payload?.prc;
+
+                                // Only perform validation if institution ID exists (ii field)
+                                if (prcData?.ii) {
+                                    validationTriggered = true;
+                                    const institutionId = String(prcData.ii); // Convert to string to handle potential numbers
+                                    const isAllDigits = /^\d+$/.test(institutionId);
+
+                                    if (isAllDigits) {
+                                        institutionIdValidationMessage = `Institution ID digit validation passed - institution ID "${institutionId}" contains only digits (${institutionId.length} characters)`;
+                                        institutionIdValidationPassed = true;
+                                    } else {
+                                        // Find non-digit characters for detailed reporting
+                                        const nonDigits = institutionId.split('').filter(char => !/\d/.test(char));
+                                        const uniqueNonDigits = [...new Set(nonDigits)];
+
+                                        institutionIdValidationMessage = `Institution ID digit validation warning - institution ID "${institutionId}" contains non-digit characters: [${uniqueNonDigits.join(', ')}]. Expected all digits only.`;
+                                        institutionIdValidationPassed = false; // This will show as warning, not error
+                                    }
+
+                                    logger.info('Institution ID digit validation completed', {
+                                        institutionId: institutionId,
+                                        length: institutionId.length,
+                                        isAllDigits: isAllDigits,
+                                        nonDigitCount: institutionId.split('').filter(char => !/\d/.test(char)).length,
+                                        nonDigitChars: institutionId.split('').filter(char => !/\d/.test(char))
+                                    });
+                                } else {
+                                    logger.info('Institution ID digit validation skipped - no institution ID found', {
+                                        hasInstitutionId: false,
+                                        prcDataExists: !!prcData
+                                    });
+                                }
+
+                                const institutionIdValidationString = JSON.stringify({
+                                    institutionIdValidationPassed,
+                                    validationTriggered,
+                                    message: institutionIdValidationMessage,
+                                    institutionId: prcData?.ii || null,
+                                    digitAnalysis: validationTriggered ? {
+                                        institutionIdValue: String(prcData.ii),
+                                        length: String(prcData.ii).length,
+                                        isAllDigits: /^\d+$/.test(String(prcData.ii)),
+                                        digitCount: String(prcData.ii).split('').filter(char => /\d/.test(char)).length,
+                                        nonDigitCount: String(prcData.ii).split('').filter(char => !/\d/.test(char)).length,
+                                        nonDigitChars: String(prcData.ii).split('').filter(char => !/\d/.test(char))
+                                    } : null
+                                }, null, 2);
+                                const institutionIdValidationSize = Buffer.byteLength(institutionIdValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 17: Institution ID Digit Validation (Optional)',
+                                    data: institutionIdValidationString,
+                                    size: institutionIdValidationSize,
+                                    percentage: Math.round((institutionIdValidationSize / responseSize) * 100)
+                                });
+
+                                // Set status as warning for failed validation (not error), success for passed, or skipped if not triggered
+                                validationSummary.institutionIdDigitValidation = {
+                                    status: !validationTriggered ? 'skipped' : (institutionIdValidationPassed ? 'success' : 'warning'),
+                                    message: institutionIdValidationMessage
+                                };
+
+                            } catch (institutionIdError) {
+                                logger.error('Institution ID digit validation failed:', institutionIdError);
+
+                                validationSummary.institutionIdDigitValidation = {
+                                    status: 'warning', // Still warning, not error
+                                    message: `Institution ID digit validation encountered an error: ${institutionIdError.message}`
+                                };
+                            }
 
                             logger.info('Complete QR code processing finished', {
                                 totalSteps: steps.length,

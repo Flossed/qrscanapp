@@ -90,6 +90,14 @@ async function processVerification() {
             signatureCountValidation: { status: 'skipped', message: 'Skipped due to network error' },
             countryCodeValidation: { status: 'skipped', message: 'Skipped due to network error' },
             certificateValidityDate: { status: 'skipped', message: 'Skipped due to network error' },
+            ehicAccreditation: { status: 'skipped', message: 'Skipped due to network error' },
+            dateOfBirthValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            dateRangeValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            startIssuanceValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            issuanceEndValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            institutionLengthValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            cardIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            institutionIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
             jwtSignatureValidation: { status: 'skipped', message: 'Skipped due to network error' }
         };
 
@@ -188,13 +196,20 @@ function displayValidationSummary(validationSummary, overallStatus, container) {
         { key: 'signatureVerification', label: 'Signature Retrieval' },
         { key: 'signatureCountValidation', label: 'Signature Count Validation' },
         { key: 'countryCodeValidation', label: 'Country Code Validation' },
-        { key: 'certificateValidityDate', label: 'Certificate Validity Date' },
         { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
     ];
 
-    // Business Validations (placeholder for future validations)
+    // Business Validations
     const businessSteps = [
-        // Add business validation steps here when needed
+        { key: 'certificateValidityDate', label: 'Certificate Validity Date' },
+        { key: 'ehicAccreditation', label: 'EHIC Accreditation' },
+        { key: 'dateOfBirthValidation', label: 'Date of Birth Validation' },
+        { key: 'dateRangeValidation', label: 'Start/End Date Validation' },
+        { key: 'startIssuanceValidation', label: 'Start/Issuance Date Validation' },
+        { key: 'issuanceEndValidation', label: 'Issuance/End Date Validation' },
+        { key: 'institutionLengthValidation', label: 'Institution Length Validation' },
+        { key: 'cardIdDigitValidation', label: 'Card ID Digit Validation' },
+        { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation' }
     ];
 
     const summaryDiv = document.createElement('div');

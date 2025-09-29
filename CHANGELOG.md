@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2025-09-29
+
+### Added
+- **Comprehensive Business Validations**: Added 9 new business validation steps for EHIC data validation
+  - **Date of Birth Validation**: Validates date of birth ≤ start date of EHIC (payload.prc.dob vs payload.prc.sd)
+  - **Start/End Date Validation**: Validates start date ≤ end date of EHIC (payload.prc.sd vs payload.prc.ed)
+  - **Start/Issuance Date Validation**: Validates start date ≤ issuance date of EHIC (payload.prc.sd vs payload.prc.di)
+  - **Issuance/End Date Validation**: Validates issuance date ≤ end date of EHIC (payload.prc.di vs payload.prc.ed)
+  - **Institution Length Validation**: *(Optional - Warning Only)* Validates combined institution ID + name length ≤ 25 characters (payload.prc.ii + payload.prc.in)
+  - **Card ID Digit Validation**: *(Optional - Warning Only)* Validates card ID contains only digits (payload.prc.ci)
+  - **Institution ID Digit Validation**: *(Optional - Warning Only)* Validates institution ID contains only digits (payload.prc.ii)
+- **Certificate Validity Date**: Moved from technical to business validations category for better organization
+- **EHIC Accreditation**: Enhanced EHIC accreditation validation in business category
+- **Clickable Business Validation Tiles**: All business validation tiles are clickable and navigate to corresponding verification sections
+- **Warning-Only Validations**: Optional validations that show warnings instead of errors, preventing overall verification failure
+
+### Enhanced
+- **Business Validation Categorization**: Clear separation of business logic validations from technical validations
+- **Date Comparison Logic**: Comprehensive date validation across all EHIC date fields with proper error reporting
+- **Validation Display**: Enhanced frontend display with business validation section and interactive tiles
+- **Error Messaging**: Detailed error messages for each validation type with specific field information
+- **Step Navigation**: Business validation tiles integrate with existing click-to-navigate functionality
+
+### Technical Improvements
+- **Frontend Consistency**: Updated verify.js, results.js, and finalization.js with business validation sections
+- **Step Mapping**: Added comprehensive step mappings for all business validations
+- **Validation Pipeline**: Extended verification pipeline with 9 new business validation steps (Steps 11-17)
+- **Optional Validation Framework**: Implemented warning-only validation system for non-critical checks
+- **Data Extraction**: Enhanced PRC data extraction and validation from JWT payload structure
+
+### Validation Framework Enhancements
+- **Conditional Validation**: Smart validation logic that only triggers when relevant data is present
+- **Comprehensive Logging**: Detailed logging for all business validation results and analysis
+- **Error Handling**: Robust error handling for all business validation steps with fallback messaging
+- **Status Mapping**: Clear status mapping (success/warning/error) for different validation outcomes
+
 ## [0.10.0] - 2025-09-29
 
 ### Added
@@ -283,6 +319,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.11.0**: Added comprehensive business validations with date comparisons, institution validations, and optional warning-only checks
+- **v0.10.0**: Implemented header verification (Kid and Algorithm header validation)
 - **v0.9.0**: Added interactive validation tiles with click navigation and enhanced user experience
 - **v0.8.0**: Fixed treatment date persistence, standardized validation nomenclature, and enhanced verification display
 - **v0.7.0**: Enhanced certificate display and cleaned up validation summary tiles
