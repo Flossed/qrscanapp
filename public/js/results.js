@@ -202,40 +202,9 @@ function displayValidationSummary(validationSummary, overallStatus, container) {
         const statusIcon = getStatusIcon(validation.status);
         const statusClass = validation.status;
 
-        // Special handling for certificate details with OpenSSL formatting
         let messageContent = '';
         if (validation.message) {
-            if (step.key === 'certificateValidityDate' && validation.opensslDetails) {
-                // Debug logging
-                console.log('Certificate validation data:', {
-                    hasOpensslDetails: !!validation.opensslDetails,
-                    opensslDetailsType: typeof validation.opensslDetails,
-                    opensslDetailsLength: validation.opensslDetails ? validation.opensslDetails.length : 0,
-                    firstChars: validation.opensslDetails ? validation.opensslDetails.substring(0, 100) : 'N/A'
-                });
-
-                // Parse OpenSSL output into array of strings split by newlines
-                // Handle different line ending formats: \r\n, \n, \r
-                const opensslLines = validation.opensslDetails.split(/\r?\n|\r/);
-                console.log('Split into lines:', opensslLines.length, 'lines');
-                console.log('First few lines:', opensslLines.slice(0, 5));
-                console.log('Raw string preview:', JSON.stringify(validation.opensslDetails.substring(0, 200)));
-
-                let opensslHTML = '';
-                opensslLines.forEach((line, index) => {
-                    // Escape HTML characters and convert empty lines to non-breaking space
-                    const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;') || '&nbsp;';
-                    opensslHTML += `<div class="cert-line">${escapedLine}</div>`;
-                });
-
-                messageContent = `<span class="step-message">${validation.message}</span>
-                    <div class="certificate-details">
-                        <h5>Certificate Details:</h5>
-                        <div class="openssl-output">${opensslHTML}</div>
-                    </div>`;
-            } else {
-                messageContent = `<span class="step-message">${validation.message}</span>`;
-            }
+            messageContent = `<span class="step-message">${validation.message}</span>`;
         }
 
         summaryHTML += `

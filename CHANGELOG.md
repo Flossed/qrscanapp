@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-09-29
+
+### Fixed
+- **Certificate Display Cleanup**: Removed certificate dump from validation summary tiles in results page
+- **UI Enhancement**: Certificate validity date tile now shows clean validation message without overwhelming certificate details
+- **User Experience**: Certificate details remain accessible in Step 11 where appropriate
+
+### Technical Improvements
+- **Results Page Optimization**: Simplified certificate validation display in summary tiles
+- **Code Cleanup**: Removed special handling of OpenSSL output in validation summary
+
 ## [0.6.0] - 2025-09-29
 
 ### Added
@@ -191,6 +202,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.7.0**: Enhanced certificate display and cleaned up validation summary tiles
 - **v0.6.0**: Certificate validity date verification with OpenSSL parsing and document issuance date validation
 - **v0.5.0**: Intelligent PDF language rendering and technical/business validation categories
 - **v0.4.0**: Improved identity verification flow and PRC data display
