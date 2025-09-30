@@ -19,7 +19,9 @@
             <div id="result-container" class="result-container" style="display: none;">
                 <h2 data-i18n-key="scan-result-title">Scan Result</h2>
                 <div id="result" class="result-text"></div>
+                <% if (typeof isDebugMode !== 'undefined' && isDebugMode) { %>
                 <button id="save-scan" class="btn btn-success" data-i18n-key="scan-verify-qr">Verify QR Code</button>
+                <% } %>
                 <button id="show-results" class="btn btn-info" data-i18n-key="scan-show-results">Show Verification Results</button>
                 <button id="scan-again" class="btn btn-primary" data-i18n-key="scan-again">Scan Again</button>
             </div>
@@ -28,9 +30,48 @@
         </div>
     </main>
 
-    <%- include('layouts/footer') %>    
-     <script src="/js/vendor/html5-qrcode.min.js" type="text/javascript"></script>    
+    <%- include('layouts/footer') %>
+     <script src="/js/vendor/html5-qrcode.min.js" type="text/javascript"></script>
     <script src="/js/scan.js"></script>
+    <script>
+        // Make app mode available to JavaScript
+        window.APP_MODE = '<%= typeof appMode !== "undefined" ? appMode : "DEBUG" %>';
+        window.IS_PRODUCTION = window.APP_MODE === 'PRODUCTION';
+
+        // In production mode, auto-redirect to results after successful scan
+        if (window.IS_PRODUCTION) {
+            // Override the scanner behavior to auto-redirect
+            document.addEventListener('DOMContentLoaded', () => {
+                // Wait for scanner to load and attach observer
+                setTimeout(() => {
+                    const resultContainer = document.getElementById('result-container');
+                    if (resultContainer) {
+                        // Create a MutationObserver to watch for when results appear
+                        const observer = new MutationObserver((mutations) => {
+                            mutations.forEach((mutation) => {
+                                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                                    const display = resultContainer.style.display;
+                                    if (display === 'block' || display === '') {
+                                        // Result is showing, auto-redirect to results
+                                        const content = document.getElementById('result').textContent;
+                                        if (content) {
+                                            sessionStorage.setItem('verificationData', content);
+                                            window.location.href = '/results';
+                                        }
+                                    }
+                                }
+                            });
+                        });
+
+                        observer.observe(resultContainer, {
+                            attributes: true,
+                            attributeFilter: ['style']
+                        });
+                    }
+                }, 1000);
+            });
+        }
+    </script>
 
 </body>
 </html>

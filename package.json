@@ -1,13 +1,13 @@
 {
   "name": "qrscanapp",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "QR Code Scanner Application",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "heroku-postbuild": "echo Build complete",
-    "copy-vendor": "if not exist public\\js\\vendor mkdir public\\js\\vendor && copy node_modules\\html5-qrcode\\html5-qrcode.min.js public\\js\\vendor\\",
+    "copy-vendor": "node -e \"const fs=require('fs'); const path=require('path'); const dir=path.join('public','js','vendor'); if(!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true});} fs.copyFileSync(path.join('node_modules','html5-qrcode','html5-qrcode.min.js'),path.join(dir,'html5-qrcode.min.js'));\"",
     "postinstall": "npm run copy-vendor"
   },
   "engines": {

@@ -207,13 +207,17 @@ function showMessage(text, type) {
 startButton.addEventListener('click', startScanner);
 stopButton.addEventListener('click', stopScanner);
 
-document.getElementById('save-scan').addEventListener('click', () => {
-    const content = resultDiv.textContent;
-    if (content) {
-        sessionStorage.setItem('verificationData', content);
-        window.location.href = '/verify';
-    }
-});
+// Only add verify button listener if button exists (DEBUG mode)
+const saveScanButton = document.getElementById('save-scan');
+if (saveScanButton) {
+    saveScanButton.addEventListener('click', () => {
+        const content = resultDiv.textContent;
+        if (content) {
+            sessionStorage.setItem('verificationData', content);
+            window.location.href = '/verify';
+        }
+    });
+}
 
 document.getElementById('show-results').addEventListener('click', () => {
     const content = resultDiv.textContent;

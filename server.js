@@ -90,6 +90,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// Application mode configuration
+const APP_MODE = (process.env.MODE || 'DEBUG').toUpperCase();
+console.log(`Application running in ${APP_MODE} mode`);
+
+// Make mode available to all views
+app.use((req, res, next) => {
+  res.locals.appMode = APP_MODE;
+  res.locals.isDebugMode = APP_MODE === 'DEBUG';
+  res.locals.isProductionMode = APP_MODE === 'PRODUCTION';
+  next();
+});
+
 // Load user middleware
 const { loadUser } = require('./middleware/auth');
 app.use(loadUser);

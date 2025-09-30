@@ -4,6 +4,9 @@ const Scan = require('../models/Scan');
 const EbsiCache = require('../models/EbsiCache');
 const { isAuthenticated } = require('../middleware/auth');
 const { getTranslation } = require('../utils/translations');
+
+// Get application mode from environment
+const APP_MODE = (process.env.MODE || 'DEBUG').toUpperCase();
 const base45 = require('base45');
 const pako = require('pako');
 const jwt = require('jsonwebtoken');
@@ -447,6 +450,14 @@ router.get('/scanner', isAuthenticated, (req, res) => {
 });
 
 router.get('/scan-history', isAuthenticated, async (req, res) => {
+    // Only accessible in DEBUG mode
+    if (APP_MODE !== 'DEBUG') {
+        return res.status(403).render('error', {
+            message: 'History is not available in production mode',
+            user: req.user
+        });
+    }
+
     try {
         const scans = await Scan.find({ userId: req.user._id }).sort({ scannedAt: -1 });
         res.render('history', {
@@ -474,6 +485,23 @@ router.post('/api/scans', isAuthenticated, async (req, res) => {
     try {
         const { content, type, deviceInfo } = req.body;
 
+        // In PRODUCTION mode, don't save scans to database
+        if (APP_MODE === 'PRODUCTION') {
+            return res.status(201).json({
+                message: 'Scan processed (not saved in production mode)',
+                scan: {
+                    content,
+                    type,
+                    deviceInfo,
+                    scannedAt: new Date()
+                },
+                isDuplicate: false,
+                duplicateCount: 1,
+                productionMode: true
+            });
+        }
+
+        // DEBUG mode: Save scans to database
         // Check if this content has been scanned before (for this user)
         const existingScan = await Scan.findOne({
             content: content,
@@ -553,6 +581,13 @@ router.delete('/api/scans/:id', async (req, res) => {
 
 // Verification route
 router.get('/verify', isAuthenticated, (req, res) => {
+    // Only accessible in DEBUG mode
+    if (APP_MODE !== 'DEBUG') {
+        return res.status(403).render('error', {
+            message: 'Verify page is not available in production mode',
+            user: req.user
+        });
+    }
     res.render('verify', { user: req.user });
 });
 

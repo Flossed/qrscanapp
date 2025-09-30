@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2025-09-30
+
+### Added
+- **Environment Mode Switching**: Application now supports DEBUG and PRODUCTION modes
+  - **MODE Environment Variable**: Set `MODE=DEBUG` or `MODE=PRODUCTION` in .env file
+  - **DEBUG Mode Features**:
+    - All EHIC scans are stored in the database
+    - Users can access scan history via `/scan-history`
+    - Users can access detailed verification via `/verify` page
+    - Full verification step-by-step details available
+  - **PRODUCTION Mode Features**:
+    - Scans are NOT stored in the database for privacy
+    - History page is disabled and returns 403
+    - Verify page is disabled and returns 403
+    - Automatic redirect to results page after successful scan
+    - Streamlined workflow for production use
+
+- **Mode Indicators**:
+  - Console logs display current mode on server startup
+  - Mode information available to all views via `res.locals`
+  - JavaScript has access to mode via `window.APP_MODE`
+
+### Changed
+- **Navigation**: History link only visible in DEBUG mode
+- **Scan Page**: "Verify QR Code" button only visible in DEBUG mode
+- **Scan Workflow**: Auto-redirect to results in PRODUCTION mode (no manual button click needed)
+- **Route Protection**: Mode-based access control for `/scan-history` and `/verify` routes
+
+### Fixed
+- **Heroku Deployment**: Fixed cross-platform compatibility for `copy-vendor` script
+  - Replaced Windows-specific commands with Node.js script
+  - Now works on both Windows and Linux/Heroku environments
+  - Resolves "Syntax error: end of file unexpected" on Heroku deployment
+
+### Technical Improvements
+- **Cross-Platform Script**: `copy-vendor` now uses Node.js fs module instead of OS-specific commands
+- **Mode Middleware**: Centralized mode configuration in server.js
+- **Conditional Rendering**: EJS templates check mode before rendering certain elements
+- **Scanner Updates**: Updated scanner-simple.js to handle missing verify button gracefully
+
 ## [0.18.0] - 2025-09-30
 
 ### Added
