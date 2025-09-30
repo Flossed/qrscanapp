@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const scanSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false, // Make optional for existing scans
+    index: true
+  },
   content: {
     type: String,
     required: true
@@ -27,27 +33,6 @@ const scanSchema = new mongoose.Schema({
   firstScannedAt: {
     type: Date,
     default: Date.now
-  },
-  referenceComparison: {
-    hasReference: {
-      type: Boolean,
-      default: false
-    },
-    referenceContent: {
-      type: String
-    },
-    isMatch: {
-      type: Boolean
-    },
-    differences: [{
-      position: Number,
-      expected: String,
-      actual: String
-    }],
-    similarity: {
-      type: Number,
-      default: 0
-    }
   },
   verification: {
     isVerified: {

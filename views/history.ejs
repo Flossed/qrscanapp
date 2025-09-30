@@ -8,17 +8,6 @@
         <div class="history-container">
             <h1 data-i18n-key="history-title">Scan History</h1>
 
-            <div class="reference-section">
-                <h3 data-i18n-key="history-reference-title">Reference QR Code</h3>
-                <div class="reference-controls">
-                    <textarea id="reference-input" data-i18n-key="history-reference-placeholder" placeholder="Enter reference QR code content for comparison..." rows="3"></textarea>
-                    <div class="reference-buttons">
-                        <button id="set-reference" class="btn btn-primary btn-small" data-i18n-key="history-set-reference">Set Reference</button>
-                        <button id="clear-reference" class="btn btn-secondary btn-small" data-i18n-key="history-clear-reference">Clear</button>
-                    </div>
-                </div>
-                <div id="reference-status" class="reference-status"></div>
-            </div>
 
             <% if (scans && scans.length > 0) { %>
                 <div class="scan-list">
@@ -41,17 +30,6 @@
                                         <% } %>
                                     <% } %>
 
-                                    <% if (scan.referenceComparison && scan.referenceComparison.hasReference) { %>
-                                        <% if (scan.referenceComparison.isMatch) { %>
-                                            <span class="comparison-badge match">✅ <span data-i18n-key="history-perfect-match">Perfect Match</span></span>
-                                        <% } else { %>
-                                            <span class="comparison-badge mismatch">
-                                                ⚠️ <%= scan.referenceComparison.similarity %><span data-i18n-key="history-similarity">% similarity</span>
-                                                (<%= scan.referenceComparison.differences.length %> <span data-i18n-key="history-differences">differences</span>)
-                                            </span>
-                                        <% } %>
-                                    <% } %>
-
                                     <% if (scan.isDuplicate) { %>
                                         <span class="duplicate-badge">
                                             <span data-i18n-key="history-duplicate">Duplicate</span> × <%= scan.duplicateCount %>
@@ -67,23 +45,6 @@
                                     <% } %>
                                 </p>
 
-                                <% if (scan.referenceComparison && scan.referenceComparison.hasReference && !scan.referenceComparison.isMatch) { %>
-                                    <div class="differences-section">
-                                        <details>
-                                            <summary><span data-i18n-key="history-view-differences">View Differences</span> (<%= scan.referenceComparison.differences.length %>)</summary>
-                                            <div class="differences-list">
-                                                <% scan.referenceComparison.differences.slice(0, 10).forEach(diff => { %>
-                                                    <div class="difference-item">
-                                                        <span data-i18n-key="history-position">Position</span> <%= diff.position %>: <span data-i18n-key="history-expected">Expected</span> <code><%= diff.expected %></code>, <span data-i18n-key="history-got">Got</span> <code><%= diff.actual %></code>
-                                                    </div>
-                                                <% }) %>
-                                                <% if (scan.referenceComparison.differences.length > 10) { %>
-                                                    <div class="difference-item">... <span data-i18n-key="history-more-differences" data-count="<%= scan.referenceComparison.differences.length - 10 %>">and <%= scan.referenceComparison.differences.length - 10 %> more differences</span></div>
-                                                <% } %>
-                                            </div>
-                                        </details>
-                                    </div>
-                                <% } %>
 
                                 <% if (scan.verification && scan.verification.isVerified) { %>
                                     <div class="verification-section">
@@ -132,6 +93,5 @@
     <%- include('layouts/footer') %>
 
     <script src="/js/history.js"></script>
-    <script src="/js/reference.js"></script>
 </body>
 </html>

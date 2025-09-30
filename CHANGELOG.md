@@ -5,6 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2025-09-30
+
+### Added
+- **User Authentication System**: Comprehensive login and user management functionality
+  - **User Registration**: New users can create accounts with email, password, and profile information
+  - **Login/Logout**: Secure session-based authentication with bcrypt password hashing
+  - **Profile Management**: Users can view and update their profile information
+  - **Password Management**: Change password and forgot password functionality
+  - **Account Deletion**: Users can delete their accounts with cascade deletion of all associated data
+  - **User-Specific Data Isolation**: Users can only view and access their own scan history
+  - **Session Management**: Session cookies expire when browser is closed for enhanced security
+  - **Cache Control**: Strict no-cache headers to prevent sensitive data caching
+
+- **Multilingual Authentication UI**: Complete translations for authentication features
+  - Added authentication translations across all 27 supported languages
+  - Profile management interface translations
+  - Login/logout button translations in navigation bar
+
+- **Navigation Improvements**:
+  - Simplified navigation bar with only essential elements
+  - Login button prominently displayed for unauthenticated users
+  - User profile dropdown with avatar for authenticated users
+  - History access moved to profile dropdown menu
+  - Removed standalone verify and history navigation links
+
+- **Landing Page Enhancement**:
+  - Landing page now accessible without authentication
+  - Login notification message for unauthenticated users
+  - Translation key: "landing-login-required"
+
+### Changed
+- **Theme Update**: Changed from indigo/purple to mint green healthcare theme
+  - Updated all gradients, buttons, and accent colors to mint green (#10b981, #059669)
+  - Applied consistently across navigation bar, authentication pages, and main application
+  - Enhanced healthcare-appropriate visual identity
+
+- **Protected Routes**:
+  - Treatment date and identity check routes now require authentication
+  - Landing page remains public with login prompt
+  - All scan operations require user authentication
+
+- **Verify Page Navigation**: "Back to Scanner" button changed to "Back to History"
+  - Updated route to navigate to scan history
+  - Updated translations across all 27 languages
+
+### Technical Improvements
+- **Database Schema**:
+  - New User model with bcrypt password hashing
+  - User reference added to Scan model for data isolation
+  - Removed deprecated Reference model and functionality
+  - Cascade delete for user data when account is deleted
+
+- **Dependencies Added**:
+  - `bcrypt@^5.1.1`: Password hashing
+  - `express-session@^1.17.3`: Session management
+  - `connect-mongo@^5.0.0`: MongoDB session store
+
+- **Middleware**:
+  - Authentication middleware for protected routes
+  - User loading middleware for session management
+  - Cache control middleware for security
+
+- **Security Enhancements**:
+  - HTTP-only session cookies
+  - Session cookies expire on browser close (maxAge: null)
+  - Strict cache-control headers (no-store, no-cache, must-revalidate)
+  - Password hashing with bcrypt (salt rounds: 10)
+
+### Removed
+- **Reference System**: Completely removed reference comparison functionality
+  - Deleted Reference model and associated routes
+  - Removed reference-related UI elements and comparison logic
+  - Cleaned up Scan model by removing referenceComparison fields
+
 ## [0.17.0] - 2025-09-29
 
 ### Added

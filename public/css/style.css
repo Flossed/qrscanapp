@@ -231,14 +231,14 @@ body {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
     transition: all 0.4s ease;
 }
 
 .btn-primary:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
 }
 
 .btn-primary:disabled {
@@ -1552,7 +1552,7 @@ body {
 }
 
 .breadcrumb-item.active {
-    color: #667eea;
+    color: #10b981;
 }
 
 .breadcrumb-item.completed {
@@ -1583,8 +1583,8 @@ body {
 }
 
 .breadcrumb-item.active .step-number {
-    background: #667eea;
-    border-color: #667eea;
+    background: #10b981;
+    border-color: #10b981;
     transform: scale(1.2);
 }
 
@@ -1629,7 +1629,7 @@ body {
 }
 
 .language-selector:hover {
-    border-color: #667eea;
+    border-color: #10b981;
 }
 
 /* ========================================
@@ -1693,7 +1693,7 @@ body {
     align-items: center;
     gap: 0.5rem;
     transition: all 0.3s ease;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border: none;
     color: white;
     text-decoration: none;
@@ -1702,7 +1702,7 @@ body {
 
 .btn-large:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
 }
 
 .btn-arrow {
@@ -1852,8 +1852,8 @@ body {
 
 .form-input:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 .form-input.error {
@@ -1954,7 +1954,7 @@ body {
 .info-box {
     background: #f8f9fa;
     border: 1px solid #e9ecef;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #10b981;
     border-radius: 12px;
     padding: 1.5rem;
 }
@@ -2060,7 +2060,7 @@ body {
     background: #f8f9fa;
     padding: 2rem;
     border-radius: 12px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #10b981;
     margin-bottom: 2rem;
 }
 
@@ -2236,7 +2236,7 @@ body {
     padding: 2rem;
     margin: 2rem 0;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #10b981;
 }
 
 .result-container h2 {

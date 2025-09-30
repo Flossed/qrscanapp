@@ -18,19 +18,11 @@ function getTranslatedText(key, fallback, replacements = {}) {
     return text;
 }
 
-// Function to update placeholder texts
-function updatePlaceholders() {
-    const referenceInput = document.getElementById('reference-input');
-    if (referenceInput) {
-        referenceInput.placeholder = getTranslatedText('history-reference-placeholder', 'Enter reference QR code content for comparison...');
-    }
-}
-
 // Initialize translations when DOM is ready and when language changes
 function initializeTranslations() {
     // Wait a bit to ensure translations are loaded
     setTimeout(() => {
-        updatePlaceholders();
+        // No specific placeholder updates needed anymore
     }, 200);
 }
 

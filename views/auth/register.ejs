@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px 0;
+        }
+        .register-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            max-width: 500px;
+            width: 100%;
+            margin: 20px;
+        }
+        .register-header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .register-header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .register-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        .register-body {
+            padding: 40px;
+        }
+        .form-control {
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            border: 1px solid #dee2e6;
+        }
+        .form-control:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        .alert {
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .auth-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .auth-links a {
+            color: #10b981;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        .input-group-text {
+            background-color: transparent;
+            border-right: none;
+        }
+        .input-group .form-control {
+            border-left: none;
+        }
+        .password-strength {
+            height: 4px;
+            border-radius: 2px;
+            margin-top: 5px;
+            transition: all 0.3s;
+        }
+        .strength-weak { background-color: #dc3545; width: 33%; }
+        .strength-medium { background-color: #ffc107; width: 66%; }
+        .strength-strong { background-color: #28a745; width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-header">
+            <h1><i class="bi bi-person-plus"></i> Create Account</h1>
+            <p>Join EHIC Verifier Today</p>
+        </div>
+        <div class="register-body">
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i> <%= error %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <form method="POST" action="/auth/register" id="registerForm">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="firstName" class="form-label">First Name *</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input type="text" class="form-control" id="firstName" name="firstName" required
+                                   placeholder="John" autocomplete="given-name">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="lastName" class="form-label">Last Name *</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input type="text" class="form-control" id="lastName" name="lastName" required
+                                   placeholder="Doe" autocomplete="family-name">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email Address *</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                        <input type="email" class="form-control" id="email" name="email" required
+                               placeholder="john.doe@example.com" autocomplete="email">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="organization" class="form-label">Organization (Optional)</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-building"></i></span>
+                        <input type="text" class="form-control" id="organization" name="organization"
+                               placeholder="Hospital / Clinic Name" autocomplete="organization">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password *</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" id="password" name="password" required
+                               placeholder="Min. 6 characters" autocomplete="new-password" minlength="6">
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <i class="bi bi-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                    <div id="passwordStrength" class="password-strength" style="display: none;"></div>
+                    <small class="text-muted">Password must be at least 6 characters long</small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="confirmPassword" class="form-label">Confirm Password *</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required
+                               placeholder="Re-enter password" autocomplete="new-password">
+                        <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                            <i class="bi bi-eye" id="toggleConfirmIcon"></i>
+                        </button>
+                    </div>
+                    <div id="passwordMatch" class="invalid-feedback"></div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="terms" required>
+                    <label class="form-check-label" for="terms">
+                        I agree to the Terms of Service and Privacy Policy
+                    </label>
+                </div>
+
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-person-plus"></i> Create Account
+                    </button>
+                </div>
+
+                <div class="auth-links">
+                    Already have an account? <a href="/auth/login">Sign In</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+            togglePasswordVisibility(passwordInput, toggleIcon);
+        });
+
+        document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('confirmPassword');
+            const toggleIcon = document.getElementById('toggleConfirmIcon');
+            togglePasswordVisibility(passwordInput, toggleIcon);
+        });
+
+        function togglePasswordVisibility(input, icon) {
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        }
+
+        // Password strength checker
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strengthBar = document.getElementById('passwordStrength');
+
+            if (password.length === 0) {
+                strengthBar.style.display = 'none';
+                return;
+            }
+
+            strengthBar.style.display = 'block';
+
+            if (password.length < 6) {
+                strengthBar.className = 'password-strength strength-weak';
+            } else if (password.length < 10 || !/(?=.*[0-9])(?=.*[a-zA-Z])/.test(password)) {
+                strengthBar.className = 'password-strength strength-medium';
+            } else {
+                strengthBar.className = 'password-strength strength-strong';
+            }
+        });
+
+        // Password match checker
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+            const matchDiv = document.getElementById('passwordMatch');
+
+            if (confirmPassword.length === 0) {
+                matchDiv.style.display = 'none';
+                this.classList.remove('is-invalid', 'is-valid');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                matchDiv.style.display = 'block';
+                matchDiv.textContent = 'Passwords do not match';
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            } else {
+                matchDiv.style.display = 'none';
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+
+        // Form validation
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+                return false;
+            }
+
+            if (password.length < 6) {
+                e.preventDefault();
+                alert('Password must be at least 6 characters long!');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>

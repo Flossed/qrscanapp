@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Scan = require('../models/Scan');
-const Reference = require('../models/Reference');
 const EbsiCache = require('../models/EbsiCache');
+const { isAuthenticated } = require('../middleware/auth');
 const { getTranslation } = require('../utils/translations');
 const base45 = require('base45');
 const pako = require('pako');
@@ -423,34 +423,35 @@ router.post('/api/validate-jwt-with-schema', async (req, res) => {
 });
 
 // Landing page route
-router.get('/landing', (req, res) => {
+router.get('/landing', isAuthenticated, (req, res) => {
     res.render('landing');
 });
 
 // Treatment date route
-router.get('/treatment-date', (req, res) => {
+router.get('/treatment-date', isAuthenticated, (req, res) => {
     res.render('treatment-date');
 });
 
 // Identity check route
-router.get('/identity-check', (req, res) => {
+router.get('/identity-check', isAuthenticated, (req, res) => {
     res.render('identity-check');
 });
 
 router.get('/', (req, res) => {
-    res.render('landing');
+    res.render('landing', { user: req.user });
 });
 
 // Scanner page (moved from root)
-router.get('/scanner', (req, res) => {
-    res.render('scan');
+router.get('/scanner', isAuthenticated, (req, res) => {
+    res.render('scan', { user: req.user });
 });
 
-router.get('/history', async (req, res) => {
+router.get('/scan-history', isAuthenticated, async (req, res) => {
     try {
-        const scans = await Scan.find().sort({ scannedAt: -1 });
+        const scans = await Scan.find({ userId: req.user._id }).sort({ scannedAt: -1 });
         res.render('history', {
             scans,
+            user: req.user,
             formatBytes: function(bytes) {
                 if (bytes === 0) return '0 Bytes';
                 const k = 1024;
@@ -461,31 +462,23 @@ router.get('/history', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching scans:', error);
-        res.render('history', { scans: [], formatBytes: function() { return ''; } });
+        res.render('history', {
+            scans: [],
+            user: req.user,
+            formatBytes: function() { return ''; }
+        });
     }
 });
 
-router.post('/api/scans', async (req, res) => {
+router.post('/api/scans', isAuthenticated, async (req, res) => {
     try {
         const { content, type, deviceInfo } = req.body;
 
-        // Get active reference for comparison
-        const reference = await Reference.findOne({ isActive: true });
-        let referenceComparison = { hasReference: false };
-
-        if (reference) {
-            const comparison = compareStrings(reference.content, content);
-            referenceComparison = {
-                hasReference: true,
-                referenceContent: reference.content,
-                isMatch: comparison.isMatch,
-                differences: comparison.differences,
-                similarity: comparison.similarity
-            };
-        }
-
-        // Check if this content has been scanned before
-        const existingScan = await Scan.findOne({ content }).sort({ scannedAt: -1 });
+        // Check if this content has been scanned before (for this user)
+        const existingScan = await Scan.findOne({
+            content: content,
+            userId: req.user._id
+        }).sort({ scannedAt: -1 });
 
         if (existingScan) {
             // Update existing scan with new scan time and increment count
@@ -493,24 +486,22 @@ router.post('/api/scans', async (req, res) => {
             existingScan.duplicateCount += 1;
             existingScan.isDuplicate = true;
             existingScan.deviceInfo = deviceInfo;
-            existingScan.referenceComparison = referenceComparison;
 
             await existingScan.save();
             res.status(201).json({
                 message: 'Duplicate scan updated',
                 scan: existingScan,
                 isDuplicate: true,
-                duplicateCount: existingScan.duplicateCount,
-                referenceComparison
+                duplicateCount: existingScan.duplicateCount
             });
         } else {
             // Create new scan
             const scan = new Scan({
+                userId: req.user._id,
                 content,
                 type,
                 deviceInfo,
-                firstScannedAt: new Date(),
-                referenceComparison
+                firstScannedAt: new Date()
             });
 
             await scan.save();
@@ -518,8 +509,7 @@ router.post('/api/scans', async (req, res) => {
                 message: 'New scan saved successfully',
                 scan,
                 isDuplicate: false,
-                duplicateCount: 1,
-                referenceComparison
+                duplicateCount: 1
             });
         }
     } catch (error) {
@@ -560,97 +550,24 @@ router.delete('/api/scans/:id', async (req, res) => {
     }
 });
 
-// Reference management routes
-router.post('/api/reference', async (req, res) => {
-    try {
-        const { content, name } = req.body;
-
-        // Deactivate existing references
-        await Reference.updateMany({}, { isActive: false });
-
-        // Create new reference
-        const reference = new Reference({
-            content,
-            name: name || 'Reference QR Code',
-            isActive: true
-        });
-
-        await reference.save();
-        res.status(201).json({ message: 'Reference saved successfully', reference });
-    } catch (error) {
-        console.error('Error saving reference:', error);
-        res.status(500).json({ error: 'Failed to save reference' });
-    }
-});
-
-router.get('/api/reference', async (req, res) => {
-    try {
-        const reference = await Reference.findOne({ isActive: true });
-        res.json(reference);
-    } catch (error) {
-        console.error('Error fetching reference:', error);
-        res.status(500).json({ error: 'Failed to fetch reference' });
-    }
-});
-
-router.delete('/api/reference', async (req, res) => {
-    try {
-        await Reference.updateMany({}, { isActive: false });
-        res.json({ message: 'Reference cleared successfully' });
-    } catch (error) {
-        console.error('Error clearing reference:', error);
-        res.status(500).json({ error: 'Failed to clear reference' });
-    }
-});
-
-// Comparison function
-function compareStrings(reference, scanned) {
-    const refBytes = Buffer.from(reference, 'utf8');
-    const scanBytes = Buffer.from(scanned, 'utf8');
-    const differences = [];
-
-    const maxLength = Math.max(refBytes.length, scanBytes.length);
-    let matches = 0;
-
-    for (let i = 0; i < maxLength; i++) {
-        const refByte = i < refBytes.length ? refBytes[i] : null;
-        const scanByte = i < scanBytes.length ? scanBytes[i] : null;
-
-        if (refByte === scanByte) {
-            matches++;
-        } else {
-            differences.push({
-                position: i,
-                expected: refByte ? refByte.toString(16).padStart(2, '0') : 'missing',
-                actual: scanByte ? scanByte.toString(16).padStart(2, '0') : 'missing'
-            });
-        }
-    }
-
-    return {
-        isMatch: differences.length === 0,
-        differences,
-        similarity: Math.round((matches / maxLength) * 100)
-    };
-}
 
 // Verification route
-router.get('/verify', (req, res) => {
-    res.render('verify');
+router.get('/verify', isAuthenticated, (req, res) => {
+    res.render('verify', { user: req.user });
 });
 
 // Results route
-router.get('/results', (req, res) => {
-    res.render('results');
+router.get('/results', isAuthenticated, (req, res) => {
+    res.render('results', { user: req.user });
 });
 
 // Finalization route
-router.get('/finalization', (req, res) => {
-    res.render('finalization');
+router.get('/finalization', isAuthenticated, (req, res) => {
+    res.render('finalization', { user: req.user });
 });
 
 // Email verification summary endpoint
-router.post('/api/send-verification-email', async (req, res) => {
+router.post('/api/send-verification-email', isAuthenticated, async (req, res) => {
     try {
         const { email, referenceNumber, treatmentDate, verificationData, verificationStatus, identityVerification, timestamp, language } = req.body;
 
@@ -1967,7 +1884,7 @@ router.post('/api/generate-markdown-report', async (req, res) => {
 
 
 // API endpoint for verification processing
-router.post('/api/verify', async (req, res) => {
+router.post('/api/verify', isAuthenticated, async (req, res) => {
     try {
         const { data, treatmentDate } = req.body;
         const result = await processVerificationData(data, treatmentDate);

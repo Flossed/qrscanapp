@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const path = require('path');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 require('dotenv').config();
 
 const app = express();
@@ -64,6 +66,39 @@ mongoose.connection.on('reconnected', () => {
   console.log('MongoDB reconnected');
 });
 
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'ehic-verifier-secret-key-change-this-in-production',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: mongoUri,
+    touchAfter: 24 * 3600 // lazy session update
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // true in production with HTTPS
+    httpOnly: true,
+    maxAge: null // Session cookie - expires when browser is closed
+  }
+}));
+
+// Cache control middleware - prevent caching of authenticated content
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
+// Load user middleware
+const { loadUser } = require('./middleware/auth');
+app.use(loadUser);
+
+// Authentication routes (no auth required)
+const authRoutes = require('./routes/authRoutes');
+app.use('/auth', authRoutes);
+
+// Main application routes (auth required)
 const scanRoutes = require('./routes/scanRoutes');
 app.use('/', scanRoutes);
 
