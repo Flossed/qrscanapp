@@ -9,6 +9,17 @@
         <div class="scanner-container">
             <h1 data-i18n-key="scan-title">Scan QR Code</h1>
 
+            <% if (typeof isDebugMode !== 'undefined' && isDebugMode) { %>
+            <div class="debug-input-container">
+                <h3>Debug Mode: Manual BASE45 Input</h3>
+                <textarea id="debug-base45-input" class="debug-base45-input" placeholder="Paste BASE45 encoded text here (up to 2000 characters)" maxlength="2000" rows="4"></textarea>
+                <button id="process-base45" class="btn btn-warning">Process BASE45 Text</button>
+            </div>
+            <div class="debug-separator">
+                <span>OR</span>
+            </div>
+            <% } %>
+
             <div id="reader" class="qr-reader"></div>
 
             <div class="controls">

@@ -145,6 +145,7 @@
     "verify-title": "QR kodo tikrinimas",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekoderis",
     "verify-process-button": "Apdoroti tikrinimą",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Grįžti į istoriją",
     "verify-processing": "Apdorojami tikrinimo žingsniai...",
     "verify-error-title": "Tikrinimo klaida",

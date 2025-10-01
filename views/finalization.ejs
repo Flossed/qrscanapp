@@ -97,8 +97,12 @@
         </div>
     </main>
 
-   <%- include('layouts/footer') %>     
-   
+   <%- include('layouts/footer') %>
+
+    <script>
+        // Make user email available to JavaScript
+        window.userEmail = '<%= typeof user !== "undefined" && user && user.email ? user.email : "" %>';
+    </script>
     <script src="/js/finalization.js"></script>
 </body>
 </html>

@@ -145,6 +145,7 @@
     "verify-title": "Fíorúchán Cód QR",
     "verify-subtitle": "BASE45 → ZLIB → Díchódóir JWT",
     "verify-process-button": "Próiseáil Fíorúchán",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Ar Ais chuig Stair",
     "verify-processing": "Ag próiseáil céimeanna fíorúcháin...",
     "verify-error-title": "Earráid Fíorúcháin",

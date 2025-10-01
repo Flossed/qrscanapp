@@ -145,6 +145,7 @@
     "verify-title": "QR Kód ellenőrzése",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekóder",
     "verify-process-button": "Ellenőrzés feldolgozása",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Vissza az előzményekhez",
     "verify-processing": "Ellenőrzési lépések feldolgozása...",
     "verify-error-title": "Ellenőrzési hiba",

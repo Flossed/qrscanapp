@@ -145,6 +145,7 @@
     "verify-title": "Provjera QR koda",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekoder",
     "verify-process-button": "Obradi provjeru",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Nazad na povijest",
     "verify-processing": "Obrađujem korake provjere...",
     "verify-error-title": "Greška provjere",

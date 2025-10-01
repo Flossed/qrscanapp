@@ -772,3 +772,24 @@ function formatBytes(bytes) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+// Handle "Proceed to Results" button
+document.getElementById('proceed-to-results').addEventListener('click', async () => {
+    if (!originalData) {
+        alert('No QR code data available. Please scan a QR code first.');
+        return;
+    }
+
+    // Set treatment date to current system date
+    const today = new Date();
+    const treatmentDate = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
+    // Store treatment date in sessionStorage
+    sessionStorage.setItem('treatmentDate', treatmentDate);
+
+    // Store original data to ensure it's available for results page
+    sessionStorage.setItem('verificationData', originalData);
+
+    // Navigate to results page - this will trigger the normal flow
+    window.location.href = '/results';
+});

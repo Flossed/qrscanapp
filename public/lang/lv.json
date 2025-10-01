@@ -145,6 +145,7 @@
     "verify-title": "QR koda verifikācija",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekodētājs",
     "verify-process-button": "Apstrādāt verifikāciju",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Atpakaļ pie vēstures",
     "verify-processing": "Apstrādā verifikācijas soļus...",
     "verify-error-title": "Verifikācijas kļūda",

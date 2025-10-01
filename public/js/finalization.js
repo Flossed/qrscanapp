@@ -23,6 +23,11 @@ function updatePlaceholders() {
     const emailInput = document.getElementById('email-address');
     if (emailInput) {
         emailInput.placeholder = getTranslatedText('finalization-enter-email', 'Enter email address');
+
+        // Prefill with user email if available
+        if (window.userEmail && window.userEmail.trim() !== '') {
+            emailInput.value = window.userEmail;
+        }
     }
 }
 

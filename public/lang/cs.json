@@ -145,6 +145,7 @@
     "verify-title": "Ověření QR Kódu",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekodér",
     "verify-process-button": "Zpracovat Ověření",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Zpět na Historii",
     "verify-processing": "Zpracování kroků ověření...",
     "verify-error-title": "Chyba Ověření",

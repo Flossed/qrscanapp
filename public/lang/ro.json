@@ -145,6 +145,7 @@
     "verify-title": "Verificarea codului QR",
     "verify-subtitle": "BASE45 → ZLIB → JWT Decodor",
     "verify-process-button": "Procesează verificarea",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Înapoi la istoric",
     "verify-processing": "Procesez pașii de verificare...",
     "verify-error-title": "Eroare de verificare",

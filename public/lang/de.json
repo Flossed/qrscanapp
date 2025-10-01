@@ -145,6 +145,7 @@
     "verify-title": "QR-Code-Verifizierung",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekoder",
     "verify-process-button": "Verifizierung verarbeiten",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Zurück zum Verlauf",
     "verify-processing": "Verifizierungsschritte werden verarbeitet...",
     "verify-error-title": "Verifizierungsfehler",

@@ -145,6 +145,7 @@
     "verify-title": "QR Kóða Sannprófun",
     "verify-subtitle": "BASE45 → ZLIB → JWT Afkóðari",
     "verify-process-button": "Vinnsluskref sannprófunar",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Til baka í feril",
     "verify-processing": "Vinnsluskref sannprófunar...",
     "verify-error-title": "Sannprófunarvilla",

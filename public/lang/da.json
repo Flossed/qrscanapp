@@ -145,6 +145,7 @@
     "verify-title": "QR-kodeverificering",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekoder",
     "verify-process-button": "Behandl Verificering",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Tilbage til Historik",
     "verify-processing": "Behandler verificeringstrin...",
     "verify-error-title": "Verificeringsfejl",

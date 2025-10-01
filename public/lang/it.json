@@ -145,6 +145,7 @@
     "verify-title": "Verifica del Codice QR",
     "verify-subtitle": "BASE45 → ZLIB → Decodificatore JWT",
     "verify-process-button": "Elabora Verifica",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Torna alla Cronologia",
     "verify-processing": "Elaborazione dei passaggi di verifica...",
     "verify-error-title": "Errore di Verifica",

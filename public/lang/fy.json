@@ -145,6 +145,7 @@
     "verify-title": "QR-koade Ferifikaasje",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekodearder",
     "verify-process-button": "Ferwurkje Ferifikaasje",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Werom nei Skiednis",
     "verify-processing": "Ferifikaasjestappe ferwurkje...",
     "verify-error-title": "Ferifikaasjeflater",

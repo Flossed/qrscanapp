@@ -45,4 +45,36 @@ window.addEventListener('load', () => {
         <a href="?scanner=debug" style="color: #4CAF50" data-i18n-key="scan-version-debug">Debug</a> |
         <a href="?scanner=original" style="color: #4CAF50" data-i18n-key="scan-version-original">Original</a>`;
     document.body.appendChild(versionDiv);
+
+    // Debug mode: Handle manual BASE45 input
+    const processBase45Btn = document.getElementById('process-base45');
+    if (processBase45Btn) {
+        processBase45Btn.addEventListener('click', () => {
+            const input = document.getElementById('debug-base45-input');
+            const base45Text = input.value.trim();
+
+            if (!base45Text) {
+                alert('Please enter BASE45 text');
+                return;
+            }
+
+            if (base45Text.length > 2000) {
+                alert('BASE45 text exceeds 2000 character limit');
+                return;
+            }
+
+            // Display the result in the result container
+            const resultContainer = document.getElementById('result-container');
+            const resultDiv = document.getElementById('result');
+
+            resultDiv.textContent = base45Text;
+            resultContainer.style.display = 'block';
+
+            // Store in sessionStorage for verification
+            sessionStorage.setItem('verificationData', base45Text);
+
+            // Scroll to result
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
 });

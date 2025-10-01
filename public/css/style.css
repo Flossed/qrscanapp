@@ -2265,6 +2265,71 @@ body {
     font-weight: 300;
 }
 
+/* Debug Mode Input */
+.debug-input-container {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.debug-input-container h3 {
+    color: #856404;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.debug-base45-input {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    resize: vertical;
+    margin-bottom: 1rem;
+    background: white;
+}
+
+.debug-base45-input:focus {
+    outline: none;
+    border-color: #ffc107;
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
+}
+
+.debug-separator {
+    text-align: center;
+    margin: 2rem 0;
+    position: relative;
+}
+
+.debug-separator::before,
+.debug-separator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 45%;
+    height: 1px;
+    background: #ddd;
+}
+
+.debug-separator::before {
+    left: 0;
+}
+
+.debug-separator::after {
+    right: 0;
+}
+
+.debug-separator span {
+    background: white;
+    padding: 0 1rem;
+    color: #666;
+    font-weight: 500;
+}
+
 .qr-reader {
     margin: 2rem auto;
     max-width: 500px;

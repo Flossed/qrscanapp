@@ -145,6 +145,7 @@
     "verify-title": "QR-koodin Vahvistus",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekooderi",
     "verify-process-button": "Käsittele Vahvistus",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Takaisin Historiaan",
     "verify-processing": "Käsitellään vahvistusvaiheita...",
     "verify-error-title": "Vahvistusvirhe",

@@ -145,6 +145,7 @@
     "verify-title": "QR-koodi kinnitamine",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekooderi",
     "verify-process-button": "Töötle kinnitamine",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Tagasi ajalukku",
     "verify-processing": "Kinnitamise sammude töötlemine...",
     "verify-error-title": "Kinnitamise viga",

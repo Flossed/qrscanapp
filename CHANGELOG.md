@@ -5,6 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.0] - 2025-10-01
+
+### Added
+- **Debug Mode BASE45 Input**: Added manual BASE45 text input field on scan page (debug mode only)
+  - Textarea accepts up to 2000 characters
+  - Only visible when MODE=DEBUG in environment
+  - Styled with yellow warning theme to indicate debug functionality
+  - "OR" separator between manual input and QR scanner
+  - Process button to submit BASE45 text directly
+
+- **Proceed to Results Button**: Added button on verify page to skip to results
+  - Button navigates directly to results page with current BASE45 data
+  - Automatically sets treatment date to current system date
+  - Triggers normal verification flow (identity check, finalization, etc.)
+  - Includes proper translation support
+
+### Enhanced
+- **Email Prefill on Finalization**: Email input now prefilled with user's profile email
+  - User email automatically populated in email summary section
+  - Email remains editable for sending to alternative addresses
+  - Improves workflow by reducing manual entry
+
+- **Navigation Cleanup**: Simplified navigation bar on profile page
+  - Removed Home, Verify, and History links from main navbar
+  - Logo click still navigates to home page
+  - History link moved to user dropdown (debug mode only)
+  - Cleaner interface focused on profile management
+
+- **Translation Updates**: Updated email section heading
+  - Changed "Email Summary" to "Send the verification results as email"
+  - More descriptive and action-oriented label
+
+### Fixed
+- **Translation Support**: Added "verify-proceed-button" translation key to all 27 language files
+  - Fixed "undefined" display on Proceed to Results button
+  - Consistent translation across all supported languages
+
+### Technical Improvements
+- **Frontend Updates**:
+  - scan.ejs: Added debug mode BASE45 input section with conditional rendering
+  - verify.ejs: Added Proceed to Results button with translation key
+  - finalization.ejs: Added script to expose user email to JavaScript
+  - partials/navbar.ejs: Removed main navigation links, added debug mode check for History
+
+- **JavaScript Updates**:
+  - scan.js: Added BASE45 input handler with validation and sessionStorage integration
+  - verify.js: Added Proceed to Results handler with treatment date auto-setting
+  - finalization.js: Added email prefill logic using window.userEmail
+
+- **CSS Updates**:
+  - Added debug-input-container styling with yellow warning theme
+  - Added debug-base45-input styling with monospace font
+  - Added debug-separator styling with horizontal line and centered text
+
 ## [0.22.0] - 2025-10-01
 
 ### Enhanced

@@ -145,6 +145,7 @@
     "verify-title": "QR-kodverifiering",
     "verify-subtitle": "BASE45 → ZLIB → JWT Avkodare",
     "verify-process-button": "Bearbeta Verifiering",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Tillbaka till Historik",
     "verify-processing": "Bearbetar verifieringssteg...",
     "verify-error-title": "Verifieringsfel",

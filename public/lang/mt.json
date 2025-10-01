@@ -145,6 +145,7 @@
     "verify-title": "Verifika tal-Kodiċi QR",
     "verify-subtitle": "BASE45 → ZLIB → JWT Dekodifikatur",
     "verify-process-button": "Ipproċessa l-verifika",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Lura għall-istorja",
     "verify-processing": "Qed nipproċessa l-passi tal-verifika...",
     "verify-error-title": "Żball fil-verifika",

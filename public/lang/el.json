@@ -145,6 +145,7 @@
     "verify-title": "Επαλήθευση QR Κωδικού",
     "verify-subtitle": "BASE45 → ZLIB → JWT Αποκωδικοποιητής",
     "verify-process-button": "Επεξεργασία επαλήθευσης",
+    "verify-proceed-button": "Proceed to Results",
     "verify-back-button": "Πίσω στο ιστορικό",
     "verify-processing": "Επεξεργασία βημάτων επαλήθευσης...",
     "verify-error-title": "Σφάλμα επαλήθευσης",
