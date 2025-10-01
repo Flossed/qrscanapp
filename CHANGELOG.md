@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - 2025-10-01
+
+### Enhanced
+- **Verification Page UI Cleanup**: Comprehensive cleanup of validation step names and summary display
+  - Removed all step number prefixes from validation names (e.g., "Step 1-1:", "Step 4.1a", "Step 7:", etc.)
+  - Changed terminology from "validation" to "verification" throughout the interface
+  - Added complete verification summary structure with overall status, statistics, separator, and breakdown header
+  - Improved visual layout with horizontal overall status display (icon + text)
+  - Added statistics cards showing total verifications, succeeded, failed, warnings, and skipped counts
+  - Statistics cards feature colored borders matching status types (green for success, red for error, orange for warning, gray for skipped)
+  - Added horizontal separator and "Verification Breakdown" header for better organization
+  - Cleaned up validation step names: "QR Code Analysis", "Schema File Check - Found", "Schema Validation", "Kid Header Validation", "Algorithm Header Validation", "Signature Count Validation", "Country Code Validation", "Certificate Validity Date Verification", and all business validation names
+  - Removed "Step X:" prefixes from detailed verification steps display
+
+### Technical Improvements
+- **Frontend Updates** (public/js/verify.js):
+  - Added statistics calculation logic for all verification categories
+  - Restructured verification summary HTML generation with overall status at top
+  - Updated all validation category headers to use "verification" terminology
+  - Removed step numbering from technical and business validation display
+  - Added click-to-navigate functionality for verification tiles
+
+- **Backend Updates** (routes/scanRoutes.js):
+  - Cleaned up all step names to remove numbering prefixes
+  - Updated 20+ validation step names for consistency
+
+- **CSS Updates** (public/css/style.css):
+  - Added horizontal layout styling for overall status with gap spacing
+  - Added validation-stats styling with flex layout and colored borders
+  - Added stat-item styling with success/error/warning/skipped variants
+  - Added validation-separator and breakdown-header styling
+  - Added responsive stat-value and stat-label styling
+
 ## [0.21.0] - 2025-10-01
 
 ### Added

@@ -2517,7 +2517,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
         const analysisSize = Buffer.byteLength(JSON.stringify(qrAnalysis), 'utf8');
 
         steps.push({
-            name: 'QR Code Analysis (Step 1-1)',
+            name: 'QR Code Analysis',
             data: JSON.stringify(qrAnalysis, null, 2),
             size: analysisSize,
             percentage: 100
@@ -2547,7 +2547,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
             dataPreview: originalData.substring(0, 100) + '...'
         };
         steps.push({
-            name: 'QR Code Analysis (Step 1-1) - Error',
+            name: 'QR Code Analysis - Error',
             data: JSON.stringify(errorInfo, null, 2),
             size: Buffer.byteLength(JSON.stringify(errorInfo), 'utf8'),
             percentage: 100
@@ -2702,7 +2702,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                             const errorSize = Buffer.byteLength(errorString, 'utf8');
 
                             steps.push({
-                                name: 'Schema File Check (Step 4.1a) - Mapping Not Found',
+                                name: 'Schema File Check - Mapping Not Found',
                                 data: errorString,
                                 size: errorSize,
                                 percentage: Math.round((errorSize / jwtSize) * 100)
@@ -2742,7 +2742,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                             const notFoundSize = Buffer.byteLength(notFoundString, 'utf8');
 
                             steps.push({
-                                name: 'Schema File Check (Step 4.1a) - Not Found',
+                                name: 'Schema File Check - Not Found',
                                 data: notFoundString,
                                 size: notFoundSize,
                                 percentage: Math.round((notFoundSize / jwtSize) * 100)
@@ -2776,7 +2776,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                         const foundSize = Buffer.byteLength(foundString, 'utf8');
 
                         steps.push({
-                            name: 'Schema File Check (Step 4.1a) - Found',
+                            name: 'Schema File Check - Found',
                             data: foundString,
                             size: foundSize,
                             percentage: Math.round((foundSize / jwtSize) * 100)
@@ -2894,7 +2894,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                         const validationSize = Buffer.byteLength(validationString, 'utf8');
 
                         steps.push({
-                            name: 'Schema Validation (Step 4.1b)',
+                            name: 'Schema Validation',
                             data: validationString,
                             size: validationSize,
                             percentage: Math.round((validationSize / jwtSize) * 100)
@@ -2927,7 +2927,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                         const errorSize = Buffer.byteLength(errorString, 'utf8');
 
                         steps.push({
-                            name: 'Schema Validation (Step 4.1b) - Error',
+                            name: 'Schema Validation - Error',
                             data: errorString,
                             size: errorSize,
                             percentage: Math.round((errorSize / jwtSize) * 100)
@@ -2997,7 +2997,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                     const kidValidationSize = Buffer.byteLength(kidValidationString, 'utf8');
 
                     steps.push({
-                        name: 'Step 7: Kid Header Validation',
+                        name: 'Kid Header Validation',
                         data: kidValidationString,
                         size: kidValidationSize,
                         percentage: Math.round((kidValidationSize / jwtSize) * 100)
@@ -3050,7 +3050,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                     const algValidationSize = Buffer.byteLength(algValidationString, 'utf8');
 
                     steps.push({
-                        name: 'Step 8: Algorithm Header Validation',
+                        name: 'Algorithm Header Validation',
                         data: algValidationString,
                         size: algValidationSize,
                         percentage: Math.round((algValidationSize / jwtSize) * 100)
@@ -3077,7 +3077,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                         const responseString = JSON.stringify(signatureResponse, null, 2);
                         const responseSize = Buffer.byteLength(responseString, 'utf8');
                         steps.push({
-                            name: 'Step 8: Signature Retrieval',
+                            name: 'Signature Retrieval',
                             data: responseString,
                             size: responseSize,
                             percentage: Math.round((responseSize / jwtSize) * 100)
@@ -3108,7 +3108,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                         const countValidationSize = Buffer.byteLength(countValidationString, 'utf8');
 
                         steps.push({
-                            name: 'Step 8.1: Signature Count Validation',
+                            name: 'Signature Count Validation',
                             data: countValidationString,
                             size: countValidationSize,
                             percentage: Math.round((countValidationSize / responseSize) * 100)
@@ -3173,7 +3173,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                         const countryCodeValidationSize = Buffer.byteLength(countryCodeValidationString, 'utf8');
 
                         steps.push({
-                            name: 'Step 8.2: Country Code Validation',
+                            name: 'Country Code Validation',
                             data: countryCodeValidationString,
                             size: countryCodeValidationSize,
                             percentage: Math.round((countryCodeValidationSize / countValidationSize) * 100)
@@ -3439,7 +3439,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                             const validitySize = Buffer.byteLength(validityString, 'utf8');
 
                             steps.push({
-                                name: 'Step 8.3: Certificate Validity Date Verification',
+                                name: 'Certificate Validity Date Verification',
                                 data: validityString,
                                 size: validitySize,
                                 percentage: Math.round((validitySize / responseSize) * 100),
@@ -3581,7 +3581,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                             };
 
                             steps.push({
-                                name: 'Step 8.3: Certificate Validity Date Verification (ERROR)',
+                                name: 'Certificate Validity Date Verification (ERROR)',
                                 data: JSON.stringify(errorResult, null, 2),
                                 size: Buffer.byteLength(JSON.stringify(errorResult), 'utf8'),
                                 percentage: 100
@@ -3657,7 +3657,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const accreditationSize = Buffer.byteLength(accreditationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 10: EHIC Accreditation Validation',
+                                    name: 'EHIC Accreditation Validation',
                                     data: accreditationString,
                                     size: accreditationSize,
                                     percentage: Math.round((accreditationSize / responseSize) * 100)
@@ -3734,7 +3734,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const dobValidationSize = Buffer.byteLength(dobValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 11: Date of Birth Validation',
+                                    name: 'Date of Birth Validation',
                                     data: dobValidationString,
                                     size: dobValidationSize,
                                     percentage: Math.round((dobValidationSize / responseSize) * 100)
@@ -3813,7 +3813,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const dateRangeValidationSize = Buffer.byteLength(dateRangeValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 12: Start/End Date Validation',
+                                    name: 'Start/End Date Validation',
                                     data: dateRangeValidationString,
                                     size: dateRangeValidationSize,
                                     percentage: Math.round((dateRangeValidationSize / responseSize) * 100)
@@ -3892,7 +3892,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const startIssuanceValidationSize = Buffer.byteLength(startIssuanceValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 13: Start/Issuance Date Validation',
+                                    name: 'Start/Issuance Date Validation',
                                     data: startIssuanceValidationString,
                                     size: startIssuanceValidationSize,
                                     percentage: Math.round((startIssuanceValidationSize / responseSize) * 100)
@@ -3971,7 +3971,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const issuanceEndValidationSize = Buffer.byteLength(issuanceEndValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 14: Issuance/End Date Validation',
+                                    name: 'Issuance/End Date Validation',
                                     data: issuanceEndValidationString,
                                     size: issuanceEndValidationSize,
                                     percentage: Math.round((issuanceEndValidationSize / responseSize) * 100)
@@ -4050,7 +4050,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const institutionValidationSize = Buffer.byteLength(institutionValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 15: Institution ID/Name Length Validation (Optional)',
+                                    name: 'Institution ID/Name Length Validation (Optional)',
                                     data: institutionValidationString,
                                     size: institutionValidationSize,
                                     percentage: Math.round((institutionValidationSize / responseSize) * 100)
@@ -4128,7 +4128,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const cardIdValidationSize = Buffer.byteLength(cardIdValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 16: Card ID Digit Validation (Optional)',
+                                    name: 'Card ID Digit Validation (Optional)',
                                     data: cardIdValidationString,
                                     size: cardIdValidationSize,
                                     percentage: Math.round((cardIdValidationSize / responseSize) * 100)
@@ -4206,7 +4206,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const institutionIdValidationSize = Buffer.byteLength(institutionIdValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 17: Institution ID Digit Validation (Optional)',
+                                    name: 'Institution ID Digit Validation (Optional)',
                                     data: institutionIdValidationString,
                                     size: institutionIdValidationSize,
                                     percentage: Math.round((institutionIdValidationSize / responseSize) * 100)
@@ -4275,7 +4275,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const revocationPresenceValidationSize = Buffer.byteLength(revocationPresenceValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 18: Revocation Information Presence Validation',
+                                    name: 'Revocation Information Presence Validation',
                                     data: revocationPresenceValidationString,
                                     size: revocationPresenceValidationSize,
                                     percentage: Math.round((revocationPresenceValidationSize / responseSize) * 100)
@@ -4392,7 +4392,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const revocationStatusValidationSize = Buffer.byteLength(revocationStatusValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 19: Revocation Status Validation',
+                                    name: 'Revocation Status Validation',
                                     data: revocationStatusValidationString,
                                     size: revocationStatusValidationSize,
                                     percentage: Math.round((revocationStatusValidationSize / responseSize) * 100)
@@ -4445,7 +4445,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const treatmentDatePresenceValidationSize = Buffer.byteLength(treatmentDatePresenceValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 20: Treatment Date Presence Validation',
+                                    name: 'Treatment Date Presence Validation',
                                     data: treatmentDatePresenceValidationString,
                                     size: treatmentDatePresenceValidationSize,
                                     percentage: Math.round((treatmentDatePresenceValidationSize / responseSize) * 100)
@@ -4529,7 +4529,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const treatmentDateRangeValidationSize = Buffer.byteLength(treatmentDateRangeValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 21: Treatment Date Range Validation',
+                                    name: 'Treatment Date Range Validation',
                                     data: treatmentDateRangeValidationString,
                                     size: treatmentDateRangeValidationSize,
                                     percentage: Math.round((treatmentDateRangeValidationSize / responseSize) * 100)
@@ -4607,7 +4607,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 const expiryDateValidationSize = Buffer.byteLength(expiryDateValidationString, 'utf8');
 
                                 steps.push({
-                                    name: 'Step 22: Expiry Date Validation',
+                                    name: 'Expiry Date Validation',
                                     data: expiryDateValidationString,
                                     size: expiryDateValidationSize,
                                     percentage: Math.round((expiryDateValidationSize / responseSize) * 100)

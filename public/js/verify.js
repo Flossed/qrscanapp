@@ -233,11 +233,85 @@ function displayValidationSummary(summary, overallStatus) {
         { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation' }
     ];
 
-    let summaryHTML = '<h3>Validation Summary</h3>';
+    // Calculate statistics
+    const revocationSteps = [
+        { key: 'revocationPresence', label: 'Revocation Information Presence' },
+        { key: 'revocationStatus', label: 'Revocation Status Check' }
+    ];
+    const treatmentDateSteps = [
+        { key: 'treatmentDatePresence', label: 'Treatment Date Presence' },
+        { key: 'treatmentDateRange', label: 'Treatment Date Range Validation' }
+    ];
 
-    // Technical Validations Banner
+    const allSteps = [...technicalSteps, ...businessSteps, ...revocationSteps, ...treatmentDateSteps];
+    let totalVerifications = 0;
+    let succeededVerifications = 0;
+    let failedVerifications = 0;
+    let warningVerifications = 0;
+    let skippedVerifications = 0;
+
+    allSteps.forEach(step => {
+        const validation = summary[step.key];
+        if (validation) {
+            totalVerifications++;
+            if (validation.status === 'success') succeededVerifications++;
+            else if (validation.status === 'error') failedVerifications++;
+            else if (validation.status === 'warning') warningVerifications++;
+            else if (validation.status === 'skipped') skippedVerifications++;
+        }
+    });
+
+    let summaryHTML = '<h3>Verification Summary</h3>';
+
+    // Overall Status
+    const statusIcon = overallStatus === 'success' ? '✅' : overallStatus === 'warning' ? '⚠️' : '❌';
+    const statusText = overallStatus === 'success' ? 'PASSED' : overallStatus === 'warning' ? 'WARNING' : 'FAILED';
+    const statusClass = overallStatus === 'success' ? 'success' : overallStatus === 'warning' ? 'warning' : 'error';
+
+    summaryHTML += `
+        <div class="overall-status ${statusClass}">
+            <span class="overall-icon">${statusIcon}</span>
+            <span class="overall-text">Overall Status: ${statusText}</span>
+        </div>
+    `;
+
+    // Statistics
+    summaryHTML += `
+        <div class="validation-stats">
+            <div class="stat-item">
+                <span class="stat-label">Total Verifications:</span>
+                <span class="stat-value">${totalVerifications}</span>
+            </div>
+            <div class="stat-item success">
+                <span class="stat-label">Succeeded:</span>
+                <span class="stat-value">${succeededVerifications}</span>
+            </div>
+            <div class="stat-item error">
+                <span class="stat-label">Failed:</span>
+                <span class="stat-value">${failedVerifications}</span>
+            </div>
+            ${warningVerifications > 0 ? `
+            <div class="stat-item warning">
+                <span class="stat-label">Warnings:</span>
+                <span class="stat-value">${warningVerifications}</span>
+            </div>
+            ` : ''}
+            ${skippedVerifications > 0 ? `
+            <div class="stat-item skipped">
+                <span class="stat-label">Skipped:</span>
+                <span class="stat-value">${skippedVerifications}</span>
+            </div>
+            ` : ''}
+        </div>
+    `;
+
+    // Horizontal ruler and Verification Breakdown header
+    summaryHTML += '<hr class="validation-separator">';
+    summaryHTML += '<h3 class="breakdown-header">Verification Breakdown</h3>';
+
+    // Technical Verifications Banner
     summaryHTML += '<div class="validation-category">';
-    summaryHTML += '<h4 class="category-banner technical-banner">Technical Validations</h4>';
+    summaryHTML += '<h4 class="category-banner technical-banner">Technical Verifications</h4>';
     summaryHTML += '<div class="summary-items technical-items">';
 
     technicalSteps.forEach(step => {
@@ -264,13 +338,13 @@ function displayValidationSummary(summary, overallStatus) {
 
     summaryHTML += '</div></div>'; // Close technical items and category
 
-    // Business Validations Banner
+    // Business Verifications Banner
     summaryHTML += '<div class="validation-category">';
-    summaryHTML += '<h4 class="category-banner business-banner">Business Validations</h4>';
+    summaryHTML += '<h4 class="category-banner business-banner">Business Verifications</h4>';
     summaryHTML += '<div class="summary-items business-items">';
 
     if (businessSteps.length === 0) {
-        summaryHTML += '<div class="summary-item info"><span class="status-icon">ℹ</span><span class="step-label">No business validations configured</span></div>';
+        summaryHTML += '<div class="summary-item info"><span class="status-icon">ℹ</span><span class="step-label">No business verifications configured</span></div>';
     } else {
         businessSteps.forEach(step => {
             const validation = summary[step.key] || { status: 'pending', message: '' };
@@ -292,14 +366,9 @@ function displayValidationSummary(summary, overallStatus) {
 
     summaryHTML += '</div></div>'; // Close business items and category
 
-    // Revocation Validations Section
-    const revocationSteps = [
-        { key: 'revocationPresence', label: 'Revocation Information Presence' },
-        { key: 'revocationStatus', label: 'Revocation Status Check' }
-    ];
-
+    // Revocation Verifications Section
     summaryHTML += '<div class="validation-category">';
-    summaryHTML += '<h4 class="category-banner revocation-banner">Revocation Validations</h4>';
+    summaryHTML += '<h4 class="category-banner revocation-banner">Revocation Verifications</h4>';
     summaryHTML += '<div class="summary-items revocation-items">';
 
     revocationSteps.forEach(step => {
@@ -321,14 +390,9 @@ function displayValidationSummary(summary, overallStatus) {
 
     summaryHTML += '</div></div>'; // Close revocation items and category
 
-    // Treatment Date Validations Section
-    const treatmentDateSteps = [
-        { key: 'treatmentDatePresence', label: 'Treatment Date Presence' },
-        { key: 'treatmentDateRange', label: 'Treatment Date Range Validation' }
-    ];
-
+    // Treatment Date Verifications Section
     summaryHTML += '<div class="validation-category">';
-    summaryHTML += '<h4 class="category-banner treatment-date-banner">Treatment Date Validations</h4>';
+    summaryHTML += '<h4 class="category-banner treatment-date-banner">Treatment Date Verifications</h4>';
     summaryHTML += '<div class="summary-items treatment-date-items">';
 
     treatmentDateSteps.forEach(step => {
@@ -354,15 +418,6 @@ function displayValidationSummary(summary, overallStatus) {
     });
 
     summaryHTML += '</div></div>'; // Close treatment date items and category
-
-    // Add overall status
-    const overallIcon = getStatusIcon(overallStatus);
-    summaryHTML += `
-        <div class="overall-status ${overallStatus}">
-            <span class="status-icon">${overallIcon}</span>
-            <strong>Overall Status: ${overallStatus.toUpperCase()}</strong>
-        </div>
-    `;
 
     summaryDiv.innerHTML = summaryHTML;
 
@@ -544,7 +599,7 @@ function displayBasicVerificationSteps(validationSummary) {
         stepDiv.id = `step-${step.key}`;  // Add unique ID for navigation
         stepDiv.innerHTML = `
             <div class="step-header">
-                <h3><span class="status-icon">${statusIcon}</span> Step ${index + 1}: ${step.label}</h3>
+                <h3><span class="status-icon">${statusIcon}</span> ${step.label}</h3>
             </div>
             <div class="step-content">
                 <p class="step-description">${step.description}</p>
@@ -570,7 +625,7 @@ function displayBasicVerificationSteps(validationSummary) {
         stepDiv.id = `step-${step.key}`;  // Add unique ID for navigation
         stepDiv.innerHTML = `
             <div class="step-header">
-                <h3><span class="status-icon">${statusIcon}</span> Business Step ${index + 1}: ${step.label}</h3>
+                <h3><span class="status-icon">${statusIcon}</span> ${step.label}</h3>
             </div>
             <div class="step-content">
                 <p class="step-description">${step.description}</p>
@@ -659,7 +714,7 @@ function displayVerificationSteps(steps) {
 
         stepDiv.innerHTML = `
             <div class="step-header">
-                <h3>${getTranslatedText('verify-step', 'Step')} ${index + 1}: ${step.name}</h3>
+                <h3>${step.name}</h3>
                 <div class="step-stats">
                     <span class="size-info">${getTranslatedText('verify-size', 'Size:')} ${formatBytes(step.size)}</span>
                     ${index > 0 ? `<span class="ratio-info">${compressionRatio}${getTranslatedText('verify-ratio-info', '% of previous step')}</span>` : ''}
