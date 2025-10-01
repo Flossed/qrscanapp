@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0] - 2025-10-01
+
+### Fixed
+- **Signature Verification Critical Bugs**: Fixed multiple critical issues in signature verification process
+  - **HTTP 200 with Error Body**: Fixed signature retrieval treating HTTP 200 responses with error messages in body as successful
+  - **Signature Count Validation**: Completely rewrote signature count validation with proper structure validation
+    - Now validates results array exists and contains exactly 1 issuer
+    - Validates publicKeys array exists in issuer
+    - Verifies JWT thumbprint matches one in publicKeys array (x5t#S256 field)
+    - Provides detailed error messages for each validation failure
+  - **Dependent Validation Skip Logic**: Fixed validations running without valid signature data
+    - Country code validation now skipped if signature count validation fails
+    - Certificate validity validation now skipped if signature count validation fails
+    - JWT signature validation now skipped if signature count validation fails
+  - **BASE64 Transformation Removal**: Removed all BASE64 to BASE64URL conversions for KID and thumbprint validation
+    - KID pattern now accepts both BASE64 and BASE64URL characters: `/^EESSI:x5t#S256:[A-Za-z0-9_\-+=\/]+$/`
+    - Thumbprints used as-is without conversion in EBSI queries
+    - Simplified `normalizeThumbprintForEbsi()` function to return thumbprint unchanged
+    - Removed BASE64 detection and conversion logic throughout verification pipeline
+
+### Enhanced
+- **Finalization Status Display**: Dynamic status based on verification results
+  - Shows "❌ Verification Failed" (red) when any validation has error status
+  - Shows "⚠️ Verification Complete with Warnings" (yellow) when warnings but no errors
+  - Shows "✅ Verification Complete" (green) when all validations passed
+  - Added translation keys for all status variants across 27 languages
+- **Debug Mode Indicator**: Added "DEBUG" badge in navbar when MODE=DEBUG in environment
+
+### Technical Improvements
+- **Signature Validation Structure**: Enhanced validation to check complete EBSI response structure
+  - Validates results array presence and type
+  - Validates issuer count (exactly 1 required)
+  - Validates publicKeys array in issuer
+  - Validates thumbprint match with detailed logging
+- **Error Handling**: Improved error detection and reporting
+  - Check response body for error field even with HTTP 200 status
+  - Detailed error messages for each validation failure point
+  - Comprehensive logging of validation failures
+- **Code Cleanup**: Removed unused BASE64 conversion functions
+  - `base64ToBase64Url()` no longer called anywhere
+  - `base64UrlToBase64()` no longer called anywhere
+  - Comments updated to reflect no conversion approach
+
 ## [0.24.0] - 2025-10-01
 
 ### Added

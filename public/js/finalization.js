@@ -59,6 +59,55 @@ function generateReferenceNumber() {
 // Set reference number
 document.getElementById('reference-number').textContent = generateReferenceNumber();
 
+// Update overall verification status based on results
+const verificationResults = sessionStorage.getItem('verificationResults');
+if (verificationResults) {
+    try {
+        const results = JSON.parse(verificationResults);
+        const statusContainer = document.querySelector('.finalization-status');
+        const statusIcon = statusContainer.querySelector('.status-icon-large');
+        const statusTitle = statusContainer.querySelector('h1');
+        const statusSubtitle = statusContainer.querySelector('.finalization-subtitle');
+
+        // Check if verification passed or failed
+        let hasErrors = false;
+        let hasWarnings = false;
+
+        if (results.validationSummary) {
+            Object.values(results.validationSummary).forEach(validation => {
+                if (validation.status === 'error') hasErrors = true;
+                if (validation.status === 'warning') hasWarnings = true;
+            });
+        }
+
+        if (hasErrors) {
+            statusIcon.textContent = '❌';
+            statusTitle.textContent = 'Verification Failed';
+            statusTitle.setAttribute('data-i18n-key', 'finalization-verification-failed');
+            statusSubtitle.textContent = 'One or more verification steps have failed';
+            statusSubtitle.setAttribute('data-i18n-key', 'finalization-verification-failed-message');
+            statusContainer.style.color = '#721c24';
+            statusContainer.style.backgroundColor = '#f8d7da';
+        } else if (hasWarnings) {
+            statusIcon.textContent = '⚠️';
+            statusTitle.textContent = 'Verification Complete with Warnings';
+            statusTitle.setAttribute('data-i18n-key', 'finalization-verification-warnings');
+            statusSubtitle.textContent = 'Verification completed successfully but some warnings were found';
+            statusSubtitle.setAttribute('data-i18n-key', 'finalization-verification-warnings-message');
+            statusContainer.style.color = '#856404';
+            statusContainer.style.backgroundColor = '#fff3cd';
+        } else {
+            statusIcon.textContent = '✅';
+            statusTitle.textContent = 'Verification Complete';
+            statusTitle.setAttribute('data-i18n-key', 'finalization-verification-complete');
+            statusSubtitle.textContent = 'All verification steps have been successfully completed';
+            statusSubtitle.setAttribute('data-i18n-key', 'finalization-all-steps-completed');
+        }
+    } catch (e) {
+        console.error('Could not parse verification results for status update:', e);
+    }
+}
+
 // Update identity verification status
 const identityVerificationData = sessionStorage.getItem('identityVerification');
 const identityStatusElement = document.getElementById('identity-verification-status');

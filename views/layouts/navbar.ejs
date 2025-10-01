@@ -55,6 +55,9 @@
                                 </span>
                             </div>
                             <%= user.firstName || 'User' %>
+                            <% if (typeof isDebugMode !== 'undefined' && isDebugMode) { %>
+                            <span class="badge bg-warning text-dark ms-2">DEBUG</span>
+                            <% } %>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li>

@@ -116,46 +116,19 @@ function normalizeThumbprintForEbsi(thumbprint) {
     logger.trace(applicationName + ':normalizeThumbprintForEbsi:Started');
 
     try {
-        const hasBase64Chars = thumbprint.includes('+') || thumbprint.includes('/') || thumbprint.includes('=');
-        const hasBase64UrlChars = thumbprint.includes('-') || thumbprint.includes('_');
-
-        let normalizedThumbprint;
-        let conversionApplied = 'none';
-
-        if (hasBase64Chars && !hasBase64UrlChars) {
-            // Standard base64 encoding detected, convert to base64url
-            normalizedThumbprint = base64ToBase64Url(thumbprint);
-            conversionApplied = 'base64-to-base64url';
-        } else if (hasBase64UrlChars && !hasBase64Chars) {
-            // Already base64url encoded
-            normalizedThumbprint = thumbprint;
-            conversionApplied = 'already-base64url';
-        } else if (!hasBase64Chars && !hasBase64UrlChars) {
-            // No special characters, could be either, assume base64url
-            normalizedThumbprint = thumbprint;
-            conversionApplied = 'assumed-base64url';
-        } else {
-            // Mixed characters, unusual case, use as-is
-            normalizedThumbprint = thumbprint;
-            conversionApplied = 'mixed-encoding-kept-as-is';
-        }
-
-        logger.debug('Thumbprint encoding normalization', {
-            original: thumbprint.substring(0, 20) + '...',
-            normalized: normalizedThumbprint.substring(0, 20) + '...',
-            conversionApplied,
-            hasBase64Chars,
-            hasBase64UrlChars
+        // No conversion - use thumbprint as-is
+        logger.debug('Thumbprint for EBSI (no conversion)', {
+            thumbprint: thumbprint.substring(0, 20) + '...'
         });
 
         logger.trace(applicationName + ':normalizeThumbprintForEbsi:Completed');
         return {
-            normalized: normalizedThumbprint,
-            conversionApplied,
+            normalized: thumbprint,
+            conversionApplied: 'none',
             original: thumbprint
         };
     } catch (error) {
-        logger.error('Thumbprint normalization failed', {
+        logger.error('Thumbprint processing failed', {
             error: error.message,
             thumbprint: thumbprint.substring(0, 20) + '...'
         });
@@ -1868,11 +1841,6 @@ router.post('/api/test-encoding', async (req, res) => {
 
         const normalizationResult = normalizeThumbprintForEbsi(thumbprint);
 
-        // Also show the reverse conversion
-        const backToBase64 = normalizationResult.conversionApplied === 'base64-to-base64url'
-            ? base64UrlToBase64(normalizationResult.normalized)
-            : 'N/A (no conversion applied)';
-
         // Generate example EBSI URL to show how it would be formatted
         const exampleEbsiUrl = `https://resolver-test.ebsi.eu/api/v1/issuers?x509Thumbprint=${normalizationResult.normalized}`;
 
@@ -1880,7 +1848,6 @@ router.post('/api/test-encoding', async (req, res) => {
             original: thumbprint,
             normalized: normalizationResult.normalized,
             conversionApplied: normalizationResult.conversionApplied,
-            backToBase64: backToBase64,
             exampleEbsiUrl: exampleEbsiUrl,
             originalCharacteristics: {
                 hasPlus: thumbprint.includes('+'),
@@ -2633,39 +2600,14 @@ async function processVerificationData(originalData, treatmentDate = null) {
                             throw new Error(`Invalid JWT structure: expected 3 parts, got ${jwtParts.length}`);
                         }
 
-                        // Preprocess the header to fix Base64 to Base64URL encoding in kid
+                        // Use header as-is without BASE64 to BASE64URL conversion
                         const processedHeader = { ...jwtDecoded.header };
-                        if (processedHeader.kid && typeof processedHeader.kid === 'string') {
-                            // Convert Base64 to Base64URL by replacing + with - and / with _
-                            // and removing any padding = characters
-                            const originalKid = processedHeader.kid;
-
-                            // Extract the parts of the kid
-                            const kidMatch = originalKid.match(/^(EESSI:(?:x5t#S256|jkt):)(.+)$/);
-                            if (kidMatch) {
-                                const prefix = kidMatch[1];
-                                const base64Part = kidMatch[2];
-
-                                // Convert Base64 to Base64URL
-                                const base64UrlPart = base64Part
-                                    .replace(/\+/g, '-')
-                                    .replace(/\//g, '_')
-                                    .replace(/=/g, '');
-
-                                processedHeader.kid = prefix + base64UrlPart;
-
-                                logger.info('Converted kid to Base64URL format:', {
-                                    original: originalKid,
-                                    converted: processedHeader.kid
-                                });
-                            }
-                        }
 
                         // Check what format the schema expects
                         // If schema expects 'protected' as an object, use decoded header
                         // If schema expects 'protected' as a string, use encoded header
                         const jwtToValidate = {
-                            protected: processedHeader, // Use processed header with Base64URL kid
+                            protected: processedHeader, // Use header as-is
                             payload: jwtDecoded.payload, // Decoded payload object
                             signature: jwtParts[2] // Base64URL signature
                         };
@@ -2945,50 +2887,31 @@ async function processVerificationData(originalData, treatmentDate = null) {
                     }
 
                     // Step 7: Kid Header Validation
-                    // Validate that header contains kid with pattern "^EESSI:x5t#S256:[A-Za-z0-9_-]+$"
+                    // Validate that header contains kid with pattern "^EESSI:x5t#S256:[A-Za-z0-9_\-+=\/]+$"
                     const kidValidationResult = (() => {
-                        const originalKid = jwtDecoded?.header?.kid;
-                        let translatedKid = originalKid;
+                        const kid = jwtDecoded?.header?.kid;
 
-                        // Convert Base64 to Base64URL if needed for the translated version
-                        if (originalKid && typeof originalKid === 'string') {
-                            const kidMatch = originalKid.match(/^(EESSI:(?:x5t#S256|jkt):)(.+)$/);
-                            if (kidMatch) {
-                                const prefix = kidMatch[1];
-                                const base64Part = kidMatch[2];
+                        // Pattern accepts both BASE64 and BASE64URL encoding
+                        const kidPattern = /^EESSI:x5t#S256:[A-Za-z0-9_\-+=\/]+$/;
 
-                                // Convert Base64 to Base64URL
-                                const base64UrlPart = base64Part
-                                    .replace(/\+/g, '-')
-                                    .replace(/\//g, '_')
-                                    .replace(/=/g, '');
-
-                                translatedKid = prefix + base64UrlPart;
-                            }
-                        }
-
-                        const kidPattern = /^EESSI:x5t#S256:[A-Za-z0-9_-]+$/;
-
-                        if (!originalKid) {
+                        if (!kid) {
                             return {
                                 valid: false,
                                 message: 'No kid field found in JWT header',
                                 kid: null,
-                                translatedKid: null,
                                 timestamp: new Date().toISOString()
                             };
                         }
 
-                        // Validate against the translated (base64url) version
-                        const isValid = kidPattern.test(translatedKid);
+                        // Validate against the original kid (no translation)
+                        const isValid = kidPattern.test(kid);
                         return {
                             valid: isValid,
                             message: isValid
-                                ? `Kid header validation passed: ${translatedKid}`
-                                : `Kid header validation failed. Expected pattern: EESSI:x5t#S256:[A-Za-z0-9_-]+, got: ${translatedKid}`,
-                            kid: originalKid,
-                            translatedKid: translatedKid,
-                            pattern: 'EESSI:x5t#S256:[A-Za-z0-9_-]+',
+                                ? `Kid header validation passed: ${kid}`
+                                : `Kid header validation failed. Expected pattern: EESSI:x5t#S256:[A-Za-z0-9_-+=\/]+, got: ${kid}`,
+                            kid: kid,
+                            pattern: 'EESSI:x5t#S256:[A-Za-z0-9_-+=\/]+',
                             timestamp: new Date().toISOString()
                         };
                     })();
@@ -3082,27 +3005,107 @@ async function processVerificationData(originalData, treatmentDate = null) {
                             size: responseSize,
                             percentage: Math.round((responseSize / jwtSize) * 100)
                         });
-                        validationSummary.signatureVerification = {
-                            status: 'success',
-                            message: 'Signature retrieval completed'
-                        };
+
+                        // Check if there's an error in the response body
+                        const hasError = signatureResponse.data && signatureResponse.data.error;
+                        const errorMessage = hasError ? signatureResponse.data.error : null;
+
+                        if (hasError) {
+                            validationSummary.signatureVerification = {
+                                status: 'error',
+                                message: `Signature retrieval failed: ${errorMessage}`
+                            };
+                            logger.error('Signature retrieval failed', {
+                                error: errorMessage,
+                                thumbprint: signatureResponse.extractedThumbprint
+                            });
+                            // Continue to next steps to show what failed
+                        } else {
+                            validationSummary.signatureVerification = {
+                                status: 'success',
+                                message: 'Signature retrieval completed'
+                            };
+                        }
 
                         // Step 8.1: Signature Count Validation
-                        const signatureCount = signatureResponse.data && Array.isArray(signatureResponse.data) ?
-                            signatureResponse.data.length :
-                            (signatureResponse.data ? 1 : 0);
+                        let countValidationResult;
 
-                        const countValidationResult = {
-                            signatureCount: signatureCount,
-                            expectedCount: 1,
-                            valid: signatureCount === 1,
-                            message: signatureCount === 1 ?
-                                'Exactly one signature found' :
-                                signatureCount === 0 ?
-                                    'No signatures found' :
-                                    `Too many signatures found: ${signatureCount}`,
-                            timestamp: new Date().toISOString()
-                        };
+                        // Check if results array exists
+                        if (!signatureResponse.data || !signatureResponse.data.results) {
+                            countValidationResult = {
+                                valid: false,
+                                resultsFound: false,
+                                message: 'No results array found in signature response',
+                                timestamp: new Date().toISOString()
+                            };
+                        } else if (!Array.isArray(signatureResponse.data.results)) {
+                            countValidationResult = {
+                                valid: false,
+                                resultsFound: true,
+                                message: 'Results is not an array',
+                                timestamp: new Date().toISOString()
+                            };
+                        } else {
+                            const resultsCount = signatureResponse.data.results.length;
+
+                            if (resultsCount !== 1) {
+                                countValidationResult = {
+                                    valid: false,
+                                    resultsFound: true,
+                                    resultsCount: resultsCount,
+                                    expectedCount: 1,
+                                    message: resultsCount === 0 ?
+                                        'No issuers found in results array' :
+                                        `Too many issuers found: ${resultsCount}, expected 1`,
+                                    timestamp: new Date().toISOString()
+                                };
+                            } else {
+                                // Check publicKeys array
+                                const issuer = signatureResponse.data.results[0];
+                                if (!issuer.publicKeys || !Array.isArray(issuer.publicKeys)) {
+                                    countValidationResult = {
+                                        valid: false,
+                                        resultsFound: true,
+                                        resultsCount: 1,
+                                        publicKeysFound: false,
+                                        message: 'No publicKeys array found in issuer',
+                                        timestamp: new Date().toISOString()
+                                    };
+                                } else {
+                                    // Verify thumbprint matches
+                                    const jwtThumbprint = signatureResponse.extractedThumbprint;
+                                    const publicKey = issuer.publicKeys.find(pk => pk['x5t#S256'] === jwtThumbprint);
+
+                                    if (!publicKey) {
+                                        countValidationResult = {
+                                            valid: false,
+                                            resultsFound: true,
+                                            resultsCount: 1,
+                                            publicKeysFound: true,
+                                            publicKeysCount: issuer.publicKeys.length,
+                                            thumbprintMatch: false,
+                                            jwtThumbprint: jwtThumbprint,
+                                            availableThumbprints: issuer.publicKeys.map(pk => pk['x5t#S256']),
+                                            message: `JWT thumbprint ${jwtThumbprint} not found in issuer publicKeys`,
+                                            timestamp: new Date().toISOString()
+                                        };
+                                    } else {
+                                        countValidationResult = {
+                                            valid: true,
+                                            resultsFound: true,
+                                            resultsCount: 1,
+                                            publicKeysFound: true,
+                                            publicKeysCount: issuer.publicKeys.length,
+                                            thumbprintMatch: true,
+                                            jwtThumbprint: jwtThumbprint,
+                                            matchedThumbprint: publicKey['x5t#S256'],
+                                            message: 'Signature validation successful: 1 issuer found with matching thumbprint',
+                                            timestamp: new Date().toISOString()
+                                        };
+                                    }
+                                }
+                            }
+                        }
 
                         const countValidationString = JSON.stringify(countValidationResult, null, 2);
                         const countValidationSize = Buffer.byteLength(countValidationString, 'utf8');
@@ -3120,15 +3123,27 @@ async function processVerificationData(originalData, treatmentDate = null) {
                         };
 
                         if (!countValidationResult.valid) {
-                            logger.error('Signature count validation failed', {
-                                expected: 1,
-                                actual: signatureCount,
-                                signatureResponse: signatureResponse
-                            });
-                            throw new Error(`Invalid signature count: expected 1, got ${signatureCount}`);
-                        }
+                            logger.error('Signature count validation failed', countValidationResult);
+                            // Don't throw - continue to show all validation results
+                            logger.warn('Skipping signature-dependent validations due to signature count validation failure');
 
-                        // Step 8.2: Country Code Validation
+                            // Skip all validations that depend on signature response
+                            validationSummary.countryCodeValidation = {
+                                status: 'skipped',
+                                message: 'Skipped due to signature count validation failure'
+                            };
+                            validationSummary.certificateValidityDateVerification = {
+                                status: 'skipped',
+                                message: 'Skipped due to signature count validation failure'
+                            };
+                            validationSummary.jwtSignatureValidation = {
+                                status: 'skipped',
+                                message: 'Skipped due to signature count validation failure'
+                            };
+                        } else {
+                            // Only perform these validations if signature count validation passed
+
+                            // Step 8.2: Country Code Validation
                         // Enhanced debugging to see full structures
                         logger.debug('JWT PAYLOAD FULL STRUCTURE:', JSON.stringify(jwtDecoded?.payload, null, 2));
                         logger.debug('SIGNATURE RESPONSE FULL STRUCTURE:', JSON.stringify(signatureResponse, null, 2));
@@ -4661,6 +4676,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 message: `JWT signature validation failed: ${validationError.message}`
                             };
                         }
+                        } // End of signature count validation passed check
                     } catch (signatureError) {
                         validationSummary.signatureVerification = {
                             status: 'error',
@@ -5650,18 +5666,17 @@ async function checkThumbprintInBridge(thumbprint, forceRefresh = false) {
             forceRefresh
         });
 
-        // Normalize thumbprint for EBSI query (convert to base64url if needed)
+        // Use thumbprint as-is for EBSI query (no conversion)
         const normalizationResult = normalizeThumbprintForEbsi(thumbprint);
         const ebsiThumbprint = normalizationResult.normalized;
 
-        logger.info('Thumbprint encoding for EBSI query', {
-            originalThumbprint: thumbprint.substring(0, 16) + '...',
-            normalizedThumbprint: ebsiThumbprint.substring(0, 16) + '...',
+        logger.info('Thumbprint for EBSI query', {
+            thumbprint: thumbprint.substring(0, 16) + '...',
             conversionApplied: normalizationResult.conversionApplied
         });
 
         const bridgeStartTime = Date.now();
-        // Use raw base64url thumbprint without URL encoding for EBSI
+        // Use thumbprint as-is without URL encoding for EBSI
         const url = `https://resolver-test.ebsi.eu/api/v1/issuers?x509Thumbprint=${ebsiThumbprint}`;
 
         logger.debug('Making EBSI bridge API request for thumbprint', {
