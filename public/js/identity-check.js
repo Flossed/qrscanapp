@@ -1,6 +1,7 @@
 // Identity Check Page JavaScript
 // Button is enabled by default since identity verification is optional
 const identityCheckbox = document.getElementById('identityVerified');
+const birthdateCheckbox = document.getElementById('birthdateVerified');
 const continueButton = document.getElementById('continueToFinalization');
 
 // Enable button by default since verification is optional
@@ -135,7 +136,8 @@ continueButton.addEventListener('click', function() {
     // Store identity verification data
     const verificationData = {
         identityVerified: identityCheckbox.checked,
-        identitySkipped: !identityCheckbox.checked,
+        birthdateVerified: birthdateCheckbox.checked,
+        identitySkipped: !identityCheckbox.checked && !birthdateCheckbox.checked,
         verifiedAt: new Date().toISOString()
     };
 

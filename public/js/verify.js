@@ -136,6 +136,7 @@ document.getElementById('process-verification').addEventListener('click', async 
             dateRangeValidation: { status: 'skipped', message: 'Skipped due to network error' },
             startIssuanceValidation: { status: 'skipped', message: 'Skipped due to network error' },
             issuanceEndValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            expiryDateValidation: { status: 'skipped', message: 'Skipped due to network error' },
             institutionLengthValidation: { status: 'skipped', message: 'Skipped due to network error' },
             cardIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
             institutionIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
@@ -143,6 +144,7 @@ document.getElementById('process-verification').addEventListener('click', async 
             revocationStatus: { status: 'skipped', message: 'Skipped due to network error' },
             treatmentDatePresence: { status: 'skipped', message: 'Skipped due to network error' },
             treatmentDateRange: { status: 'skipped', message: 'Skipped due to network error' },
+            expiryDateValidation: { status: 'skipped', message: 'Skipped due to network error' },
             jwtSignatureValidation: { status: 'skipped', message: 'Skipped due to network error' }
         };
 
@@ -225,6 +227,7 @@ function displayValidationSummary(summary, overallStatus) {
         { key: 'dateRangeValidation', label: 'Start/End Date Validation' },
         { key: 'startIssuanceValidation', label: 'Start/Issuance Date Validation' },
         { key: 'issuanceEndValidation', label: 'Issuance/End Date Validation' },
+        { key: 'expiryDateValidation', label: 'Expiry Date Validation' },
         { key: 'institutionLengthValidation', label: 'Institution Length Validation' },
         { key: 'cardIdDigitValidation', label: 'Card ID Digit Validation' },
         { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation' }
@@ -398,6 +401,7 @@ function getStepIdFromName(stepName) {
         'Revocation Status Validation': 'revocationStatus',
         'Treatment Date Presence Validation': 'treatmentDatePresence',
         'Treatment Date Range Validation': 'treatmentDateRange',
+        'Expiry Date Validation': 'expiryDateValidation',
         'JWT Signature Validation': 'jwtSignatureValidation'
     };
 
@@ -427,6 +431,7 @@ function getStepIdFromName(stepName) {
     if (stepName.includes('Start/End') || stepName.includes('Date Range') || (stepName.includes('Start') && stepName.includes('End'))) return 'dateRangeValidation';
     if (stepName.includes('Start/Issuance') || (stepName.includes('Start') && stepName.includes('Issuance'))) return 'startIssuanceValidation';
     if (stepName.includes('Issuance/End') || (stepName.includes('Issuance') && stepName.includes('End'))) return 'issuanceEndValidation';
+    if (stepName.includes('Expiry Date')) return 'expiryDateValidation';
     if (stepName.includes('Institution') || stepName.includes('Length')) return 'institutionLengthValidation';
     if (stepName.includes('Card ID') || stepName.includes('Digit')) return 'cardIdDigitValidation';
 
@@ -518,6 +523,7 @@ function displayBasicVerificationSteps(validationSummary) {
         { key: 'dateRangeValidation', label: 'Start/End Date Validation', description: 'Verified EHIC start date is before or on end date' },
         { key: 'startIssuanceValidation', label: 'Start/Issuance Date Validation', description: 'Verified EHIC start date is before or on issuance date' },
         { key: 'issuanceEndValidation', label: 'Issuance/End Date Validation', description: 'Verified EHIC issuance date is before or on end date' },
+        { key: 'expiryDateValidation', label: 'Expiry Date Validation', description: 'Verified expiry date is equal to or greater than end date' },
         { key: 'institutionLengthValidation', label: 'Institution Length Validation', description: 'Optional validation of institution ID/name length (warning only)' },
         { key: 'cardIdDigitValidation', label: 'Card ID Digit Validation', description: 'Optional validation that card ID contains only digits (warning only)' }
     ];

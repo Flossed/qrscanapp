@@ -748,6 +748,15 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
             return validationData[fallbackKey] || false;
         };
 
+        // Helper function to check if validation was skipped
+        const getValidationSkipped = (key) => {
+            const validation = validationData[key];
+            if (validation && typeof validation === 'object') {
+                return validation.status === 'skipped';
+            }
+            return false;
+        };
+
         // Extract EHIC/PRC data from JWT payload
         let prcData = {
             issuingMemberState: 'N/A',
@@ -1374,17 +1383,27 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.font('Helvetica').fontSize(9);
         const passedText = getTranslation('email-passed', pdfLanguage);
         const failedText = getTranslation('email-failed', pdfLanguage);
+        const skippedText = 'SKIPPED';
 
         // Add identity verification warning if skipped
         if (identityVerification) {
             try {
                 const identityData = JSON.parse(identityVerification);
-                if (identityData.identitySkipped) {
+                let warningMessages = [];
+
+                if (!identityData.identityVerified) {
+                    warningMessages.push('Identity (name) verification was skipped');
+                }
+                if (!identityData.birthdateVerified) {
+                    warningMessages.push('Birthdate verification was skipped');
+                }
+
+                if (warningMessages.length > 0) {
                     // Create a highlighted warning box
                     const pageWidth = doc.page.width;
                     const margin = 50;
                     const boxWidth = pageWidth - (margin * 2);
-                    const boxHeight = 30;
+                    const boxHeight = 30 + (warningMessages.length > 1 ? 15 : 0);
                     const currentY = doc.y;
 
                     // Draw warning box background
@@ -1394,11 +1413,16 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
                     // Add warning text
                     doc.fillColor('#B8860B')
                        .font('Helvetica-Bold')
-                       .fontSize(10)
-                       .text('WARNING: Identity verification was skipped during the verification process.', margin + 10, currentY + 8, {
-                           width: boxWidth - 20,
-                           align: 'center'
-                       });
+                       .fontSize(10);
+
+                    let textY = currentY + 8;
+                    warningMessages.forEach((msg) => {
+                        doc.text(`WARNING: ${msg}`, margin + 10, textY, {
+                            width: boxWidth - 20,
+                            align: 'center'
+                        });
+                        textY += 15;
+                    });
 
                     // Reset text color and move down
                     doc.fillColor('black')
@@ -1444,6 +1468,7 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.text(`${statusSymbol(getValidationStatus('dateRangeValidation', 'dateRangeValidation'))} Start/End Date Validation: ${getValidationStatus('dateRangeValidation', 'dateRangeValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('startIssuanceValidation', 'startIssuanceValidation'))} Start/Issuance Date Validation: ${getValidationStatus('startIssuanceValidation', 'startIssuanceValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('issuanceEndValidation', 'issuanceEndValidation'))} Issuance/End Date Validation: ${getValidationStatus('issuanceEndValidation', 'issuanceEndValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('expiryDateValidation', 'expiryDateValidation'))} Expiry Date Validation: ${getValidationStatus('expiryDateValidation', 'expiryDateValidation') ? passedText : getValidationSkipped('expiryDateValidation') ? skippedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('institutionLengthValidation', 'institutionLengthValidation'))} Institution Length Validation (Optional): ${getValidationStatus('institutionLengthValidation', 'institutionLengthValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation'))} Card ID Digit Validation (Optional): ${getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation'))} Institution ID Digit Validation (Optional): ${getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation') ? passedText : failedText}`);
@@ -1514,10 +1539,22 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         if (identityVerification) {
             try {
                 const identityData = JSON.parse(identityVerification);
-                if (identityData.identitySkipped) {
+                let warningMessages = [];
+
+                if (!identityData.identityVerified) {
+                    warningMessages.push('Identity (name) verification was skipped');
+                }
+                if (!identityData.birthdateVerified) {
+                    warningMessages.push('Birthdate verification was skipped');
+                }
+
+                if (warningMessages.length > 0) {
                     identityVerificationWarning = `
                         <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 5px;">
-                            <p style="color: #856404; margin: 0;"><strong>⚠️ Warning:</strong> Identity verification was skipped during the verification process.</p>
+                            <p style="color: #856404; margin: 0;"><strong>⚠️ Warning:</strong></p>
+                            <ul style="color: #856404; margin: 5px 0 0 20px;">
+                                ${warningMessages.map(msg => `<li>${msg}</li>`).join('')}
+                            </ul>
                         </div>
                     `;
                 }
@@ -1560,6 +1597,7 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
                 <li>${statusSymbol(getValidationStatus('dateRangeValidation', 'dateRangeValidation'))} Start/End Date Validation</li>
                 <li>${statusSymbol(getValidationStatus('startIssuanceValidation', 'startIssuanceValidation'))} Start/Issuance Date Validation</li>
                 <li>${statusSymbol(getValidationStatus('issuanceEndValidation', 'issuanceEndValidation'))} Issuance/End Date Validation</li>
+                <li>${statusSymbol(getValidationStatus('expiryDateValidation', 'expiryDateValidation'))} Expiry Date Validation ${getValidationSkipped('expiryDateValidation') ? '<span style="color: #f39c12;">(Skipped - No expiry date found)</span>' : ''}</li>
                 <li>${statusSymbol(getValidationStatus('institutionLengthValidation', 'institutionLengthValidation'))} Institution Length Validation <span style="color: #f39c12;">(Optional)</span></li>
                 <li>${statusSymbol(getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation'))} Card ID Digit Validation <span style="color: #f39c12;">(Optional)</span></li>
                 <li>${statusSymbol(getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation'))} Institution ID Digit Validation <span style="color: #f39c12;">(Optional)</span></li>
@@ -4503,6 +4541,85 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 validationSummary.treatmentDateRange = {
                                     status: 'warning',
                                     message: `Treatment date range validation encountered an error: ${treatmentDateRangeError.message}`
+                                };
+                            }
+
+                            // Step 22: Expiry Date Validation (xd >= ed)
+                            try {
+                                let expiryDateValidationPassed = false;
+                                let expiryDateValidationMessage = 'Expiry date not found in payload';
+                                let expiryDateValidationStatus = 'skipped';
+
+                                // Extract payload from JWT
+                                const payload = jwtDecoded?.payload;
+
+                                // Check if expiry date exists in payload.prc.xd
+                                const expiryDate = payload?.prc?.xd;
+                                const endDate = payload?.prc?.ed;
+
+                                if (expiryDate) {
+                                    if (endDate) {
+                                        // Parse dates for comparison
+                                        const expiryDateObj = new Date(expiryDate);
+                                        const endDateObj = new Date(endDate);
+
+                                        // Validate: expiry date should be >= end date
+                                        if (expiryDateObj >= endDateObj) {
+                                            expiryDateValidationPassed = true;
+                                            expiryDateValidationMessage = `Expiry date validation passed: Expiry date (${expiryDate}) is equal to or greater than end date (${endDate})`;
+                                            expiryDateValidationStatus = 'success';
+                                        } else {
+                                            expiryDateValidationPassed = false;
+                                            expiryDateValidationMessage = `Expiry date validation failed: Expiry date (${expiryDate}) is before end date (${endDate})`;
+                                            expiryDateValidationStatus = 'warning';
+                                        }
+                                    } else {
+                                        expiryDateValidationMessage = 'Expiry date found but end date is missing - cannot validate';
+                                        expiryDateValidationStatus = 'warning';
+                                    }
+                                } else {
+                                    expiryDateValidationMessage = 'Expiry date not found in payload (prc.xd) - validation skipped';
+                                    expiryDateValidationStatus = 'skipped';
+                                }
+
+                                logger.info('Expiry date validation', {
+                                    expiryDate: expiryDate || 'N/A',
+                                    endDate: endDate || 'N/A',
+                                    passed: expiryDateValidationPassed,
+                                    status: expiryDateValidationStatus
+                                });
+
+                                const expiryDateValidationString = JSON.stringify({
+                                    expiryDate: expiryDate || 'N/A',
+                                    endDate: endDate || 'N/A',
+                                    validationPassed: expiryDateValidationPassed,
+                                    message: expiryDateValidationMessage,
+                                    status: expiryDateValidationStatus
+                                }, null, 2);
+
+                                const expiryDateValidationSize = Buffer.byteLength(expiryDateValidationString, 'utf8');
+
+                                steps.push({
+                                    name: 'Step 22: Expiry Date Validation',
+                                    data: expiryDateValidationString,
+                                    size: expiryDateValidationSize,
+                                    percentage: Math.round((expiryDateValidationSize / responseSize) * 100)
+                                });
+
+                                validationSummary.expiryDateValidation = {
+                                    status: expiryDateValidationStatus,
+                                    message: expiryDateValidationMessage,
+                                    expiryDate: expiryDate || null,
+                                    endDate: endDate || null,
+                                    passed: expiryDateValidationPassed
+                                };
+
+                            } catch (expiryDateError) {
+                                logger.error('Expiry date validation failed:', expiryDateError);
+
+                                validationSummary.expiryDateValidation = {
+                                    status: 'error',
+                                    message: `Expiry date validation encountered an error: ${expiryDateError.message}`
                                 };
                             }
 

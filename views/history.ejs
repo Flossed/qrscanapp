@@ -14,6 +14,21 @@
                     <% scans.forEach(scan => { %>
                         <div class="scan-item <%= scan.isDuplicate ? 'duplicate-scan' : '' %>">
                             <div class="scan-content">
+                                <!-- Scan Count Header -->
+                                <div class="scan-header">
+                                    <span class="scan-count-badge">
+                                        <i class="bi bi-upc-scan"></i>
+                                        <span data-i18n-key="history-scanned">Scanned</span>:
+                                        <strong><%= scan.duplicateCount %></strong>
+                                        <span data-i18n-key="history-times"><%= scan.duplicateCount === 1 ? 'time' : 'times' %></span>
+                                    </span>
+                                    <% if (scan.isDuplicate) { %>
+                                        <span class="duplicate-badge">
+                                            <i class="bi bi-arrow-repeat"></i> <span data-i18n-key="history-duplicate">Duplicate</span>
+                                        </span>
+                                    <% } %>
+                                </div>
+
                                 <p class="scan-text"><%= scan.content %></p>
                                 <p class="scan-meta">
                                     <span class="scan-type"><%= scan.type %></span>
@@ -29,21 +44,21 @@
                                             </span>
                                         <% } %>
                                     <% } %>
-
-                                    <% if (scan.isDuplicate) { %>
-                                        <span class="duplicate-badge">
-                                            <span data-i18n-key="history-duplicate">Duplicate</span> × <%= scan.duplicateCount %>
-                                        </span>
-                                        <span class="scan-date">
-                                            <span data-i18n-key="history-first">First:</span> <%= new Date(scan.firstScannedAt).toLocaleString() %>
-                                        </span>
-                                        <span class="scan-date">
-                                            <span data-i18n-key="history-last">Last:</span> <%= new Date(scan.scannedAt).toLocaleString() %>
-                                        </span>
-                                    <% } else { %>
-                                        <span class="scan-date"><%= new Date(scan.scannedAt).toLocaleString() %></span>
-                                    <% } %>
                                 </p>
+
+                                <!-- Scan Timeline -->
+                                <div class="scan-timeline">
+                                    <div class="timeline-item">
+                                        <i class="bi bi-calendar-plus"></i>
+                                        <span><strong data-i18n-key="history-first-scan">First Scan:</strong> <%= new Date(scan.firstScannedAt).toLocaleString() %></span>
+                                    </div>
+                                    <% if (scan.isDuplicate) { %>
+                                    <div class="timeline-item">
+                                        <i class="bi bi-calendar-check"></i>
+                                        <span><strong data-i18n-key="history-last-scan">Last Scan:</strong> <%= new Date(scan.scannedAt).toLocaleString() %></span>
+                                    </div>
+                                    <% } %>
+                                </div>
 
 
                                 <% if (scan.verification && scan.verification.isVerified) { %>

@@ -95,6 +95,7 @@ async function processVerification() {
             dateRangeValidation: { status: 'skipped', message: 'Skipped due to network error' },
             startIssuanceValidation: { status: 'skipped', message: 'Skipped due to network error' },
             issuanceEndValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            expiryDateValidation: { status: 'skipped', message: 'Skipped due to network error' },
             institutionLengthValidation: { status: 'skipped', message: 'Skipped due to network error' },
             cardIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
             institutionIdDigitValidation: { status: 'skipped', message: 'Skipped due to network error' },
@@ -102,6 +103,7 @@ async function processVerification() {
             revocationStatus: { status: 'skipped', message: 'Skipped due to network error' },
             treatmentDatePresence: { status: 'skipped', message: 'Skipped due to network error' },
             treatmentDateRange: { status: 'skipped', message: 'Skipped due to network error' },
+            expiryDateValidation: { status: 'skipped', message: 'Skipped due to network error' },
             jwtSignatureValidation: { status: 'skipped', message: 'Skipped due to network error' }
         };
 
@@ -211,6 +213,7 @@ function displayValidationSummary(validationSummary, overallStatus, container) {
         { key: 'dateRangeValidation', label: 'Start/End Date Validation' },
         { key: 'startIssuanceValidation', label: 'Start/Issuance Date Validation' },
         { key: 'issuanceEndValidation', label: 'Issuance/End Date Validation' },
+        { key: 'expiryDateValidation', label: 'Expiry Date Validation' },
         { key: 'institutionLengthValidation', label: 'Institution Length Validation' },
         { key: 'cardIdDigitValidation', label: 'Card ID Digit Validation' },
         { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation' }
@@ -415,6 +418,7 @@ function getStepIdFromName(stepName) {
         'Revocation Status Validation': 'revocationStatus',
         'Treatment Date Presence Validation': 'treatmentDatePresence',
         'Treatment Date Range Validation': 'treatmentDateRange',
+        'Expiry Date Validation': 'expiryDateValidation',
         'JWT Signature Validation': 'jwtSignatureValidation'
     };
 

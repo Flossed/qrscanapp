@@ -57,14 +57,26 @@ document.getElementById('reference-number').textContent = generateReferenceNumbe
 // Update identity verification status
 const identityVerificationData = sessionStorage.getItem('identityVerification');
 const identityStatusElement = document.getElementById('identity-verification-status');
+const birthdateStatusElement = document.getElementById('birthdate-verification-status');
 
 if (identityVerificationData) {
     try {
         const identityData = JSON.parse(identityVerificationData);
+
+        // Handle identity verification status
         if (identityData.identitySkipped) {
             identityStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ <span data-i18n-key="finalization-identity-skipped">Identity verification skipped</span></span>';
         } else if (identityData.identityVerified) {
             identityStatusElement.innerHTML = '<span data-i18n-key="finalization-confirmed">✅ Confirmed</span>';
+        } else {
+            identityStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ <span data-i18n-key="finalization-identity-skipped">Identity verification skipped</span></span>';
+        }
+
+        // Handle birthdate verification status
+        if (identityData.birthdateVerified) {
+            birthdateStatusElement.innerHTML = '<span data-i18n-key="finalization-confirmed">✅ Confirmed</span>';
+        } else {
+            birthdateStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ <span data-i18n-key="finalization-identity-skipped">Birthdate verification skipped</span></span>';
         }
     } catch (e) {
         console.error('Could not parse identity verification data');
@@ -221,6 +233,7 @@ function displayValidationSummary() {
             { key: 'dateRangeValidation', label: 'Start/End Date Validation' },
             { key: 'startIssuanceValidation', label: 'Start/Issuance Date Validation' },
             { key: 'issuanceEndValidation', label: 'Issuance/End Date Validation' },
+            { key: 'expiryDateValidation', label: 'Expiry Date Validation' },
             { key: 'institutionLengthValidation', label: 'Institution Length Validation' },
             { key: 'cardIdDigitValidation', label: 'Card ID Digit Validation' },
             { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation' }

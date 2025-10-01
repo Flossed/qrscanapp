@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2025-10-01
+
+### Added
+- **Scan History Enhancements**: Enhanced scan history display with duplicate scan tracking
+  - **Scan Count Display**: Shows total number of scans for each unique QR code
+  - **Timeline Information**: Displays first scan and last scan timestamps
+  - **Visual Badges**: Scan count badges and duplicate indicators for better visibility
+  - **Deduplication Logic**: Same QR codes update existing records rather than creating duplicates
+
+- **Birthdate Verification**: Added birthdate verification checkbox to identity check page
+  - **Identity Check Enhancement**: New checkbox for birthdate verification alongside name verification
+  - **Independent Tracking**: Birthdate and name verifications tracked separately
+  - **Finalization Display**: Separate birthdate verification status shown on finalization page
+  - **Email Integration**: Birthdate verification status included in email notifications
+  - **PDF Integration**: Birthdate verification warnings included in PDF reports
+
+- **Expiry Date Validation**: Comprehensive expiry date validation for PRC certificates
+  - **Optional Validation**: Validates expiry date (xd) >= end date (ed) when expiry date is present
+  - **Greyed Out Tile**: Shows as "skipped" when no expiry date is found
+  - **Business Validation Category**: Positioned after Issuance/End Date Validation
+  - **Cross-Platform Consistency**: Displayed across /verify, /results, /finalization, email, and PDF
+
+### Enhanced
+- **Validation Organization**: All validations now properly categorized and positioned
+  - **Business Validations**: Expiry Date Validation moved from Treatment Date to Business Validations section
+  - **Consistent Placement**: Same validation order across web interface, email, and PDF reports
+  - **Helper Functions**: Added getValidationSkipped() helper for checking skipped validations
+
+- **Identity Verification Warnings**: Enhanced warning system for identity checks
+  - **Dual Warnings**: Separate warnings for skipped name verification and skipped birthdate verification
+  - **PDF Warning Display**: Multi-line warning box in PDF for multiple skipped verifications
+  - **Email Warning Display**: Bulleted list of skipped verifications in email notifications
+
+### Fixed
+- **Email Sending Error**: Fixed "getValidationSkipped is not defined" error
+  - **Missing Helper Function**: Added getValidationSkipped() function to scanRoutes.js
+  - **Missing Constant**: Added skippedText constant for PDF generation
+  - **Validation Display**: Expiry date validation now correctly shows "SKIPPED" status when not present
+
+### Technical Improvements
+- **Scan History Styling**: Enhanced CSS for scan count badges and timeline displays
+  - **Visual Design**: Gradient backgrounds, icons, and professional styling
+  - **Responsive Layout**: Timeline displays work on mobile and desktop
+  - **Translation Support**: Added history-scanned, history-times, history-first-scan, history-last-scan keys
+
+- **Translation Keys**: Added new translation keys for enhanced features
+  - `identity-checklist-birthdate`: Birthdate verification checkbox label
+  - `finalization-birthdate-verified`: Birthdate verification status label
+  - `history-scanned`, `history-times`, `history-first-scan`, `history-last-scan`: History display labels
+
+- **Validation Pipeline**: Enhanced validation summary structure
+  - **Expiry Date Validation**: Step 22 added for expiry date checking
+  - **Status Mapping**: Proper status handling for success/warning/skipped states
+  - **Error Handling**: Comprehensive error handling for all validation steps
+
+### Notes
+- **All validations conform document**: Validation structure and categorization follows EHIC specification
+- **Missing verification official ID**: Physical identity document verification not yet implemented
+- **Missing retrieval of official ID**: Automated ID retrieval functionality not yet implemented
+
 ## [0.19.0] - 2025-09-30
 
 ### Added
