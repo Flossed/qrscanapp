@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2025-10-01
+
+### Added
+- **Heroku Deployment Scripts**: Created dedicated deployment configuration scripts
+  - **heroku-setup-dev.sh**: Development environment setup with full debug logging
+  - **heroku-setup-prod.sh**: Production environment setup with minimal logging
+  - **HEROKU-CONFIG.md**: Comprehensive Heroku configuration documentation
+
+- **Environment Variable Documentation**: Complete guide for all configuration variables
+  - Database configuration (DB_USER, DB_PASSWORD, DB_CLUSTER, DB_NAME)
+  - Session configuration (SESSION_SECRET)
+  - Logging configuration (LOG_LEVEL, LOG_CONSOLE)
+  - Application mode (MODE, NODE_ENV)
+  - SMTP configuration (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)
+
+### Fixed
+- **Heroku Login Issues**: Fixed session persistence by ensuring SESSION_SECRET is properly configured
+  - Added SESSION_SECRET generation and configuration to deployment scripts
+  - Sessions now persist correctly across requests
+  - Users can successfully login and stay authenticated
+
+- **Logging Configuration**: Made logging configurable via environment variables
+  - `LOG_LEVEL` now configurable (debug|trace|http|info|warn|error|exception)
+  - `LOG_CONSOLE` now configurable (on|off)
+  - Default log level changed from hardcoded `debug` to environment-based `info`
+  - Logging configuration now displayed on startup for verification
+
+### Enhanced
+- **Heroku Deployment Process**: Improved deployment workflow with clear documentation
+  - Separate scripts for development vs production environments
+  - Automatic SESSION_SECRET generation for security
+  - Clear environment variable explanations and troubleshooting guides
+  - Configuration verification steps included
+
+### Technical Improvements
+- **Logger Configuration**: Updated scanRoutes.js to use environment variables
+  - Added `process.env.LOG_LEVEL` with fallback to 'info'
+  - Added `process.env.LOG_CONSOLE` with fallback to 'on'
+  - Added `process.env.LOG_PATH` with fallback to './logs'
+  - Added startup logging to display current logger configuration
+
+- **Development vs Production Settings**:
+  - **Development**: LOG_LEVEL=debug, MODE=DEBUG, stores all scans
+  - **Production**: LOG_LEVEL=error, MODE=PRODUCTION, no scan storage for privacy
+
+### Documentation
+- **HEROKU-CONFIG.md**: Complete Heroku configuration reference
+  - Environment variable explanations
+  - Development vs production comparisons
+  - Troubleshooting guides for common issues
+  - Security best practices
+  - Log viewing commands and examples
+
 ## [0.20.0] - 2025-10-01
 
 ### Added

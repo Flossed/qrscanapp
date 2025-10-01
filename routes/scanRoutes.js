@@ -16,21 +16,28 @@ const crypto = require('crypto');
 const { createVerify } = require('crypto');
 const Logger = require('@zandd/app-logger');
 
-// Define logger configuration variables
-const logTracelevel = 'debug';        // Log level: exception|error|warn|info|http|trace|debug
-const consoleOutput = 'on';          // Console output: 'on'|'off'
-const logPath = './logs';            // Path for log files
+// Define logger configuration variables (with environment variable support)
+const logTracelevel = process.env.LOG_LEVEL || 'info';  // Log level: exception|error|warn|info|http|trace|debug
+const consoleOutput = process.env.LOG_CONSOLE || 'on';  // Console output: 'on'|'off'
+const logPath = process.env.LOG_PATH || './logs';       // Path for log files
 const logFileName = 'qr-scanner-certificate-processor';
 
 const logConfig = {
     logTracelevel: logTracelevel,        // Log level: exception|error|warn|info|http|trace|debug
-    consoleOutput: consoleOutput,          // Console output: 'on'|'off'
-    logPath: logPath,           // Path for log files
-    dateLocale: 'de-DE',          // Date formatting locale
-    fileRotation: true,           // Enable daily file rotation
-    maxFileSize: '20m',           // Maximum file size before rotation
-    maxFiles: '14d'               // Keep files for 14 days
+    consoleOutput: consoleOutput,        // Console output: 'on'|'off'
+    logPath: logPath,                    // Path for log files
+    dateLocale: 'de-DE',                 // Date formatting locale
+    fileRotation: true,                  // Enable daily file rotation
+    maxFileSize: '20m',                  // Maximum file size before rotation
+    maxFiles: '14d'                      // Keep files for 14 days
 };
+
+// Log the current logging configuration
+console.log('Logger Configuration:', {
+    level: logTracelevel,
+    console: consoleOutput,
+    path: logPath
+});
 
 const logger = new Logger(logFileName, logConfig);
 
