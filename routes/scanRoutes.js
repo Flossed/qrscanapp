@@ -1714,7 +1714,7 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
 
         // Send email with PDF and JSON attachments
         await transporter.sendMail({
-            from: '"EHIC Verifier" <noreply@ehic-verifier.com>',
+            from: '"EHIC Verifier" <noreply@zandd.eu>',
             to: email,
             subject: getTranslation('email-subject', userLanguage, {
                 referenceNumber: referenceNumber,
