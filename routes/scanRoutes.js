@@ -1356,10 +1356,36 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.addPage();
 
         // Add verification header on page 2 - Arial fonts
-        const pdfOverallSuccess = verificationStatus?.overall || verificationStatus?.overallStatus === 'success';
-        const pdfOverallStatusText = pdfOverallSuccess ? getTranslation('email-successful', pdfLanguage) : getTranslation('email-failed', pdfLanguage);
+        // Check for errors and warnings in validation summary
+        let hasErrors = false;
+        let hasWarnings = false;
+
+        if (verificationStatus?.validationSummary) {
+            Object.values(verificationStatus.validationSummary).forEach(validation => {
+                if (validation && typeof validation === 'object') {
+                    if (validation.status === 'error') hasErrors = true;
+                    if (validation.status === 'warning') hasWarnings = true;
+                }
+            });
+        }
+
+        // Determine overall status
+        let pdfOverallStatusText;
+        let pdfStatusSymbol;
+
+        if (hasErrors) {
+            pdfOverallStatusText = getTranslation('pdf-verification-failed', pdfLanguage);
+            pdfStatusSymbol = '❌';
+        } else if (hasWarnings) {
+            pdfOverallStatusText = getTranslation('pdf-verification-warnings', pdfLanguage);
+            pdfStatusSymbol = '⚠️';
+        } else {
+            pdfOverallStatusText = getTranslation('pdf-verification-complete', pdfLanguage);
+            pdfStatusSymbol = '✅';
+        }
+
         doc.font('Helvetica-Bold').fontSize(12)
-           .text(`${getTranslation('pdf-verification-status', pdfLanguage)} ${statusSymbol(pdfOverallSuccess)} ${pdfOverallStatusText}`, { align: 'center' });
+           .text(`${getTranslation('pdf-verification-status', pdfLanguage)} ${pdfStatusSymbol} ${pdfOverallStatusText}`, { align: 'center' });
         doc.font('Helvetica').fontSize(9)
            .text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber} | ${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate}`, { align: 'center' });
         doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
@@ -1486,30 +1512,21 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.text(`${statusSymbol(getValidationStatus('treatmentDateRange', 'treatmentDateRange'))} Treatment Date Range Validation: ${getValidationStatus('treatmentDateRange', 'treatmentDateRange') ? passedText : failedText}`);
         doc.moveDown(2);
 
-        // === PDF DIGITAL SIGNATURE SECTION (at end of document) ===
-        // Add separation and digital signature section - Arial 9pt italics header
+        // === PDF VERIFICATION INFORMATION SECTION (at end of document) ===
+        // Add separation and information section - Arial 9pt italics header
         doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-digital-signature', pdfLanguage));
+           .text(getTranslation('pdf-verification-information', pdfLanguage));
         doc.moveDown();
 
-        // Digital signature information - Arial 9pt
+        // Verification information - Arial 9pt
         doc.font('Helvetica').fontSize(9);
-        doc.text(getTranslation('pdf-digitally-signed-by', pdfLanguage));
-        doc.text('EHIC/PRC Verification System');
+        doc.text(getTranslation('pdf-verified-by', pdfLanguage));
+        doc.text(`${req.user.firstName} ${req.user.lastName}`);
+        doc.text(req.user.email);
         doc.text(`${getTranslation('pdf-institution', pdfLanguage)} ${prcData.institutionName !== 'N/A' ? prcData.institutionName : 'Healthcare Provider'}`);
         doc.text(`${getTranslation('pdf-institution-id-signature', pdfLanguage)} ${prcData.institutionId}`);
-        doc.text(`${getTranslation('pdf-signed-on', pdfLanguage)} ${new Date(timestamp).toLocaleDateString('en-GB')}`);
+        doc.text(`${getTranslation('pdf-verified-on', pdfLanguage)} ${new Date(timestamp).toLocaleDateString('en-GB')}`);
         doc.text(`${getTranslation('pdf-time', pdfLanguage)} ${new Date(timestamp).toLocaleTimeString('en-GB')}`);
-
-        // Add verification hash/fingerprint
-        const verificationHash = require('crypto')
-            .createHash('sha256')
-            .update(verificationData + timestamp)
-            .digest('hex')
-            .substring(0, 16)
-            .toUpperCase();
-
-        doc.text(`${getTranslation('pdf-verification-hash', pdfLanguage)} ${verificationHash}`);
 
         // Finalize PDF
         doc.end();
@@ -1517,12 +1534,33 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         // Wait for PDF to be written
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Determine overall status
-        const overallSuccess = verificationStatus?.overall || verificationStatus?.overallStatus === 'success';
-        const statusIcon = overallSuccess ? '✅' : '❌';
+        // Determine overall status - check for errors and warnings
+        let emailHasErrors = false;
+        let emailHasWarnings = false;
 
-        // Get translated status text
-        const statusText = getTranslation(overallSuccess ? 'email-successful' : 'email-failed', userLanguage);
+        if (verificationStatus?.validationSummary) {
+            Object.values(verificationStatus.validationSummary).forEach(validation => {
+                if (validation && typeof validation === 'object') {
+                    if (validation.status === 'error') emailHasErrors = true;
+                    if (validation.status === 'warning') emailHasWarnings = true;
+                }
+            });
+        }
+
+        // Determine status icon and text
+        let statusIcon;
+        let statusText;
+
+        if (emailHasErrors) {
+            statusIcon = '❌';
+            statusText = getTranslation('email-failed', userLanguage);
+        } else if (emailHasWarnings) {
+            statusIcon = '⚠️';
+            statusText = getTranslation('email-warnings', userLanguage);
+        } else {
+            statusIcon = '✅';
+            statusText = getTranslation('email-successful', userLanguage);
+        }
 
         // Process identity verification data
         let identityVerificationWarning = '';

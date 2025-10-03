@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2025-10-03
+
+### Fixed
+- **Warning Status Propagation**: Warning status now properly propagates to PDF and email
+  - Previously only displayed on finalization page
+  - Added validationSummary scanning logic to detect warnings in PDF generation (lines 1359-1388)
+  - Added validationSummary scanning logic to detect warnings in email generation (lines 1547-1573)
+  - Three status levels now displayed: ❌ Failed, ⚠️ Complete with Warnings, ✅ Complete
+
+### Changed
+- **PDF Footer Terminology**: Changed misleading "Digital Signature" section to "Verification Information"
+  - Changed "Digitally signed by" to "Verified by" (not cryptographically signed)
+  - Changed "Signed on" to "Verified on"
+  - Shows actual verifier name and email from `req.user` instead of generic "EHIC/PRC Verification System"
+  - More accurate representation of what the PDF contains
+
+### Removed
+- **Verification Hash**: Removed unverifiable hash from PDF footer
+  - Hash was not verifiable by recipients without access to the verification system
+  - Could create false impression of cryptographic security
+  - Recipients can verify authenticity through the attached JSON structure instead
+
+### Added
+- **Translation Keys**: Added new translation keys for warning status
+  - `email-warnings`: "COMPLETE WITH WARNINGS"
+  - `pdf-verification-complete`: "Verification Complete"
+  - `pdf-verification-failed`: "Verification Failed"
+  - `pdf-verification-warnings`: "Verification Complete with Warnings"
+  - `pdf-verification-information`: "Verification Information" (replaced `pdf-digital-signature`)
+  - `pdf-verified-by`: "Verified by:" (replaced `pdf-digitally-signed-by`)
+  - `pdf-verified-on`: "Verified on:" (replaced `pdf-signed-on`)
+
 ## [0.26.0] - 2025-10-03
 
 ### Fixed
