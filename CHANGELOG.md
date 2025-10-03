@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - 2025-10-03
+
+### Fixed
+- **EBSI API Call Enhancement**: Fixed EBSI resolver API calls to include countryCode and officialId parameters
+  - EBSI URL now includes: `?x509Thumbprint=[thumbprint]&countryCode=[ic]&officialId=[ii]`
+  - Extracts countryCode from `payload.prc.ic` (required field per schema)
+  - Extracts officialId from `payload.prc.ii` (required field per schema)
+  - Cache invalidation for signature verification to force fresh calls with new parameters
+  - Reduces EBSI response from 53 issuers to exactly 1 matching issuer
+
+### Added
+- **Official ID Validation**: New technical validation step (Step 8.2a)
+  - Validates `payload.prc.ii` matches `signatureResponse.data.results[0].officialId`
+  - Positioned after Country Code Validation in technical validations
+  - Returns error status if mismatch or either value is missing
+  - Skipped if signature count validation fails
+  - Added to frontend tiles in verify.js, results.js, and finalization.js
+  - Added to PDF and email reports
+  - Added to validation summary initialization
+
+### Changed
+- **Institution ID Digit Validation**: Moved from Business Validations to Technical Validations
+  - Backend validation (Step 8.2b) runs after Official ID Validation
+  - Frontend tile remains in Business Validations section (last position)
+  - Maintains optional/warning status
+  - Validates institution ID contains only digits
+
+### Technical Improvements
+- **Cache Management**: Force cache invalidation before signature verification
+  - Deletes existing cache entry for thumbprint
+  - Forces fresh EBSI API call with countryCode and officialId parameters
+  - Ensures filtered results (1 issuer instead of 53)
+- **Parameter Passing**: Enhanced EBSI bridge function signatures
+  - `checkThumbprintInBridge()` accepts optional countryCode and officialId
+  - `verifySignature()` extracts and passes required PRC fields
+  - `processCertificateWithBridgeLookup()` passes certificate data
+- **Debug Logging**: Added validation data logging for PDF/Email generation
+  - Logs presence of validationSummary
+  - Logs validation data keys
+  - Logs sample validation objects for debugging
+- **Frontend Tile Organization**: Updated all three frontend pages
+  - verify.js: Added officialIdValidation, moved institutionIdDigitValidation
+  - results.js: Added officialIdValidation, moved institutionIdDigitValidation
+  - finalization.js: Added officialIdValidation, moved institutionIdDigitValidation
+  - Updated step mappings for proper tile display
+
 ## [0.25.0] - 2025-10-01
 
 ### Fixed

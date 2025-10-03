@@ -276,6 +276,7 @@ function displayValidationSummary() {
             { key: 'signatureVerification', label: 'Signature Retrieval' },
             { key: 'signatureCountValidation', label: 'Signature Count Validation' },
             { key: 'countryCodeValidation', label: 'Country Code Validation' },
+            { key: 'officialIdValidation', label: 'Official ID Validation' },
             { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
         ];
 
@@ -290,7 +291,7 @@ function displayValidationSummary() {
             { key: 'expiryDateValidation', label: 'Expiry Date Validation' },
             { key: 'institutionLengthValidation', label: 'Institution Length Validation' },
             { key: 'cardIdDigitValidation', label: 'Card ID Digit Validation' },
-            { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation' }
+            { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation (Optional)' }
         ];
 
         let summaryHTML = `<div class="validation-summary ${overallStatus}">`;
@@ -438,6 +439,8 @@ function getStepIdFromName(stepName) {
         'Signature Verification Response': 'signatureVerification',
         'Signature Count Validation': 'signatureCountValidation',
         'Country Code Validation': 'countryCodeValidation',
+        'Official ID Validation': 'officialIdValidation',
+        'Institution ID Digit Validation (Optional)': 'institutionIdDigitValidation',
         'Certificate Validity Date': 'certificateValidityDate',
         'EHIC Accreditation': 'ehicAccreditation',
         'Date of Birth Validation': 'dateOfBirthValidation',
@@ -446,7 +449,6 @@ function getStepIdFromName(stepName) {
         'Issuance/End Date Validation': 'issuanceEndValidation',
         'Institution Length Validation': 'institutionLengthValidation',
         'Card ID Digit Validation': 'cardIdDigitValidation',
-        'Institution ID Digit Validation': 'institutionIdDigitValidation',
         'Revocation Information Presence Validation': 'revocationPresence',
         'Revocation Status Validation': 'revocationStatus',
         'Treatment Date Presence Validation': 'treatmentDatePresence',

@@ -719,6 +719,15 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
 
         // Helper function to get validation status (used by both PDF and email)
         const validationData = verificationStatus?.validationSummary || verificationStatus?.steps || {};
+
+        // Debug logging
+        logger.debug('Validation data for PDF/Email', {
+            hasValidationSummary: !!verificationStatus?.validationSummary,
+            hasSteps: !!verificationStatus?.steps,
+            validationDataKeys: Object.keys(validationData),
+            sampleValidation: validationData.officialIdValidation || validationData.countryCodeValidation
+        });
+
         const getValidationStatus = (key, fallbackKey) => {
             const validation = validationData[key];
             if (validation && typeof validation === 'object') {
@@ -1432,6 +1441,7 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.text(`${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} Signature Retrieval: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} Signature Count Validation: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} Country Code Validation: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol(getValidationStatus('officialIdValidation', 'officialIdValidation'))} Official ID Validation: ${getValidationStatus('officialIdValidation', 'officialIdValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} JWT Signature Validation: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
 
         doc.moveDown(1);
@@ -1566,6 +1576,7 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
                 <li>${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} Signature Retrieval</li>
                 <li>${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} Signature Count Validation</li>
                 <li>${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} Country Code Validation</li>
+                <li>${statusSymbol(getValidationStatus('officialIdValidation', 'officialIdValidation'))} Official ID Validation</li>
                 <li>${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} JWT Signature Validation</li>
             </ul>
 
@@ -1964,6 +1975,7 @@ router.post('/api/verify', isAuthenticated, async (req, res) => {
                 signatureVerification: { status: 'pending', message: '' },
                 signatureCountValidation: { status: 'pending', message: '' },
                 countryCodeValidation: { status: 'pending', message: '' },
+                officialIdValidation: { status: 'pending', message: '' },
                 certificateValidityDate: { status: 'pending', message: '' },
                 ehicAccreditation: { status: 'pending', message: '' },
                 dateOfBirthValidation: { status: 'pending', message: '' },
@@ -2453,6 +2465,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
         signatureVerification: { status: 'pending', message: '' },
         signatureCountValidation: { status: 'pending', message: '' },
         countryCodeValidation: { status: 'pending', message: '' },
+        officialIdValidation: { status: 'pending', message: '' },
         certificateValidityDate: { status: 'pending', message: '' },
         ehicAccreditation: { status: 'pending', message: '' },
         dateOfBirthValidation: { status: 'pending', message: '' },
@@ -3132,6 +3145,14 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 status: 'skipped',
                                 message: 'Skipped due to signature count validation failure'
                             };
+                            validationSummary.officialIdValidation = {
+                                status: 'skipped',
+                                message: 'Skipped due to signature count validation failure'
+                            };
+                            validationSummary.institutionIdDigitValidation = {
+                                status: 'skipped',
+                                message: 'Skipped due to signature count validation failure'
+                            };
                             validationSummary.certificateValidityDateVerification = {
                                 status: 'skipped',
                                 message: 'Skipped due to signature count validation failure'
@@ -3208,6 +3229,136 @@ async function processVerificationData(originalData, treatmentDate = null) {
                             });
                             // Don't throw error immediately - let other validations complete
                             logger.warn('Continuing with JWT signature validation despite country code mismatch');
+                        }
+
+                        // Step 8.2a: Official ID Validation
+                        // Validate that the official ID from JWT payload matches the signature response
+                        const jwtOfficialId = jwtDecoded?.payload?.prc?.ii || null;
+                        const signatureOfficialId = signatureResponse.data?.results && Array.isArray(signatureResponse.data.results) ?
+                            signatureResponse.data.results[0]?.officialId :
+                            null;
+
+                        logger.debug('Extracted official IDs:', {
+                            jwtOfficialId: jwtOfficialId,
+                            signatureOfficialId: signatureOfficialId
+                        });
+
+                        const officialIdValidationResult = {
+                            jwtOfficialId: jwtOfficialId,
+                            signatureOfficialId: signatureOfficialId,
+                            match: jwtOfficialId && signatureOfficialId && jwtOfficialId === signatureOfficialId,
+                            message: !jwtOfficialId ?
+                                'No official ID found in JWT payload (prc.ii)' :
+                                !signatureOfficialId ?
+                                    'No official ID found in signature response (results[0].officialId)' :
+                                    jwtOfficialId === signatureOfficialId ?
+                                        `Official IDs match: ${jwtOfficialId}` :
+                                        `Official ID mismatch: JWT=${jwtOfficialId}, Signature=${signatureOfficialId}`,
+                            timestamp: new Date().toISOString()
+                        };
+
+                        const officialIdValidationString = JSON.stringify(officialIdValidationResult, null, 2);
+                        const officialIdValidationSize = Buffer.byteLength(officialIdValidationString, 'utf8');
+
+                        steps.push({
+                            name: 'Official ID Validation',
+                            data: officialIdValidationString,
+                            size: officialIdValidationSize,
+                            percentage: Math.round((officialIdValidationSize / countValidationSize) * 100)
+                        });
+
+                        validationSummary.officialIdValidation = {
+                            status: officialIdValidationResult.match ? 'success' : 'error',
+                            message: officialIdValidationResult.message
+                        };
+
+                        if (!officialIdValidationResult.match) {
+                            logger.error('Official ID validation failed', {
+                                jwtOfficialId: jwtOfficialId,
+                                signatureOfficialId: signatureOfficialId,
+                                jwtPayload: jwtDecoded?.payload,
+                                signatureData: signatureResponse.data
+                            });
+                            // Don't throw error immediately - let other validations complete
+                            logger.warn('Continuing with JWT signature validation despite official ID mismatch');
+                        }
+
+                        // Step 8.2b: Institution ID Digit Validation (Optional - Warning Only)
+                        try {
+                            let institutionIdValidationPassed = true; // Default to passed (warning only)
+                            let institutionIdValidationMessage = 'Institution ID digit validation skipped - no institution ID found';
+                            let validationTriggered = false;
+
+                            const prcData = jwtDecoded?.payload?.prc;
+
+                            // Only perform validation if institution ID exists (ii field)
+                            if (prcData?.ii) {
+                                validationTriggered = true;
+                                const institutionId = String(prcData.ii); // Convert to string to handle potential numbers
+                                const isAllDigits = /^\d+$/.test(institutionId);
+
+                                if (isAllDigits) {
+                                    institutionIdValidationMessage = `Institution ID digit validation passed - institution ID "${institutionId}" contains only digits (${institutionId.length} characters)`;
+                                    institutionIdValidationPassed = true;
+                                } else {
+                                    // Find non-digit characters for detailed reporting
+                                    const nonDigits = institutionId.split('').filter(char => !/\d/.test(char));
+                                    const uniqueNonDigits = [...new Set(nonDigits)];
+
+                                    institutionIdValidationMessage = `Institution ID digit validation warning - institution ID "${institutionId}" contains non-digit characters: [${uniqueNonDigits.join(', ')}]. Expected all digits only.`;
+                                    institutionIdValidationPassed = false; // This will show as warning, not error
+                                }
+
+                                logger.info('Institution ID digit validation completed', {
+                                    institutionId: institutionId,
+                                    length: institutionId.length,
+                                    isAllDigits: isAllDigits,
+                                    nonDigitCount: institutionId.split('').filter(char => !/\d/.test(char)).length,
+                                    nonDigitChars: institutionId.split('').filter(char => !/\d/.test(char))
+                                });
+                            } else {
+                                logger.info('Institution ID digit validation skipped - no institution ID found', {
+                                    hasInstitutionId: false,
+                                    prcDataExists: !!prcData
+                                });
+                            }
+
+                            const institutionIdValidationString = JSON.stringify({
+                                institutionIdValidationPassed,
+                                validationTriggered,
+                                message: institutionIdValidationMessage,
+                                institutionId: prcData?.ii || null,
+                                digitAnalysis: validationTriggered ? {
+                                    institutionIdValue: String(prcData.ii),
+                                    length: String(prcData.ii).length,
+                                    isAllDigits: /^\d+$/.test(String(prcData.ii)),
+                                    digitCount: String(prcData.ii).split('').filter(char => /\d/.test(char)).length,
+                                    nonDigitCount: String(prcData.ii).split('').filter(char => !/\d/.test(char)).length,
+                                    nonDigitChars: String(prcData.ii).split('').filter(char => !/\d/.test(char))
+                                } : null
+                            }, null, 2);
+                            const institutionIdValidationSize = Buffer.byteLength(institutionIdValidationString, 'utf8');
+
+                            steps.push({
+                                name: 'Institution ID Digit Validation (Optional)',
+                                data: institutionIdValidationString,
+                                size: institutionIdValidationSize,
+                                percentage: Math.round((institutionIdValidationSize / countValidationSize) * 100)
+                            });
+
+                            // Set status as warning for failed validation (not error), success for passed, or skipped if not triggered
+                            validationSummary.institutionIdDigitValidation = {
+                                status: !validationTriggered ? 'skipped' : (institutionIdValidationPassed ? 'success' : 'warning'),
+                                message: institutionIdValidationMessage
+                            };
+
+                        } catch (institutionIdError) {
+                            logger.error('Institution ID digit validation failed:', institutionIdError);
+
+                            validationSummary.institutionIdDigitValidation = {
+                                status: 'warning', // Still warning, not error
+                                message: `Institution ID digit validation encountered an error: ${institutionIdError.message}`
+                            };
                         }
 
                         // Step 8.3: Certificate Validity Date Verification
@@ -4164,84 +4315,6 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 };
                             }
 
-                            // Step 17: Institution ID Digit Validation (Optional - Warning Only)
-                            try {
-                                let institutionIdValidationPassed = true; // Default to passed (warning only)
-                                let institutionIdValidationMessage = 'Institution ID digit validation skipped - no institution ID found';
-                                let validationTriggered = false;
-
-                                const prcData = jwtDecoded?.payload?.prc;
-
-                                // Only perform validation if institution ID exists (ii field)
-                                if (prcData?.ii) {
-                                    validationTriggered = true;
-                                    const institutionId = String(prcData.ii); // Convert to string to handle potential numbers
-                                    const isAllDigits = /^\d+$/.test(institutionId);
-
-                                    if (isAllDigits) {
-                                        institutionIdValidationMessage = `Institution ID digit validation passed - institution ID "${institutionId}" contains only digits (${institutionId.length} characters)`;
-                                        institutionIdValidationPassed = true;
-                                    } else {
-                                        // Find non-digit characters for detailed reporting
-                                        const nonDigits = institutionId.split('').filter(char => !/\d/.test(char));
-                                        const uniqueNonDigits = [...new Set(nonDigits)];
-
-                                        institutionIdValidationMessage = `Institution ID digit validation warning - institution ID "${institutionId}" contains non-digit characters: [${uniqueNonDigits.join(', ')}]. Expected all digits only.`;
-                                        institutionIdValidationPassed = false; // This will show as warning, not error
-                                    }
-
-                                    logger.info('Institution ID digit validation completed', {
-                                        institutionId: institutionId,
-                                        length: institutionId.length,
-                                        isAllDigits: isAllDigits,
-                                        nonDigitCount: institutionId.split('').filter(char => !/\d/.test(char)).length,
-                                        nonDigitChars: institutionId.split('').filter(char => !/\d/.test(char))
-                                    });
-                                } else {
-                                    logger.info('Institution ID digit validation skipped - no institution ID found', {
-                                        hasInstitutionId: false,
-                                        prcDataExists: !!prcData
-                                    });
-                                }
-
-                                const institutionIdValidationString = JSON.stringify({
-                                    institutionIdValidationPassed,
-                                    validationTriggered,
-                                    message: institutionIdValidationMessage,
-                                    institutionId: prcData?.ii || null,
-                                    digitAnalysis: validationTriggered ? {
-                                        institutionIdValue: String(prcData.ii),
-                                        length: String(prcData.ii).length,
-                                        isAllDigits: /^\d+$/.test(String(prcData.ii)),
-                                        digitCount: String(prcData.ii).split('').filter(char => /\d/.test(char)).length,
-                                        nonDigitCount: String(prcData.ii).split('').filter(char => !/\d/.test(char)).length,
-                                        nonDigitChars: String(prcData.ii).split('').filter(char => !/\d/.test(char))
-                                    } : null
-                                }, null, 2);
-                                const institutionIdValidationSize = Buffer.byteLength(institutionIdValidationString, 'utf8');
-
-                                steps.push({
-                                    name: 'Institution ID Digit Validation (Optional)',
-                                    data: institutionIdValidationString,
-                                    size: institutionIdValidationSize,
-                                    percentage: Math.round((institutionIdValidationSize / responseSize) * 100)
-                                });
-
-                                // Set status as warning for failed validation (not error), success for passed, or skipped if not triggered
-                                validationSummary.institutionIdDigitValidation = {
-                                    status: !validationTriggered ? 'skipped' : (institutionIdValidationPassed ? 'success' : 'warning'),
-                                    message: institutionIdValidationMessage
-                                };
-
-                            } catch (institutionIdError) {
-                                logger.error('Institution ID digit validation failed:', institutionIdError);
-
-                                validationSummary.institutionIdDigitValidation = {
-                                    status: 'warning', // Still warning, not error
-                                    message: `Institution ID digit validation encountered an error: ${institutionIdError.message}`
-                                };
-                            }
-
                             // Step 18: Revocation Information Presence Validation
                             try {
                                 let revocationPresenceValidationPassed = false;
@@ -5036,38 +5109,28 @@ async function verifySignature(jwtDecoded) {
 
         const x509Thumbprint = kidParts[2];
 
-        // Extract country code from JWT payload (assuming it's in the payload)
-        // You might need to adjust this based on where the country code is stored
+        // Extract country code and official ID from JWT payload
+        // These are required fields in the PRC schema, so if they're missing,
+        // schema validation would have already failed
         const payload = jwtDecoded.payload;
-        let countryCode = 'BE'; // Default to BE, but try to extract from payload
+        const countryCode = payload.prc.ic;  // Required field per schema
+        const officialId = payload.prc.ii;   // Required field per schema
 
-        // Look for country code in common locations
-        if (payload.iss && typeof payload.iss === 'string') {
-            // Try to extract country code from issuer
-            const issuerParts = payload.iss.split('/');
-            for (const part of issuerParts) {
-                if (part.length === 2 && part.match(/^[A-Z]{2}$/)) {
-                    countryCode = part;
-                    break;
-                }
-            }
-        } else if (payload.c) {
-            countryCode = payload.c;
-        } else if (payload.country) {
-            countryCode = payload.country;
-        }
-
-        // Use cache-aware EBSI bridge check instead of direct API call
-        logger.debug('Using cache-aware EBSI bridge check for signature verification', {
+        // Invalidate cache to force fresh EBSI call with countryCode and officialId parameters
+        logger.debug('Invalidating cache for signature verification to use countryCode and officialId', {
             originalThumbprint: x509Thumbprint.substring(0, 16) + '...',
             extractedKid: kid,
-            detectedCountryCode: countryCode
+            detectedCountryCode: countryCode,
+            detectedOfficialId: officialId
         });
 
-        // This will check cache first, then EBSI if needed, and update cache
-        const bridgeFound = await checkThumbprintInBridge(x509Thumbprint);
+        // Delete existing cache entry to force fresh call with new parameters
+        await EbsiCache.deleteOne({ thumbprint: x509Thumbprint });
 
-        // Get the cached entry to return full EBSI response data
+        // This will make a fresh EBSI call with countryCode and officialId parameters
+        const bridgeFound = await checkThumbprintInBridge(x509Thumbprint, true, countryCode, officialId);
+
+        // Get the fresh cache entry with filtered results
         const cacheEntry = await EbsiCache.findOne({ thumbprint: x509Thumbprint });
 
         let ebsiResponseData = null;
@@ -5081,13 +5144,22 @@ async function verifySignature(jwtDecoded) {
 
         // Construct response URL for compatibility
         const normalizationResult = normalizeThumbprintForEbsi(x509Thumbprint);
-        const fullUrl = `https://resolver-test.ebsi.eu/api/v1/issuers?x509Thumbprint=${normalizationResult.normalized}`;
+        let fullUrl = `https://resolver-test.ebsi.eu/api/v1/issuers?x509Thumbprint=${normalizationResult.normalized}`;
+        if (countryCode) {
+            fullUrl += `&countryCode=${countryCode}`;
+        }
+        if (officialId) {
+            fullUrl += `&officialId=${officialId}`;
+        }
 
-        logger.info('Signature verification using cached EBSI response', {
+        logger.info('Signature verification using fresh EBSI response with parameters', {
             thumbprint: x509Thumbprint.substring(0, 16) + '...',
             foundInBridge: bridgeFound,
             cacheEntryExists: !!cacheEntry,
-            lastChecked: cacheEntry?.lastChecked
+            lastChecked: cacheEntry?.lastChecked,
+            countryCode: countryCode,
+            officialId: officialId,
+            resultCount: ebsiResponseData?.length || 0
         });
 
         return {
@@ -5343,8 +5415,13 @@ async function processCertificateWithBridgeLookup(cert) {
         // First calculate the thumbprint
         const thumbprint = await calculateThumbprintFromCert(cert);
 
-        // Then check against bridge using the thumbprint
-        const found = await checkThumbprintInBridge(thumbprint);
+        // Extract countryCode and officialId from cert
+        // These should be available from the certificate data
+        const countryCode = cert.COUNTRYCODE || cert.countryCode;
+        const officialId = cert.OFFICIALID || cert.officialId;
+
+        // Then check against bridge using the thumbprint with parameters
+        const found = await checkThumbprintInBridge(thumbprint, false, countryCode, officialId);
 
         const totalProcessTime = Date.now() - certStartTime;
 
@@ -5635,7 +5712,7 @@ async function calculateThumbprintFromCert(cert) {
     return thumbprint;
 }
 
-async function checkThumbprintInBridge(thumbprint, forceRefresh = false) {
+async function checkThumbprintInBridge(thumbprint, forceRefresh = false, countryCode = null, officialId = null) {
     logger.trace(applicationName + ':checkThumbprintInBridge:Started');
 
     try {
@@ -5663,7 +5740,9 @@ async function checkThumbprintInBridge(thumbprint, forceRefresh = false) {
         // Cache miss or forced refresh - query EBSI bridge
         logger.debug('Cache miss for thumbprint, querying EBSI bridge', {
             thumbprint: thumbprint.substring(0, 16) + '...',
-            forceRefresh
+            forceRefresh,
+            countryCode,
+            officialId
         });
 
         // Use thumbprint as-is for EBSI query (no conversion)
@@ -5672,22 +5751,36 @@ async function checkThumbprintInBridge(thumbprint, forceRefresh = false) {
 
         logger.info('Thumbprint for EBSI query', {
             thumbprint: thumbprint.substring(0, 16) + '...',
-            conversionApplied: normalizationResult.conversionApplied
+            conversionApplied: normalizationResult.conversionApplied,
+            countryCode,
+            officialId
         });
 
         const bridgeStartTime = Date.now();
-        // Use thumbprint as-is without URL encoding for EBSI
-        const url = `https://resolver-test.ebsi.eu/api/v1/issuers?x509Thumbprint=${ebsiThumbprint}`;
+        // Build request with parameters
+        const baseUrl = 'https://resolver-test.ebsi.eu/api/v1/issuers';
+        const params = {
+            x509Thumbprint: ebsiThumbprint
+        };
+
+        if (countryCode) {
+            params.countryCode = countryCode;
+        }
+        if (officialId) {
+            params.officialId = officialId;
+        }
 
         logger.debug('Making EBSI bridge API request for thumbprint', {
-            url: url,
+            baseUrl: baseUrl,
+            params: params,
             originalThumbprint: thumbprint.substring(0, 16) + '...',
             ebsiThumbprint: ebsiThumbprint.substring(0, 16) + '...',
             conversionApplied: normalizationResult.conversionApplied,
             timeout: 10000
         });
 
-        const bridgeResponse = await axios.get(url, {
+        const bridgeResponse = await axios.get(baseUrl, {
+            params: params,
             timeout: 10000,
             headers: {
                 'Accept': 'application/json',

@@ -89,6 +89,7 @@ async function processVerification() {
             signatureVerification: { status: 'skipped', message: 'Skipped due to network error' },
             signatureCountValidation: { status: 'skipped', message: 'Skipped due to network error' },
             countryCodeValidation: { status: 'skipped', message: 'Skipped due to network error' },
+            officialIdValidation: { status: 'skipped', message: 'Skipped due to network error' },
             certificateValidityDate: { status: 'skipped', message: 'Skipped due to network error' },
             ehicAccreditation: { status: 'skipped', message: 'Skipped due to network error' },
             dateOfBirthValidation: { status: 'skipped', message: 'Skipped due to network error' },
@@ -202,6 +203,7 @@ function displayValidationSummary(validationSummary, overallStatus, container) {
         { key: 'signatureVerification', label: 'Signature Retrieval' },
         { key: 'signatureCountValidation', label: 'Signature Count Validation' },
         { key: 'countryCodeValidation', label: 'Country Code Validation' },
+        { key: 'officialIdValidation', label: 'Official ID Validation' },
         { key: 'jwtSignatureValidation', label: 'JWT Signature Validation' }
     ];
 
@@ -216,7 +218,7 @@ function displayValidationSummary(validationSummary, overallStatus, container) {
         { key: 'expiryDateValidation', label: 'Expiry Date Validation' },
         { key: 'institutionLengthValidation', label: 'Institution Length Validation' },
         { key: 'cardIdDigitValidation', label: 'Card ID Digit Validation' },
-        { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation' }
+        { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation (Optional)' }
     ];
 
     const summaryDiv = document.createElement('div');
@@ -405,6 +407,8 @@ function getStepIdFromName(stepName) {
         'Signature Verification Response': 'signatureVerification',
         'Signature Count Validation': 'signatureCountValidation',
         'Country Code Validation': 'countryCodeValidation',
+        'Official ID Validation': 'officialIdValidation',
+        'Institution ID Digit Validation (Optional)': 'institutionIdDigitValidation',
         'Certificate Validity Date': 'certificateValidityDate',
         'EHIC Accreditation': 'ehicAccreditation',
         'Date of Birth Validation': 'dateOfBirthValidation',
@@ -413,7 +417,6 @@ function getStepIdFromName(stepName) {
         'Issuance/End Date Validation': 'issuanceEndValidation',
         'Institution Length Validation': 'institutionLengthValidation',
         'Card ID Digit Validation': 'cardIdDigitValidation',
-        'Institution ID Digit Validation': 'institutionIdDigitValidation',
         'Revocation Information Presence Validation': 'revocationPresence',
         'Revocation Status Validation': 'revocationStatus',
         'Treatment Date Presence Validation': 'treatmentDatePresence',
