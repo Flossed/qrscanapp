@@ -88,20 +88,30 @@ if (verificationResults) {
             statusSubtitle.setAttribute('data-i18n-key', 'finalization-verification-failed-message');
             statusContainer.style.color = '#721c24';
             statusContainer.style.backgroundColor = '#f8d7da';
-        } else if (hasWarnings) {
-            statusIcon.textContent = '⚠️';
-            statusTitle.textContent = 'Verification Complete with Warnings';
-            statusTitle.setAttribute('data-i18n-key', 'finalization-verification-warnings');
-            statusSubtitle.textContent = 'Verification completed successfully but some warnings were found';
-            statusSubtitle.setAttribute('data-i18n-key', 'finalization-verification-warnings-message');
-            statusContainer.style.color = '#856404';
-            statusContainer.style.backgroundColor = '#fff3cd';
         } else {
+            // Success or success with warnings - both show green
             statusIcon.textContent = '✅';
-            statusTitle.textContent = 'Verification Complete';
-            statusTitle.setAttribute('data-i18n-key', 'finalization-verification-complete');
-            statusSubtitle.textContent = 'All verification steps have been successfully completed';
-            statusSubtitle.setAttribute('data-i18n-key', 'finalization-all-steps-completed');
+            statusTitle.textContent = 'Verification Approved';
+            statusTitle.setAttribute('data-i18n-key', 'finalization-verification-approved');
+            statusSubtitle.textContent = 'EHIC valid and verified';
+            statusSubtitle.setAttribute('data-i18n-key', 'finalization-ehic-valid');
+            // Keep default green styling
+        }
+
+        // Add warning notification box if warnings exist (but no errors)
+        if (hasWarnings && !hasErrors) {
+            // Check if warning notification already exists to avoid duplicates
+            let warningNotification = document.querySelector('.warning-notification');
+            if (!warningNotification) {
+                warningNotification = document.createElement('div');
+                warningNotification.className = 'warning-notification';
+                warningNotification.innerHTML = `
+                    <span class="warning-icon">⚠️</span>
+                    <span data-i18n-key="finalization-non-blocking-warnings">Some non-blocking warnings found</span>
+                `;
+                // Insert after the status container
+                statusContainer.parentNode.insertBefore(warningNotification, statusContainer.nextSibling);
+            }
         }
     } catch (e) {
         console.error('Could not parse verification results for status update:', e);
@@ -258,6 +268,7 @@ function calculateCategoryStatus(steps, validationSummary) {
     let successCount = 0;
     let errorCount = 0;
     let warningCount = 0;
+    let skippedCount = 0;
 
     steps.forEach(step => {
         const validation = validationSummary[step.key] || { status: 'pending' };
@@ -272,6 +283,8 @@ function calculateCategoryStatus(steps, validationSummary) {
         } else if (validation.status === 'success') {
             hasSuccess = true;
             successCount++;
+        } else if (validation.status === 'skipped') {
+            skippedCount++;
         }
     });
 
@@ -283,6 +296,9 @@ function calculateCategoryStatus(steps, validationSummary) {
         categoryStatus = 'warning';
     } else if (successCount === totalCount) {
         categoryStatus = 'success';
+    } else if (successCount + skippedCount === totalCount) {
+        // All tests either passed or were skipped (no failures)
+        categoryStatus = 'partial';
     }
 
     return {
@@ -290,7 +306,8 @@ function calculateCategoryStatus(steps, validationSummary) {
         totalCount,
         successCount,
         errorCount,
-        warningCount
+        warningCount,
+        skippedCount
     };
 }
 
@@ -360,61 +377,101 @@ function displayValidationSummary() {
         let tilesHTML = '';
 
         // Technical Validations Category Tile
-        const techIcon = getValidationStatusIcon(technicalCategory.status);
-        const techEmoji = technicalCategory.status === 'success' ? '✅' :
-                          technicalCategory.status === 'error' ? '❌' :
-                          technicalCategory.status === 'warning' ? '⚠️' : '⏳';
+        const techStatusIcon = technicalCategory.status === 'success' ? '✅' :
+                               technicalCategory.status === 'error' ? '❌' :
+                               technicalCategory.status === 'warning' ? '⚠️' :
+                               technicalCategory.status === 'partial' ? '☑️' : '✗';
+        let techStatusText = `${technicalCategory.successCount}/${technicalCategory.totalCount} passed`;
+        if (technicalCategory.errorCount > 0) {
+            techStatusText += ` (${technicalCategory.errorCount} errors)`;
+        }
+        if (technicalCategory.warningCount > 0) {
+            techStatusText += ` (${technicalCategory.warningCount} warnings)`;
+        }
+        if (technicalCategory.skippedCount > 0) {
+            techStatusText += ` (${technicalCategory.skippedCount} skipped)`;
+        }
         tilesHTML += `
             <div class="summary-item">
-                <span class="summary-icon">${techEmoji}</span>
+                <span class="summary-icon">⚙️</span>
                 <div class="summary-details">
                     <div class="summary-label">Technical Validations</div>
-                    <div class="summary-value">${technicalCategory.successCount}/${technicalCategory.totalCount} passed${technicalCategory.errorCount > 0 ? ` (${technicalCategory.errorCount} errors)` : technicalCategory.warningCount > 0 ? ` (${technicalCategory.warningCount} warnings)` : ''}</div>
+                    <div class="summary-value">${techStatusIcon} ${techStatusText}</div>
                 </div>
             </div>
         `;
 
         // Business Validations Category Tile
-        const businessIcon = getValidationStatusIcon(businessCategory.status);
-        const businessEmoji = businessCategory.status === 'success' ? '✅' :
-                              businessCategory.status === 'error' ? '❌' :
-                              businessCategory.status === 'warning' ? '⚠️' : '⏳';
+        const businessStatusIcon = businessCategory.status === 'success' ? '✅' :
+                                   businessCategory.status === 'error' ? '❌' :
+                                   businessCategory.status === 'warning' ? '⚠️' :
+                                   businessCategory.status === 'partial' ? '☑️' : '✗';
+        let businessStatusText = `${businessCategory.successCount}/${businessCategory.totalCount} passed`;
+        if (businessCategory.errorCount > 0) {
+            businessStatusText += ` (${businessCategory.errorCount} errors)`;
+        }
+        if (businessCategory.warningCount > 0) {
+            businessStatusText += ` (${businessCategory.warningCount} warnings)`;
+        }
+        if (businessCategory.skippedCount > 0) {
+            businessStatusText += ` (${businessCategory.skippedCount} skipped)`;
+        }
         tilesHTML += `
             <div class="summary-item">
-                <span class="summary-icon">${businessEmoji}</span>
+                <span class="summary-icon">📋</span>
                 <div class="summary-details">
                     <div class="summary-label">Business Validations</div>
-                    <div class="summary-value">${businessCategory.successCount}/${businessCategory.totalCount} passed${businessCategory.errorCount > 0 ? ` (${businessCategory.errorCount} errors)` : businessCategory.warningCount > 0 ? ` (${businessCategory.warningCount} warnings)` : ''}</div>
+                    <div class="summary-value">${businessStatusIcon} ${businessStatusText}</div>
                 </div>
             </div>
         `;
 
         // Revocation Validations Category Tile
-        const revocationIcon = getValidationStatusIcon(revocationCategory.status);
-        const revocationEmoji = revocationCategory.status === 'success' ? '✅' :
-                                revocationCategory.status === 'error' ? '❌' :
-                                revocationCategory.status === 'warning' ? '⚠️' : '⏳';
+        const revocationStatusIcon = revocationCategory.status === 'success' ? '✅' :
+                                     revocationCategory.status === 'error' ? '❌' :
+                                     revocationCategory.status === 'warning' ? '⚠️' :
+                                     revocationCategory.status === 'partial' ? '☑️' : '✗';
+        let revocationStatusText = `${revocationCategory.successCount}/${revocationCategory.totalCount} passed`;
+        if (revocationCategory.errorCount > 0) {
+            revocationStatusText += ` (${revocationCategory.errorCount} errors)`;
+        }
+        if (revocationCategory.warningCount > 0) {
+            revocationStatusText += ` (${revocationCategory.warningCount} warnings)`;
+        }
+        if (revocationCategory.skippedCount > 0) {
+            revocationStatusText += ` (${revocationCategory.skippedCount} skipped)`;
+        }
         tilesHTML += `
             <div class="summary-item">
-                <span class="summary-icon">${revocationEmoji}</span>
+                <span class="summary-icon">🔒</span>
                 <div class="summary-details">
                     <div class="summary-label">Revocation Validations</div>
-                    <div class="summary-value">${revocationCategory.successCount}/${revocationCategory.totalCount} passed${revocationCategory.errorCount > 0 ? ` (${revocationCategory.errorCount} errors)` : revocationCategory.warningCount > 0 ? ` (${revocationCategory.warningCount} warnings)` : ''}</div>
+                    <div class="summary-value">${revocationStatusIcon} ${revocationStatusText}</div>
                 </div>
             </div>
         `;
 
         // Treatment Date Validations Category Tile
-        const treatmentIcon = getValidationStatusIcon(treatmentDateCategory.status);
-        const treatmentEmoji = treatmentDateCategory.status === 'success' ? '✅' :
-                               treatmentDateCategory.status === 'error' ? '❌' :
-                               treatmentDateCategory.status === 'warning' ? '⚠️' : '⏳';
+        const treatmentStatusIcon = treatmentDateCategory.status === 'success' ? '✅' :
+                                    treatmentDateCategory.status === 'error' ? '❌' :
+                                    treatmentDateCategory.status === 'warning' ? '⚠️' :
+                                    treatmentDateCategory.status === 'partial' ? '☑️' : '✗';
+        let treatmentStatusText = `${treatmentDateCategory.successCount}/${treatmentDateCategory.totalCount} passed`;
+        if (treatmentDateCategory.errorCount > 0) {
+            treatmentStatusText += ` (${treatmentDateCategory.errorCount} errors)`;
+        }
+        if (treatmentDateCategory.warningCount > 0) {
+            treatmentStatusText += ` (${treatmentDateCategory.warningCount} warnings)`;
+        }
+        if (treatmentDateCategory.skippedCount > 0) {
+            treatmentStatusText += ` (${treatmentDateCategory.skippedCount} skipped)`;
+        }
         tilesHTML += `
             <div class="summary-item">
-                <span class="summary-icon">${treatmentEmoji}</span>
+                <span class="summary-icon">📅</span>
                 <div class="summary-details">
                     <div class="summary-label">Treatment Date Validations</div>
-                    <div class="summary-value">${treatmentDateCategory.successCount}/${treatmentDateCategory.totalCount} passed${treatmentDateCategory.errorCount > 0 ? ` (${treatmentDateCategory.errorCount} errors)` : treatmentDateCategory.warningCount > 0 ? ` (${treatmentDateCategory.warningCount} warnings)` : ''}</div>
+                    <div class="summary-value">${treatmentStatusIcon} ${treatmentStatusText}</div>
                 </div>
             </div>
         `;
