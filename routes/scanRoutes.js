@@ -1374,18 +1374,22 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         let pdfStatusSymbol;
 
         if (hasErrors) {
-            pdfOverallStatusText = getTranslation('pdf-verification-failed', pdfLanguage);
+            pdfOverallStatusText = getTranslation('pdf-verification-rejected', pdfLanguage);
             pdfStatusSymbol = '❌';
-        } else if (hasWarnings) {
-            pdfOverallStatusText = getTranslation('pdf-verification-warnings', pdfLanguage);
-            pdfStatusSymbol = '⚠️';
         } else {
-            pdfOverallStatusText = getTranslation('pdf-verification-complete', pdfLanguage);
+            pdfOverallStatusText = getTranslation('pdf-verification-approved', pdfLanguage);
             pdfStatusSymbol = '✅';
         }
 
         doc.font('Helvetica-Bold').fontSize(12)
-           .text(`${getTranslation('pdf-verification-status', pdfLanguage)} ${pdfStatusSymbol} ${pdfOverallStatusText}`, { align: 'center' });
+           .text(`${getTranslation('pdf-verification', pdfLanguage)} ${pdfStatusSymbol} ${pdfOverallStatusText}`, { align: 'center' });
+
+        // Add subheader for optional validation warnings
+        if (hasWarnings && !hasErrors) {
+            doc.font('Helvetica').fontSize(10)
+               .text(`⚠️ ${getTranslation('pdf-optional-warnings', pdfLanguage)}`, { align: 'center' });
+        }
+
         doc.font('Helvetica').fontSize(9)
            .text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber} | ${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate}`, { align: 'center' });
         doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
