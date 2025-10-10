@@ -714,11 +714,26 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.text(getTranslation('pdf-subtitle2', pdfLanguage), { align: 'center' });
         doc.moveDown(1); // Add some margin between subtitle and next section
 
-        // STATUS SYMBOLS - to be used later
-        const statusSymbol = (status) => status ? '✅' : '❌';
-
         // Helper function to get validation status (used by both PDF and email)
         const validationData = verificationStatus?.validationSummary || verificationStatus?.steps || {};
+
+        // STATUS SYMBOLS - to be used later
+        // Updated to handle warning and skipped states
+        const statusSymbol = (key, fallbackKey) => {
+            const validation = validationData[key];
+            if (validation && typeof validation === 'object') {
+                switch(validation.status) {
+                    case 'success': return '✅';
+                    case 'error': return '❌';
+                    case 'warning': return '⚠️';
+                    case 'skipped': return '➖';
+                    default: return '❌';
+                }
+            }
+            // Fallback to old boolean format
+            const oldStatus = validationData[fallbackKey];
+            return oldStatus ? '✅' : '❌';
+        };
 
         // Debug logging
         logger.debug('Validation data for PDF/Email', {
@@ -1460,19 +1475,19 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} QR Code Analysis: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} BASE45 Decoding: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ZLIB Decompression: ${getValidationStatus('zlibDecompress', 'zlibDecompression') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} JWT Parsing: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} Schema File Check: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} Schema Validation: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('kidHeaderValidation', 'kidHeaderValidation'))} Kid Header Validation: ${getValidationStatus('kidHeaderValidation', 'kidHeaderValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('algorithmHeaderValidation', 'algorithmHeaderValidation'))} Algorithm Header Validation: ${getValidationStatus('algorithmHeaderValidation', 'algorithmHeaderValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} Signature Retrieval: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} Signature Count Validation: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} Country Code Validation: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('officialIdValidation', 'officialIdValidation'))} Official ID Validation: ${getValidationStatus('officialIdValidation', 'officialIdValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} JWT Signature Validation: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('qrCodeAnalysis', 'qrCodeAnalysis')} QR Code Analysis: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('base45Decode', 'base45Decode')} BASE45 Decoding: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('zlibDecompress', 'zlibDecompression')} ZLIB Decompression: ${getValidationStatus('zlibDecompress', 'zlibDecompression') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('jwtParsing', 'jwtParsing')} JWT Parsing: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('schemaFileCheck', 'schemaFileCheck')} Schema File Check: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('schemaValidation', 'schemaValidation')} Schema Validation: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('kidHeaderValidation', 'kidHeaderValidation')} Kid Header Validation: ${getValidationStatus('kidHeaderValidation', 'kidHeaderValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('algorithmHeaderValidation', 'algorithmHeaderValidation')} Algorithm Header Validation: ${getValidationStatus('algorithmHeaderValidation', 'algorithmHeaderValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('signatureVerification', 'certificateAuthority')} Signature Retrieval: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('signatureCountValidation', 'signatureCountValidation')} Signature Count Validation: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('countryCodeValidation', 'countryCodeValidation')} Country Code Validation: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('officialIdValidation', 'officialIdValidation')} Official ID Validation: ${getValidationStatus('officialIdValidation', 'officialIdValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('jwtSignatureValidation', 'signatureVerification')} JWT Signature Validation: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
 
         doc.moveDown(1);
 
@@ -1482,16 +1497,16 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol(getValidationStatus('certificateValidityDate', 'certificateValidityDate'))} Certificate Validity Date: ${getValidationStatus('certificateValidityDate', 'certificateValidityDate') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('ehicAccreditation', 'ehicAccreditation'))} EHIC Accreditation: ${getValidationStatus('ehicAccreditation', 'ehicAccreditation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('dateOfBirthValidation', 'dateOfBirthValidation'))} Date of Birth Validation: ${getValidationStatus('dateOfBirthValidation', 'dateOfBirthValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('dateRangeValidation', 'dateRangeValidation'))} Start/End Date Validation: ${getValidationStatus('dateRangeValidation', 'dateRangeValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('startIssuanceValidation', 'startIssuanceValidation'))} Start/Issuance Date Validation: ${getValidationStatus('startIssuanceValidation', 'startIssuanceValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('issuanceEndValidation', 'issuanceEndValidation'))} Issuance/End Date Validation: ${getValidationStatus('issuanceEndValidation', 'issuanceEndValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('expiryDateValidation', 'expiryDateValidation'))} Expiry Date Validation: ${getValidationStatus('expiryDateValidation', 'expiryDateValidation') ? passedText : getValidationSkipped('expiryDateValidation') ? skippedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('institutionLengthValidation', 'institutionLengthValidation'))} Institution Length Validation (Optional): ${getValidationStatus('institutionLengthValidation', 'institutionLengthValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation'))} Card ID Digit Validation (Optional): ${getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation'))} Institution ID Digit Validation (Optional): ${getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('certificateValidityDate', 'certificateValidityDate')} Certificate Validity Date: ${getValidationStatus('certificateValidityDate', 'certificateValidityDate') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('ehicAccreditation', 'ehicAccreditation')} EHIC Accreditation: ${getValidationStatus('ehicAccreditation', 'ehicAccreditation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('dateOfBirthValidation', 'dateOfBirthValidation')} Date of Birth Validation: ${getValidationStatus('dateOfBirthValidation', 'dateOfBirthValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('dateRangeValidation', 'dateRangeValidation')} Start/End Date Validation: ${getValidationStatus('dateRangeValidation', 'dateRangeValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('startIssuanceValidation', 'startIssuanceValidation')} Start/Issuance Date Validation: ${getValidationStatus('startIssuanceValidation', 'startIssuanceValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('issuanceEndValidation', 'issuanceEndValidation')} Issuance/End Date Validation: ${getValidationStatus('issuanceEndValidation', 'issuanceEndValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation: ${getValidationStatus('expiryDateValidation', 'expiryDateValidation') ? passedText : getValidationSkipped('expiryDateValidation') ? skippedText : failedText}`);
+        doc.text(`${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation (Optional): ${getValidationStatus('institutionLengthValidation', 'institutionLengthValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation (Optional): ${getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation (Optional): ${getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation') ? passedText : failedText}`);
 
         doc.moveDown(1);
 
@@ -1501,8 +1516,8 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol(getValidationStatus('revocationPresence', 'revocationPresence'))} Revocation Information Presence: ${getValidationStatus('revocationPresence', 'revocationPresence') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('revocationStatus', 'revocationStatus'))} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence: ${getValidationStatus('revocationPresence', 'revocationPresence') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : failedText}`);
 
         doc.moveDown(1);
 
@@ -1512,8 +1527,8 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol(getValidationStatus('treatmentDatePresence', 'treatmentDatePresence'))} Treatment Date Presence: ${getValidationStatus('treatmentDatePresence', 'treatmentDatePresence') ? passedText : failedText}`);
-        doc.text(`${statusSymbol(getValidationStatus('treatmentDateRange', 'treatmentDateRange'))} Treatment Date Range Validation: ${getValidationStatus('treatmentDateRange', 'treatmentDateRange') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence: ${getValidationStatus('treatmentDatePresence', 'treatmentDatePresence') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation: ${getValidationStatus('treatmentDateRange', 'treatmentDateRange') ? passedText : failedText}`);
         doc.moveDown(2);
 
         // === PDF VERIFICATION INFORMATION SECTION (at end of document) ===
@@ -1607,45 +1622,45 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Technical Validations</h4>
             <ul>
-                <li>${statusSymbol(getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis'))} QR Code Analysis</li>
-                <li>${statusSymbol(getValidationStatus('base45Decode', 'base45Decode'))} BASE45 Decoding</li>
-                <li>${statusSymbol(getValidationStatus('zlibDecompress', 'zlibDecompression'))} ZLIB Decompression</li>
-                <li>${statusSymbol(getValidationStatus('jwtParsing', 'jwtParsing'))} JWT Parsing</li>
-                <li>${statusSymbol(getValidationStatus('schemaFileCheck', 'schemaFileCheck'))} Schema File Check</li>
-                <li>${statusSymbol(getValidationStatus('schemaValidation', 'schemaValidation'))} Schema Validation</li>
-                <li>${statusSymbol(getValidationStatus('kidHeaderValidation', 'kidHeaderValidation'))} Kid Header Validation</li>
-                <li>${statusSymbol(getValidationStatus('algorithmHeaderValidation', 'algorithmHeaderValidation'))} Algorithm Header Validation</li>
-                <li>${statusSymbol(getValidationStatus('signatureVerification', 'certificateAuthority'))} Signature Retrieval</li>
-                <li>${statusSymbol(getValidationStatus('signatureCountValidation', 'signatureCountValidation'))} Signature Count Validation</li>
-                <li>${statusSymbol(getValidationStatus('countryCodeValidation', 'countryCodeValidation'))} Country Code Validation</li>
-                <li>${statusSymbol(getValidationStatus('officialIdValidation', 'officialIdValidation'))} Official ID Validation</li>
-                <li>${statusSymbol(getValidationStatus('jwtSignatureValidation', 'signatureVerification'))} JWT Signature Validation</li>
+                <li>${statusSymbol('qrCodeAnalysis', 'qrCodeAnalysis')} QR Code Analysis</li>
+                <li>${statusSymbol('base45Decode', 'base45Decode')} BASE45 Decoding</li>
+                <li>${statusSymbol('zlibDecompress', 'zlibDecompression')} ZLIB Decompression</li>
+                <li>${statusSymbol('jwtParsing', 'jwtParsing')} JWT Parsing</li>
+                <li>${statusSymbol('schemaFileCheck', 'schemaFileCheck')} Schema File Check</li>
+                <li>${statusSymbol('schemaValidation', 'schemaValidation')} Schema Validation</li>
+                <li>${statusSymbol('kidHeaderValidation', 'kidHeaderValidation')} Kid Header Validation</li>
+                <li>${statusSymbol('algorithmHeaderValidation', 'algorithmHeaderValidation')} Algorithm Header Validation</li>
+                <li>${statusSymbol('signatureVerification', 'certificateAuthority')} Signature Retrieval</li>
+                <li>${statusSymbol('signatureCountValidation', 'signatureCountValidation')} Signature Count Validation</li>
+                <li>${statusSymbol('countryCodeValidation', 'countryCodeValidation')} Country Code Validation</li>
+                <li>${statusSymbol('officialIdValidation', 'officialIdValidation')} Official ID Validation</li>
+                <li>${statusSymbol('jwtSignatureValidation', 'signatureVerification')} JWT Signature Validation</li>
             </ul>
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Business Validations</h4>
             <ul>
-                <li>${statusSymbol(getValidationStatus('certificateValidityDate', 'certificateValidityDate'))} Certificate Validity Date</li>
-                <li>${statusSymbol(getValidationStatus('ehicAccreditation', 'ehicAccreditation'))} EHIC Accreditation</li>
-                <li>${statusSymbol(getValidationStatus('dateOfBirthValidation', 'dateOfBirthValidation'))} Date of Birth Validation</li>
-                <li>${statusSymbol(getValidationStatus('dateRangeValidation', 'dateRangeValidation'))} Start/End Date Validation</li>
-                <li>${statusSymbol(getValidationStatus('startIssuanceValidation', 'startIssuanceValidation'))} Start/Issuance Date Validation</li>
-                <li>${statusSymbol(getValidationStatus('issuanceEndValidation', 'issuanceEndValidation'))} Issuance/End Date Validation</li>
-                <li>${statusSymbol(getValidationStatus('expiryDateValidation', 'expiryDateValidation'))} Expiry Date Validation ${getValidationSkipped('expiryDateValidation') ? '<span style="color: #f39c12;">(Skipped - No expiry date found)</span>' : ''}</li>
-                <li>${statusSymbol(getValidationStatus('institutionLengthValidation', 'institutionLengthValidation'))} Institution Length Validation <span style="color: #f39c12;">(Optional)</span></li>
-                <li>${statusSymbol(getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation'))} Card ID Digit Validation <span style="color: #f39c12;">(Optional)</span></li>
-                <li>${statusSymbol(getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation'))} Institution ID Digit Validation <span style="color: #f39c12;">(Optional)</span></li>
+                <li>${statusSymbol('certificateValidityDate', 'certificateValidityDate')} Certificate Validity Date</li>
+                <li>${statusSymbol('ehicAccreditation', 'ehicAccreditation')} EHIC Accreditation</li>
+                <li>${statusSymbol('dateOfBirthValidation', 'dateOfBirthValidation')} Date of Birth Validation</li>
+                <li>${statusSymbol('dateRangeValidation', 'dateRangeValidation')} Start/End Date Validation</li>
+                <li>${statusSymbol('startIssuanceValidation', 'startIssuanceValidation')} Start/Issuance Date Validation</li>
+                <li>${statusSymbol('issuanceEndValidation', 'issuanceEndValidation')} Issuance/End Date Validation</li>
+                <li>${statusSymbol('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation ${getValidationSkipped('expiryDateValidation') ? '<span style="color: #f39c12;">(Skipped - No expiry date found)</span>' : ''}</li>
+                <li>${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation <span style="color: #f39c12;">(Optional)</span></li>
+                <li>${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation <span style="color: #f39c12;">(Optional)</span></li>
+                <li>${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation <span style="color: #f39c12;">(Optional)</span></li>
             </ul>
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Revocation Validations</h4>
             <ul>
-                <li>${statusSymbol(getValidationStatus('revocationPresence', 'revocationPresence'))} Revocation Information Presence</li>
-                <li>${statusSymbol(getValidationStatus('revocationStatus', 'revocationStatus'))} Revocation Status Check</li>
+                <li>${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence</li>
+                <li>${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check</li>
             </ul>
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Treatment Date Validations</h4>
             <ul>
-                <li>${statusSymbol(getValidationStatus('treatmentDatePresence', 'treatmentDatePresence'))} Treatment Date Presence</li>
-                <li>${statusSymbol(getValidationStatus('treatmentDateRange', 'treatmentDateRange'))} Treatment Date Range Validation</li>
+                <li>${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence</li>
+                <li>${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation</li>
             </ul>
             <hr>
             <h3>${getTranslation('email-prc-certificate-info', userLanguage)}</h3>
