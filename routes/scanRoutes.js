@@ -1407,7 +1407,7 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
 
         doc.font('Helvetica').fontSize(9)
            .text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber} | ${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate}`, { align: 'center' });
-        doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleString()}`, { align: 'center' });
+        doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleString('en-GB', { timeZoneName: 'short' })}`, { align: 'center' });
         doc.moveDown(2);
 
         // Add verification results section - Arial 9pt italics header, Arial 9pt content
@@ -1545,7 +1545,7 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.text(`${getTranslation('pdf-institution', pdfLanguage)} ${prcData.institutionName !== 'N/A' ? prcData.institutionName : 'Healthcare Provider'}`);
         doc.text(`${getTranslation('pdf-institution-id-signature', pdfLanguage)} ${prcData.institutionId}`);
         doc.text(`${getTranslation('pdf-verified-on', pdfLanguage)} ${new Date(timestamp).toLocaleDateString('en-GB')}`);
-        doc.text(`${getTranslation('pdf-time', pdfLanguage)} ${new Date(timestamp).toLocaleTimeString('en-GB')}`);
+        doc.text(`${getTranslation('pdf-time', pdfLanguage)} ${new Date(timestamp).toLocaleTimeString('en-GB', { timeZoneName: 'short' })}`);
 
         // Finalize PDF
         doc.end();
@@ -1615,7 +1615,7 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
             <h2>${getTranslation('email-title', userLanguage, { status: statusText })}</h2>
             <p><strong>${getTranslation('email-reference-number', userLanguage)}</strong> ${referenceNumber}</p>
             <p><strong>${getTranslation('email-treatment-date', userLanguage)}</strong> ${treatmentDate}</p>
-            <p><strong>${getTranslation('email-verification-time', userLanguage)}</strong> ${new Date(timestamp).toLocaleString()}</p>
+            <p><strong>${getTranslation('email-verification-time', userLanguage)}</strong> ${new Date(timestamp).toLocaleString('en-GB', { timeZoneName: 'short' })}</p>
             <hr>
             ${identityVerificationWarning}
             <h3>${getTranslation('email-verification-status', userLanguage, { icon: statusIcon, status: statusText })}</h3>
