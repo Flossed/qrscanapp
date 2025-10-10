@@ -1503,10 +1503,10 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.text(`${statusSymbol('dateRangeValidation', 'dateRangeValidation')} Start/End Date Validation: ${getValidationStatus('dateRangeValidation', 'dateRangeValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol('startIssuanceValidation', 'startIssuanceValidation')} Start/Issuance Date Validation: ${getValidationStatus('startIssuanceValidation', 'startIssuanceValidation') ? passedText : failedText}`);
         doc.text(`${statusSymbol('issuanceEndValidation', 'issuanceEndValidation')} Issuance/End Date Validation: ${getValidationStatus('issuanceEndValidation', 'issuanceEndValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation: ${getValidationStatus('expiryDateValidation', 'expiryDateValidation') ? passedText : getValidationSkipped('expiryDateValidation') ? skippedText : failedText}`);
-        doc.text(`${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation (Optional): ${getValidationStatus('institutionLengthValidation', 'institutionLengthValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation (Optional): ${getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation (Optional): ${getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation: ${getValidationStatus('expiryDateValidation', 'expiryDateValidation') ? passedText : getValidationSkipped('expiryDateValidation') ? 'skipped - no expiry date found' : failedText}`);
+        doc.text(`${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation (Optional): ${getValidationStatus('institutionLengthValidation', 'institutionLengthValidation') ? passedText : getValidationSkipped('institutionLengthValidation') ? 'skipped - no expiry date found' : failedText}`);
+        doc.text(`${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation (Optional): ${getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation') ? passedText : getValidationSkipped('cardIdDigitValidation') ? 'skipped - no card id found' : failedText}`);
+        doc.text(`${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation (Optional): ${getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation') ? passedText : getValidationSkipped('institutionIdDigitValidation') ? 'skipped - no institution id found' : failedText}`);
 
         doc.moveDown(1);
 
@@ -1516,8 +1516,8 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence: ${getValidationStatus('revocationPresence', 'revocationPresence') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence: ${getValidationStatus('revocationPresence', 'revocationPresence') ? passedText : getValidationSkipped('revocationPresence') ? 'skipped - no revocation data' : failedText}`);
+        doc.text(`${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : getValidationSkipped('revocationStatus') ? 'skipped - no revocation data' : failedText}`);
 
         doc.moveDown(1);
 
@@ -1527,8 +1527,8 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence: ${getValidationStatus('treatmentDatePresence', 'treatmentDatePresence') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation: ${getValidationStatus('treatmentDateRange', 'treatmentDateRange') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence: ${getValidationStatus('treatmentDatePresence', 'treatmentDatePresence') ? passedText : getValidationSkipped('treatmentDatePresence') ? 'skipped - no treatment date' : failedText}`);
+        doc.text(`${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation: ${getValidationStatus('treatmentDateRange', 'treatmentDateRange') ? passedText : getValidationSkipped('treatmentDateRange') ? 'skipped - no treatment date' : failedText}`);
         doc.moveDown(2);
 
         // === PDF VERIFICATION INFORMATION SECTION (at end of document) ===
@@ -1646,21 +1646,21 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
                 <li>${statusSymbol('startIssuanceValidation', 'startIssuanceValidation')} Start/Issuance Date Validation</li>
                 <li>${statusSymbol('issuanceEndValidation', 'issuanceEndValidation')} Issuance/End Date Validation</li>
                 <li>${statusSymbol('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation ${getValidationSkipped('expiryDateValidation') ? '<span style="color: #f39c12;">(Skipped - No expiry date found)</span>' : ''}</li>
-                <li>${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation <span style="color: #f39c12;">(Optional)</span></li>
-                <li>${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation <span style="color: #f39c12;">(Optional)</span></li>
-                <li>${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation <span style="color: #f39c12;">(Optional)</span></li>
+                <li>${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation ${getValidationSkipped('institutionLengthValidation') ? '<span style="color: #f39c12;">(Skipped - No expiry date found)</span>' : '<span style="color: #f39c12;">(Optional)</span>'}</li>
+                <li>${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation ${getValidationSkipped('cardIdDigitValidation') ? '<span style="color: #f39c12;">(Skipped - No card ID found)</span>' : '<span style="color: #f39c12;">(Optional)</span>'}</li>
+                <li>${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation ${getValidationSkipped('institutionIdDigitValidation') ? '<span style="color: #f39c12;">(Skipped - No institution ID found)</span>' : '<span style="color: #f39c12;">(Optional)</span>'}</li>
             </ul>
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Revocation Validations</h4>
             <ul>
-                <li>${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence</li>
-                <li>${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check</li>
+                <li>${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence ${getValidationSkipped('revocationPresence') ? '<span style="color: #f39c12;">(Skipped - No revocation data)</span>' : ''}</li>
+                <li>${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check ${getValidationSkipped('revocationStatus') ? '<span style="color: #f39c12;">(Skipped - No revocation data)</span>' : ''}</li>
             </ul>
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Treatment Date Validations</h4>
             <ul>
-                <li>${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence</li>
-                <li>${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation</li>
+                <li>${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence ${getValidationSkipped('treatmentDatePresence') ? '<span style="color: #f39c12;">(Skipped - No treatment date)</span>' : ''}</li>
+                <li>${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation ${getValidationSkipped('treatmentDateRange') ? '<span style="color: #f39c12;">(Skipped - No treatment date)</span>' : ''}</li>
             </ul>
             <hr>
             <h3>${getTranslation('email-prc-certificate-info', userLanguage)}</h3>
