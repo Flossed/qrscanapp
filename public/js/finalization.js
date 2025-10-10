@@ -249,19 +249,63 @@ document.querySelector('a[href="/"]').addEventListener('click', () => {
     sessionStorage.clear();
 });
 
+// Calculate category status based on all validations in that category
+function calculateCategoryStatus(steps, validationSummary) {
+    let hasError = false;
+    let hasWarning = false;
+    let hasSuccess = false;
+    let totalCount = 0;
+    let successCount = 0;
+    let errorCount = 0;
+    let warningCount = 0;
+
+    steps.forEach(step => {
+        const validation = validationSummary[step.key] || { status: 'pending' };
+        totalCount++;
+
+        if (validation.status === 'error') {
+            hasError = true;
+            errorCount++;
+        } else if (validation.status === 'warning') {
+            hasWarning = true;
+            warningCount++;
+        } else if (validation.status === 'success') {
+            hasSuccess = true;
+            successCount++;
+        }
+    });
+
+    // Determine overall category status
+    let categoryStatus = 'pending';
+    if (hasError) {
+        categoryStatus = 'error';
+    } else if (hasWarning) {
+        categoryStatus = 'warning';
+    } else if (successCount === totalCount) {
+        categoryStatus = 'success';
+    }
+
+    return {
+        status: categoryStatus,
+        totalCount,
+        successCount,
+        errorCount,
+        warningCount
+    };
+}
+
 // Display validation summary with technical/business categories
 function displayValidationSummary() {
     const verificationResults = sessionStorage.getItem('verificationResults');
-    const container = document.getElementById('validation-summary-finalization');
+    const summaryGrid = document.querySelector('.summary-grid');
 
-    if (!verificationResults || !container) {
+    if (!verificationResults || !summaryGrid) {
         return;
     }
 
     try {
         const results = JSON.parse(verificationResults);
         const validationSummary = results.validationSummary || {};
-        const overallStatus = results.overallStatus || 'success';
 
         // Technical Validations
         const technicalSteps = [
@@ -294,122 +338,97 @@ function displayValidationSummary() {
             { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation (Optional)' }
         ];
 
-        let summaryHTML = `<div class="validation-summary ${overallStatus}">`;
-
-        // Technical Validations Banner
-        summaryHTML += '<div class="validation-category">';
-        summaryHTML += '<h4 class="category-banner technical-banner">Technical Validations</h4>';
-        summaryHTML += '<div class="summary-items technical-items">';
-
-        technicalSteps.forEach(step => {
-            const validation = validationSummary[step.key] || { status: 'pending', message: '' };
-            const statusIcon = getValidationStatusIcon(validation.status);
-            const statusClass = validation.status;
-
-            summaryHTML += `
-                <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
-                    <span class="status-icon">${statusIcon}</span>
-                    <span class="step-label">${step.label}</span>
-                    ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
-                    ${validation.errorCount !== undefined && validation.errorCount > 0 ?
-                        `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
-                </div>
-            `;
-        });
-
-        summaryHTML += '</div></div>'; // Close technical items and category
-
-        // Business Validations Banner
-        summaryHTML += '<div class="validation-category">';
-        summaryHTML += '<h4 class="category-banner business-banner">Business Validations</h4>';
-        summaryHTML += '<div class="summary-items business-items">';
-
-        if (businessSteps.length === 0) {
-            summaryHTML += '<div class="summary-item info"><span class="status-icon">ℹ</span><span class="step-label">No business validations configured</span></div>';
-        } else {
-            businessSteps.forEach(step => {
-                const validation = validationSummary[step.key] || { status: 'pending', message: '' };
-                const statusIcon = getValidationStatusIcon(validation.status);
-                const statusClass = validation.status;
-
-                summaryHTML += `
-                    <div class="summary-item ${statusClass}">
-                        <span class="status-icon">${statusIcon}</span>
-                        <span class="step-label">${step.label}</span>
-                        ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
-                        ${validation.errorCount !== undefined && validation.errorCount > 0 ?
-                            `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
-                    </div>
-                `;
-            });
-        }
-
-        summaryHTML += '</div></div>'; // Close business items and category
-
-        // Revocation Validations Section
+        // Revocation Validations
         const revocationSteps = [
             { key: 'revocationPresence', label: 'Revocation Information Presence' },
             { key: 'revocationStatus', label: 'Revocation Status Check' }
         ];
 
-        summaryHTML += '<div class="validation-category">';
-        summaryHTML += '<h4 class="category-banner revocation-banner">Revocation Validations</h4>';
-        summaryHTML += '<div class="summary-items revocation-items">';
-
-        revocationSteps.forEach(step => {
-            const validation = validationSummary[step.key] || { status: 'pending', message: '' };
-            const statusIcon = getValidationStatusIcon(validation.status);
-            const statusClass = validation.status;
-
-            summaryHTML += `
-                <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
-                    <span class="status-icon">${statusIcon}</span>
-                    <span class="step-label">${step.label}</span>
-                    ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
-                    ${validation.errorCount !== undefined && validation.errorCount > 0 ?
-                        `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
-                </div>
-            `;
-        });
-
-        summaryHTML += '</div></div>'; // Close revocation items and category
-
-        // Treatment Date Validations Section
+        // Treatment Date Validations
         const treatmentDateSteps = [
             { key: 'treatmentDatePresence', label: 'Treatment Date Presence' },
             { key: 'treatmentDateRange', label: 'Treatment Date Range Validation' }
         ];
 
-        summaryHTML += '<div class="validation-category">';
-        summaryHTML += '<h4 class="category-banner treatment-date-banner">Treatment Date Validations</h4>';
-        summaryHTML += '<div class="summary-items treatment-date-items">';
+        // Calculate category statuses
+        const technicalCategory = calculateCategoryStatus(technicalSteps, validationSummary);
+        const businessCategory = calculateCategoryStatus(businessSteps, validationSummary);
+        const revocationCategory = calculateCategoryStatus(revocationSteps, validationSummary);
+        const treatmentDateCategory = calculateCategoryStatus(treatmentDateSteps, validationSummary);
 
-        treatmentDateSteps.forEach(step => {
-            const validation = validationSummary[step.key] || { status: 'pending', message: '' };
-            const statusIcon = getValidationStatusIcon(validation.status);
-            const statusClass = validation.status;
+        // Build HTML for 4 category summary tiles matching existing summary-item format
+        let tilesHTML = '';
 
-            summaryHTML += `
-                <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
-                    <span class="status-icon">${statusIcon}</span>
-                    <span class="step-label">${step.label}</span>
-                    ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
-                    ${validation.errorCount !== undefined && validation.errorCount > 0 ?
-                        `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+        // Technical Validations Category Tile
+        const techIcon = getValidationStatusIcon(technicalCategory.status);
+        const techEmoji = technicalCategory.status === 'success' ? '✅' :
+                          technicalCategory.status === 'error' ? '❌' :
+                          technicalCategory.status === 'warning' ? '⚠️' : '⏳';
+        tilesHTML += `
+            <div class="summary-item">
+                <span class="summary-icon">${techEmoji}</span>
+                <div class="summary-details">
+                    <div class="summary-label">Technical Validations</div>
+                    <div class="summary-value">${technicalCategory.successCount}/${technicalCategory.totalCount} passed${technicalCategory.errorCount > 0 ? ` (${technicalCategory.errorCount} errors)` : technicalCategory.warningCount > 0 ? ` (${technicalCategory.warningCount} warnings)` : ''}</div>
                 </div>
-            `;
-        });
+            </div>
+        `;
 
-        summaryHTML += '</div></div>'; // Close treatment date items and category
-        summaryHTML += '</div>'; // Close validation-summary
+        // Business Validations Category Tile
+        const businessIcon = getValidationStatusIcon(businessCategory.status);
+        const businessEmoji = businessCategory.status === 'success' ? '✅' :
+                              businessCategory.status === 'error' ? '❌' :
+                              businessCategory.status === 'warning' ? '⚠️' : '⏳';
+        tilesHTML += `
+            <div class="summary-item">
+                <span class="summary-icon">${businessEmoji}</span>
+                <div class="summary-details">
+                    <div class="summary-label">Business Validations</div>
+                    <div class="summary-value">${businessCategory.successCount}/${businessCategory.totalCount} passed${businessCategory.errorCount > 0 ? ` (${businessCategory.errorCount} errors)` : businessCategory.warningCount > 0 ? ` (${businessCategory.warningCount} warnings)` : ''}</div>
+                </div>
+            </div>
+        `;
 
-        container.innerHTML = summaryHTML;
+        // Revocation Validations Category Tile
+        const revocationIcon = getValidationStatusIcon(revocationCategory.status);
+        const revocationEmoji = revocationCategory.status === 'success' ? '✅' :
+                                revocationCategory.status === 'error' ? '❌' :
+                                revocationCategory.status === 'warning' ? '⚠️' : '⏳';
+        tilesHTML += `
+            <div class="summary-item">
+                <span class="summary-icon">${revocationEmoji}</span>
+                <div class="summary-details">
+                    <div class="summary-label">Revocation Validations</div>
+                    <div class="summary-value">${revocationCategory.successCount}/${revocationCategory.totalCount} passed${revocationCategory.errorCount > 0 ? ` (${revocationCategory.errorCount} errors)` : revocationCategory.warningCount > 0 ? ` (${revocationCategory.warningCount} warnings)` : ''}</div>
+                </div>
+            </div>
+        `;
 
-        // Add click handlers for clickable tiles
-        addTileClickHandlers();
+        // Treatment Date Validations Category Tile
+        const treatmentIcon = getValidationStatusIcon(treatmentDateCategory.status);
+        const treatmentEmoji = treatmentDateCategory.status === 'success' ? '✅' :
+                               treatmentDateCategory.status === 'error' ? '❌' :
+                               treatmentDateCategory.status === 'warning' ? '⚠️' : '⏳';
+        tilesHTML += `
+            <div class="summary-item">
+                <span class="summary-icon">${treatmentEmoji}</span>
+                <div class="summary-details">
+                    <div class="summary-label">Treatment Date Validations</div>
+                    <div class="summary-value">${treatmentDateCategory.successCount}/${treatmentDateCategory.totalCount} passed${treatmentDateCategory.errorCount > 0 ? ` (${treatmentDateCategory.errorCount} errors)` : treatmentDateCategory.warningCount > 0 ? ` (${treatmentDateCategory.warningCount} warnings)` : ''}</div>
+                </div>
+            </div>
+        `;
+
+        // Append the 4 tiles to the summary grid
+        summaryGrid.insertAdjacentHTML('beforeend', tilesHTML);
+
+        // Hide the validation details section since we moved everything to summary
+        const validationDetailsSection = document.querySelector('.validation-details-section');
+        if (validationDetailsSection) {
+            validationDetailsSection.style.display = 'none';
+        }
     } catch (e) {
         console.error('Could not parse verification results for validation summary:', e);
-        container.innerHTML = '<p class="error-message">Unable to load validation details</p>';
     }
 }
 
