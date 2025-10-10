@@ -1532,21 +1532,6 @@ router.post('/api/send-verification-email', isAuthenticated, async (req, res) =>
         doc.moveDown(2);
 
         // === PDF VERIFICATION INFORMATION SECTION (at end of document) ===
-        // Add separation and information section - Arial 9pt italics header
-        doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-verification-information', pdfLanguage));
-        doc.moveDown();
-
-        // Verification information - Arial 9pt
-        doc.font('Helvetica').fontSize(9);
-        doc.text(getTranslation('pdf-verified-by', pdfLanguage));
-        doc.text(`${req.user.firstName} ${req.user.lastName}`);
-        doc.text(req.user.email);
-        doc.text(`${getTranslation('pdf-institution', pdfLanguage)} ${prcData.institutionName !== 'N/A' ? prcData.institutionName : 'Healthcare Provider'}`);
-        doc.text(`${getTranslation('pdf-institution-id-signature', pdfLanguage)} ${prcData.institutionId}`);
-        doc.text(`${getTranslation('pdf-verified-on', pdfLanguage)} ${new Date(timestamp).toLocaleDateString('en-GB')}`);
-        doc.text(`${getTranslation('pdf-time', pdfLanguage)} ${new Date(timestamp).toLocaleTimeString('en-GB', { timeZoneName: 'short' })}`);
-
         // Finalize PDF
         doc.end();
 
