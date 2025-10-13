@@ -43,57 +43,8 @@
                 </select>
             </div>
 
-            <!-- User Menu -->
+            <!-- User Menu - Authentication removed in DEBUG mode -->
             <ul class="navbar-nav">
-                <% if (typeof user !== 'undefined' && user) { %>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="user-avatar me-2">
-                                <span class="initials">
-                                    <%= (user.firstName || 'U')[0].toUpperCase() %><%= (user.lastName || 'U')[0].toUpperCase() %>
-                                </span>
-                            </div>
-                            <%= user.firstName || 'User' %>
-                            <% if (typeof isDebugMode !== 'undefined' && isDebugMode) { %>
-                            <span class="badge bg-warning text-dark ms-2">DEBUG</span>
-                            <% } %>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li>
-                                <h6 class="dropdown-header">
-                                    <%= user.fullName || `${user.firstName || 'User'} ${user.lastName || ''}`.trim() %><br>
-                                    <small class="text-muted"><%= user.email || 'No email' %></small>
-                                </h6>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="/auth/profile">
-                                    <i class="bi bi-person"></i> <span data-i18n-key="nav-profile">My Profile</span>
-                                </a>
-                            </li>
-                            <% if (typeof isDebugMode !== 'undefined' && isDebugMode) { %>
-                            <li>
-                                <a class="dropdown-item" href="/scan-history">
-                                    <i class="bi bi-clock-history"></i> <span data-i18n-key="nav-history">Scan History</span>
-                                </a>
-                            </li>
-                            <% } %>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="/auth/logout">
-                                    <i class="bi bi-box-arrow-right"></i> <span data-i18n-key="nav-logout">Logout</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                <% } else { %>
-                    <li class="nav-item">
-                        <a class="btn btn-light btn-sm" href="/auth/login">
-                            <i class="bi bi-box-arrow-in-right"></i> <span data-i18n-key="nav-login">Login</span>
-                        </a>
-                    </li>
-                <% } %>
             </ul>
         </div>
     </div>
