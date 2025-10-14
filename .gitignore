@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Archive directory
+__ARCH
+
+
 # Environment variables
 .env
 .env.local

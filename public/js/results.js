@@ -10,13 +10,13 @@ if (!originalData) {
 // Start verification process immediately
 processVerification();
 
-// Handle continue to identity check button
+// Handle continue to visual verification button
 document.addEventListener('DOMContentLoaded', () => {
-    const identityBtn = document.getElementById('continue-identity-check');
-    if (identityBtn) {
-        identityBtn.addEventListener('click', () => {
-            // Navigate to the identity check page
-            window.location.href = '/identity-check';
+    const visualVerificationBtn = document.getElementById('continue-visual-verification');
+    if (visualVerificationBtn) {
+        visualVerificationBtn.addEventListener('click', () => {
+            // Navigate to the visual verification page
+            window.location.href = '/visual-verification';
         });
     }
 });
