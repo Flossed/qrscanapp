@@ -9,7 +9,7 @@ class BreadcrumbManager {
             '/scanner': 3,
             '/scan': 3,
             '/results': 4,
-            '/identity-check': 5,
+            '/visual-verification': 5,
             '/finalization': 6
         };
 

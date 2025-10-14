@@ -88,20 +88,30 @@ if (verificationResults) {
             statusSubtitle.setAttribute('data-i18n-key', 'finalization-verification-failed-message');
             statusContainer.style.color = '#721c24';
             statusContainer.style.backgroundColor = '#f8d7da';
-        } else if (hasWarnings) {
-            statusIcon.textContent = '⚠️';
-            statusTitle.textContent = 'Verification Complete with Warnings';
-            statusTitle.setAttribute('data-i18n-key', 'finalization-verification-warnings');
-            statusSubtitle.textContent = 'Verification completed successfully but some warnings were found';
-            statusSubtitle.setAttribute('data-i18n-key', 'finalization-verification-warnings-message');
-            statusContainer.style.color = '#856404';
-            statusContainer.style.backgroundColor = '#fff3cd';
         } else {
+            // Success or success with warnings - both show green
             statusIcon.textContent = '✅';
-            statusTitle.textContent = 'Verification Complete';
-            statusTitle.setAttribute('data-i18n-key', 'finalization-verification-complete');
-            statusSubtitle.textContent = 'All verification steps have been successfully completed';
-            statusSubtitle.setAttribute('data-i18n-key', 'finalization-all-steps-completed');
+            statusTitle.textContent = 'Verification Approved';
+            statusTitle.setAttribute('data-i18n-key', 'finalization-verification-approved');
+            statusSubtitle.textContent = 'EHIC valid and verified';
+            statusSubtitle.setAttribute('data-i18n-key', 'finalization-ehic-valid');
+            // Keep default green styling
+        }
+
+        // Add warning notification box if warnings exist (but no errors)
+        if (hasWarnings && !hasErrors) {
+            // Check if warning notification already exists to avoid duplicates
+            let warningNotification = document.querySelector('.warning-notification');
+            if (!warningNotification) {
+                warningNotification = document.createElement('div');
+                warningNotification.className = 'warning-notification';
+                warningNotification.innerHTML = `
+                    <span class="warning-icon">⚠️</span>
+                    <span data-i18n-key="finalization-non-blocking-warnings">Some non-blocking warnings found</span>
+                `;
+                // Insert after the status container
+                statusContainer.parentNode.insertBefore(warningNotification, statusContainer.nextSibling);
+            }
         }
     } catch (e) {
         console.error('Could not parse verification results for status update:', e);
@@ -249,19 +259,70 @@ document.querySelector('a[href="/"]').addEventListener('click', () => {
     sessionStorage.clear();
 });
 
+// Calculate category status based on all validations in that category
+function calculateCategoryStatus(steps, validationSummary) {
+    let hasError = false;
+    let hasWarning = false;
+    let hasSuccess = false;
+    let totalCount = 0;
+    let successCount = 0;
+    let errorCount = 0;
+    let warningCount = 0;
+    let skippedCount = 0;
+
+    steps.forEach(step => {
+        const validation = validationSummary[step.key] || { status: 'pending' };
+        totalCount++;
+
+        if (validation.status === 'error') {
+            hasError = true;
+            errorCount++;
+        } else if (validation.status === 'warning') {
+            hasWarning = true;
+            warningCount++;
+        } else if (validation.status === 'success') {
+            hasSuccess = true;
+            successCount++;
+        } else if (validation.status === 'skipped') {
+            skippedCount++;
+        }
+    });
+
+    // Determine overall category status
+    let categoryStatus = 'pending';
+    if (hasError) {
+        categoryStatus = 'error';
+    } else if (hasWarning) {
+        categoryStatus = 'warning';
+    } else if (successCount === totalCount) {
+        categoryStatus = 'success';
+    } else if (successCount + skippedCount === totalCount) {
+        // All tests either passed or were skipped (no failures)
+        categoryStatus = 'partial';
+    }
+
+    return {
+        status: categoryStatus,
+        totalCount,
+        successCount,
+        errorCount,
+        warningCount,
+        skippedCount
+    };
+}
+
 // Display validation summary with technical/business categories
 function displayValidationSummary() {
     const verificationResults = sessionStorage.getItem('verificationResults');
-    const container = document.getElementById('validation-summary-finalization');
+    const summaryGrid = document.querySelector('.summary-grid');
 
-    if (!verificationResults || !container) {
+    if (!verificationResults || !summaryGrid) {
         return;
     }
 
     try {
         const results = JSON.parse(verificationResults);
         const validationSummary = results.validationSummary || {};
-        const overallStatus = results.overallStatus || 'success';
 
         // Technical Validations
         const technicalSteps = [
@@ -294,122 +355,137 @@ function displayValidationSummary() {
             { key: 'institutionIdDigitValidation', label: 'Institution ID Digit Validation (Optional)' }
         ];
 
-        let summaryHTML = `<div class="validation-summary ${overallStatus}">`;
-
-        // Technical Validations Banner
-        summaryHTML += '<div class="validation-category">';
-        summaryHTML += '<h4 class="category-banner technical-banner">Technical Validations</h4>';
-        summaryHTML += '<div class="summary-items technical-items">';
-
-        technicalSteps.forEach(step => {
-            const validation = validationSummary[step.key] || { status: 'pending', message: '' };
-            const statusIcon = getValidationStatusIcon(validation.status);
-            const statusClass = validation.status;
-
-            summaryHTML += `
-                <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
-                    <span class="status-icon">${statusIcon}</span>
-                    <span class="step-label">${step.label}</span>
-                    ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
-                    ${validation.errorCount !== undefined && validation.errorCount > 0 ?
-                        `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
-                </div>
-            `;
-        });
-
-        summaryHTML += '</div></div>'; // Close technical items and category
-
-        // Business Validations Banner
-        summaryHTML += '<div class="validation-category">';
-        summaryHTML += '<h4 class="category-banner business-banner">Business Validations</h4>';
-        summaryHTML += '<div class="summary-items business-items">';
-
-        if (businessSteps.length === 0) {
-            summaryHTML += '<div class="summary-item info"><span class="status-icon">ℹ</span><span class="step-label">No business validations configured</span></div>';
-        } else {
-            businessSteps.forEach(step => {
-                const validation = validationSummary[step.key] || { status: 'pending', message: '' };
-                const statusIcon = getValidationStatusIcon(validation.status);
-                const statusClass = validation.status;
-
-                summaryHTML += `
-                    <div class="summary-item ${statusClass}">
-                        <span class="status-icon">${statusIcon}</span>
-                        <span class="step-label">${step.label}</span>
-                        ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
-                        ${validation.errorCount !== undefined && validation.errorCount > 0 ?
-                            `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
-                    </div>
-                `;
-            });
-        }
-
-        summaryHTML += '</div></div>'; // Close business items and category
-
-        // Revocation Validations Section
+        // Revocation Validations
         const revocationSteps = [
             { key: 'revocationPresence', label: 'Revocation Information Presence' },
             { key: 'revocationStatus', label: 'Revocation Status Check' }
         ];
 
-        summaryHTML += '<div class="validation-category">';
-        summaryHTML += '<h4 class="category-banner revocation-banner">Revocation Validations</h4>';
-        summaryHTML += '<div class="summary-items revocation-items">';
-
-        revocationSteps.forEach(step => {
-            const validation = validationSummary[step.key] || { status: 'pending', message: '' };
-            const statusIcon = getValidationStatusIcon(validation.status);
-            const statusClass = validation.status;
-
-            summaryHTML += `
-                <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
-                    <span class="status-icon">${statusIcon}</span>
-                    <span class="step-label">${step.label}</span>
-                    ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
-                    ${validation.errorCount !== undefined && validation.errorCount > 0 ?
-                        `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
-                </div>
-            `;
-        });
-
-        summaryHTML += '</div></div>'; // Close revocation items and category
-
-        // Treatment Date Validations Section
+        // Treatment Date Validations
         const treatmentDateSteps = [
             { key: 'treatmentDatePresence', label: 'Treatment Date Presence' },
             { key: 'treatmentDateRange', label: 'Treatment Date Range Validation' }
         ];
 
-        summaryHTML += '<div class="validation-category">';
-        summaryHTML += '<h4 class="category-banner treatment-date-banner">Treatment Date Validations</h4>';
-        summaryHTML += '<div class="summary-items treatment-date-items">';
+        // Calculate category statuses
+        const technicalCategory = calculateCategoryStatus(technicalSteps, validationSummary);
+        const businessCategory = calculateCategoryStatus(businessSteps, validationSummary);
+        const revocationCategory = calculateCategoryStatus(revocationSteps, validationSummary);
+        const treatmentDateCategory = calculateCategoryStatus(treatmentDateSteps, validationSummary);
 
-        treatmentDateSteps.forEach(step => {
-            const validation = validationSummary[step.key] || { status: 'pending', message: '' };
-            const statusIcon = getValidationStatusIcon(validation.status);
-            const statusClass = validation.status;
+        // Build HTML for 4 category summary tiles matching existing summary-item format
+        let tilesHTML = '';
 
-            summaryHTML += `
-                <div class="summary-item ${statusClass} clickable-tile" data-step-key="${step.key}">
-                    <span class="status-icon">${statusIcon}</span>
-                    <span class="step-label">${step.label}</span>
-                    ${validation.message ? `<span class="step-message">${validation.message}</span>` : ''}
-                    ${validation.errorCount !== undefined && validation.errorCount > 0 ?
-                        `<span class="error-count">(${validation.errorCount} errors)</span>` : ''}
+        // Technical Validations Category Tile
+        const techStatusIcon = technicalCategory.status === 'success' ? '✅' :
+                               technicalCategory.status === 'error' ? '❌' :
+                               technicalCategory.status === 'warning' ? '⚠️' :
+                               technicalCategory.status === 'partial' ? '☑️' : '✗';
+        let techStatusText = `${technicalCategory.successCount}/${technicalCategory.totalCount} passed`;
+        if (technicalCategory.errorCount > 0) {
+            techStatusText += ` (${technicalCategory.errorCount} errors)`;
+        }
+        if (technicalCategory.warningCount > 0) {
+            techStatusText += ` (${technicalCategory.warningCount} warnings)`;
+        }
+        if (technicalCategory.skippedCount > 0) {
+            techStatusText += ` (${technicalCategory.skippedCount} skipped)`;
+        }
+        tilesHTML += `
+            <div class="summary-item">
+                <span class="summary-icon">⚙️</span>
+                <div class="summary-details">
+                    <div class="summary-label">Technical Validations</div>
+                    <div class="summary-value">${techStatusIcon} ${techStatusText}</div>
                 </div>
-            `;
-        });
+            </div>
+        `;
 
-        summaryHTML += '</div></div>'; // Close treatment date items and category
-        summaryHTML += '</div>'; // Close validation-summary
+        // Business Validations Category Tile
+        const businessStatusIcon = businessCategory.status === 'success' ? '✅' :
+                                   businessCategory.status === 'error' ? '❌' :
+                                   businessCategory.status === 'warning' ? '⚠️' :
+                                   businessCategory.status === 'partial' ? '☑️' : '✗';
+        let businessStatusText = `${businessCategory.successCount}/${businessCategory.totalCount} passed`;
+        if (businessCategory.errorCount > 0) {
+            businessStatusText += ` (${businessCategory.errorCount} errors)`;
+        }
+        if (businessCategory.warningCount > 0) {
+            businessStatusText += ` (${businessCategory.warningCount} warnings)`;
+        }
+        if (businessCategory.skippedCount > 0) {
+            businessStatusText += ` (${businessCategory.skippedCount} skipped)`;
+        }
+        tilesHTML += `
+            <div class="summary-item">
+                <span class="summary-icon">📋</span>
+                <div class="summary-details">
+                    <div class="summary-label">Business Validations</div>
+                    <div class="summary-value">${businessStatusIcon} ${businessStatusText}</div>
+                </div>
+            </div>
+        `;
 
-        container.innerHTML = summaryHTML;
+        // Revocation Validations Category Tile
+        const revocationStatusIcon = revocationCategory.status === 'success' ? '✅' :
+                                     revocationCategory.status === 'error' ? '❌' :
+                                     revocationCategory.status === 'warning' ? '⚠️' :
+                                     revocationCategory.status === 'partial' ? '☑️' : '✗';
+        let revocationStatusText = `${revocationCategory.successCount}/${revocationCategory.totalCount} passed`;
+        if (revocationCategory.errorCount > 0) {
+            revocationStatusText += ` (${revocationCategory.errorCount} errors)`;
+        }
+        if (revocationCategory.warningCount > 0) {
+            revocationStatusText += ` (${revocationCategory.warningCount} warnings)`;
+        }
+        if (revocationCategory.skippedCount > 0) {
+            revocationStatusText += ` (${revocationCategory.skippedCount} skipped)`;
+        }
+        tilesHTML += `
+            <div class="summary-item">
+                <span class="summary-icon">🔒</span>
+                <div class="summary-details">
+                    <div class="summary-label">Revocation Validations</div>
+                    <div class="summary-value">${revocationStatusIcon} ${revocationStatusText}</div>
+                </div>
+            </div>
+        `;
 
-        // Add click handlers for clickable tiles
-        addTileClickHandlers();
+        // Treatment Date Validations Category Tile
+        const treatmentStatusIcon = treatmentDateCategory.status === 'success' ? '✅' :
+                                    treatmentDateCategory.status === 'error' ? '❌' :
+                                    treatmentDateCategory.status === 'warning' ? '⚠️' :
+                                    treatmentDateCategory.status === 'partial' ? '☑️' : '✗';
+        let treatmentStatusText = `${treatmentDateCategory.successCount}/${treatmentDateCategory.totalCount} passed`;
+        if (treatmentDateCategory.errorCount > 0) {
+            treatmentStatusText += ` (${treatmentDateCategory.errorCount} errors)`;
+        }
+        if (treatmentDateCategory.warningCount > 0) {
+            treatmentStatusText += ` (${treatmentDateCategory.warningCount} warnings)`;
+        }
+        if (treatmentDateCategory.skippedCount > 0) {
+            treatmentStatusText += ` (${treatmentDateCategory.skippedCount} skipped)`;
+        }
+        tilesHTML += `
+            <div class="summary-item">
+                <span class="summary-icon">📅</span>
+                <div class="summary-details">
+                    <div class="summary-label">Treatment Date Validations</div>
+                    <div class="summary-value">${treatmentStatusIcon} ${treatmentStatusText}</div>
+                </div>
+            </div>
+        `;
+
+        // Append the 4 tiles to the summary grid
+        summaryGrid.insertAdjacentHTML('beforeend', tilesHTML);
+
+        // Hide the validation details section since we moved everything to summary
+        const validationDetailsSection = document.querySelector('.validation-details-section');
+        if (validationDetailsSection) {
+            validationDetailsSection.style.display = 'none';
+        }
     } catch (e) {
         console.error('Could not parse verification results for validation summary:', e);
-        container.innerHTML = '<p class="error-message">Unable to load validation details</p>';
     }
 }
 
