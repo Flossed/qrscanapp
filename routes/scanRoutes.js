@@ -406,17 +406,17 @@ router.post('/api/validate-jwt-with-schema', async (req, res) => {
 });
 
 // Landing page route
-router.get('/landing', isAuthenticated, (req, res) => {
+router.get('/landing', (req, res) => {
     res.render('landing');
 });
 
 // Treatment date route
-router.get('/treatment-date', isAuthenticated, (req, res) => {
+router.get('/treatment-date', (req, res) => {
     res.render('treatment-date');
 });
 
 // Visual verification route
-router.get('/visual-verification', isAuthenticated, (req, res) => {
+router.get('/visual-verification', (req, res) => {
     res.render('visual-verification');
 });
 
@@ -425,11 +425,11 @@ router.get('/', (req, res) => {
 });
 
 // Scanner page (moved from root)
-router.get('/scanner', isAuthenticated, (req, res) => {
+router.get('/scanner', (req, res) => {
     res.render('scan', { user: req.user });
 });
 
-router.get('/scan-history', isAuthenticated, async (req, res) => {
+router.get('/scan-history', async (req, res) => {
     // Only accessible in DEBUG mode
     if (APP_MODE !== 'DEBUG') {
         return res.status(403).render('error', {
@@ -439,7 +439,8 @@ router.get('/scan-history', isAuthenticated, async (req, res) => {
     }
 
     try {
-        const scans = await Scan.find({ userId: req.user._id }).sort({ scannedAt: -1 });
+        // In DEBUG mode without login, show all scans
+        const scans = await Scan.find({}).sort({ scannedAt: -1 });
         res.render('history', {
             scans,
             user: req.user,
@@ -461,7 +462,7 @@ router.get('/scan-history', isAuthenticated, async (req, res) => {
     }
 });
 
-router.post('/api/scans', isAuthenticated, async (req, res) => {
+router.post('/api/scans', async (req, res) => {
     try {
         const { content, type, deviceInfo } = req.body;
 
@@ -483,9 +484,10 @@ router.post('/api/scans', isAuthenticated, async (req, res) => {
 
         // DEBUG mode: Save scans to database
         // Check if this content has been scanned before (for this user)
+        const userId = req.user ? req.user._id : null;
         const existingScan = await Scan.findOne({
             content: content,
-            userId: req.user._id
+            userId: userId
         }).sort({ scannedAt: -1 });
 
         if (existingScan) {
@@ -505,7 +507,7 @@ router.post('/api/scans', isAuthenticated, async (req, res) => {
         } else {
             // Create new scan
             const scan = new Scan({
-                userId: req.user._id,
+                userId: userId,
                 content,
                 type,
                 deviceInfo,
@@ -560,7 +562,7 @@ router.delete('/api/scans/:id', async (req, res) => {
 
 
 // Verification route
-router.get('/verify', isAuthenticated, (req, res) => {
+router.get('/verify', (req, res) => {
     // Only accessible in DEBUG mode
     if (APP_MODE !== 'DEBUG') {
         return res.status(403).render('error', {
@@ -572,17 +574,17 @@ router.get('/verify', isAuthenticated, (req, res) => {
 });
 
 // Results route
-router.get('/results', isAuthenticated, (req, res) => {
+router.get('/results', (req, res) => {
     res.render('results', { user: req.user });
 });
 
 // Finalization route
-router.get('/finalization', isAuthenticated, (req, res) => {
+router.get('/finalization', (req, res) => {
     res.render('finalization', { user: req.user });
 });
 
 // Email verification summary endpoint
-router.post('/api/send-verification-email', isAuthenticated, async (req, res) => {
+router.post('/api/send-verification-email', async (req, res) => {
     try {
         const { email, referenceNumber, treatmentDate, verificationData, verificationStatus, identityVerification, timestamp, language } = req.body;
 
@@ -2345,7 +2347,7 @@ router.post('/api/generate-markdown-report', async (req, res) => {
 
 
 // API endpoint for verification processing
-router.post('/api/verify', isAuthenticated, async (req, res) => {
+router.post('/api/verify', async (req, res) => {
     try {
         const { data, treatmentDate } = req.body;
         const result = await processVerificationData(data, treatmentDate);
