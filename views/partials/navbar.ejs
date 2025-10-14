@@ -10,7 +10,52 @@
             <ul class="navbar-nav me-auto">
             </ul>
             <ul class="navbar-nav">
-                <!-- Authentication removed in DEBUG mode -->
+                <% if (typeof user !== 'undefined' && user) { %>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> <%= user.firstName %>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li>
+                                <h6 class="dropdown-header">
+                                    <%= user.fullName %><br>
+                                    <small class="text-muted"><%= user.email %></small>
+                                </h6>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="/auth/profile">
+                                    <i class="bi bi-person"></i> My Profile
+                                </a>
+                            </li>
+                            <% if (typeof isDebugMode !== 'undefined' && isDebugMode) { %>
+                            <li>
+                                <a class="dropdown-item" href="/scan-history">
+                                    <i class="bi bi-clock-history"></i> Scan History
+                                </a>
+                            </li>
+                            <% } %>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="/auth/logout">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                <% } else { %>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/auth/login">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-light btn-sm ms-2" href="/auth/register">
+                            <i class="bi bi-person-plus"></i> Register
+                        </a>
+                    </li>
+                <% } %>
             </ul>
         </div>
     </div>

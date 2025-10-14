@@ -416,7 +416,7 @@ router.get('/treatment-date', (req, res) => {
 });
 
 // Visual verification route
-router.get('/visual-verification', (req, res) => {
+router.get('/visual-verification', isAuthenticated, (req, res) => {
     res.render('visual-verification');
 });
 
