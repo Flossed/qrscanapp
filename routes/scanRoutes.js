@@ -415,9 +415,9 @@ router.get('/treatment-date', (req, res) => {
     res.render('treatment-date');
 });
 
-// Identity check route
-router.get('/identity-check', (req, res) => {
-    res.render('identity-check');
+// Visual verification route
+router.get('/visual-verification', isAuthenticated, (req, res) => {
+    res.render('visual-verification');
 });
 
 router.get('/', (req, res) => {

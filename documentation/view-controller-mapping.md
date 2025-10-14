@@ -18,7 +18,7 @@ This document maps all views to their corresponding routes/controllers and docum
 | `/` | GET | `landing.ejs` | `scanRoutes.js:175` | Welcome/Home page |
 | `/landing` | GET | `landing.ejs` | `scanRoutes.js:161` | Landing page (alternative route) |
 | `/treatment-date` | GET | `treatment-date.ejs` | `scanRoutes.js:166` | Treatment date input page |
-| `/identity-check` | GET | `identity-check.ejs` | `scanRoutes.js:171` | Identity verification checklist |
+| `/visual-verification` | GET | `visual-verification.ejs` | `scanRoutes.js:171` | Identity verification checklist |
 | `/scanner` | GET | `scan.ejs` | `scanRoutes.js:180` | QR code scanner interface |
 | `/results` | GET | `results.ejs` | `scanRoutes.js:378` | Verification results display |
 | `/finalization` | GET | `finalization.ejs` | `scanRoutes.js:383` | Final verification summary |
@@ -53,11 +53,11 @@ This document maps all views to their corresponding routes/controllers and docum
 - **Breadcrumb Position**: Step 2 (Treatment Date)
 - **Form Action**: Internal JavaScript processing
 - **Internal Links**:
-  - Submit → `/identity-check` (JavaScript redirect)
+  - Submit → `/visual-verification` (JavaScript redirect)
   - Breadcrumb navigation to previous steps
 - **Features**: Calendar-only date picker, validation
 
-#### 3. `identity-check.ejs` - Identity Verification
+#### 3. `visual-verification.ejs` - Identity Verification
 - **Purpose**: Identity verification checklist
 - **Breadcrumb Position**: Step 3 (Identity Check)
 - **Internal Links**:
@@ -125,10 +125,10 @@ The application supports multiple navigation patterns to accommodate different u
 The main verification workflow follows a linear progression through breadcrumb navigation:
 
 ```
-┌─────────────┐    Continue     ┌─────────────────┐    Continue     ┌──────────────────┐
-│   Landing   │ ──────────────→ │ Treatment Date  │ ──────────────→ │  Identity Check  │
-│     (/)     │                 │(/treatment-date)│                 │(/identity-check) │
-└─────────────┘                 └─────────────────┘                 └──────────────────┘
+┌─────────────┐    Continue     ┌─────────────────┐    Continue     ┌──────────────────────┐
+│   Landing   │ ──────────────→ │ Treatment Date  │ ──────────────→ │  Visual Verification │
+│     (/)     │                 │(/treatment-date)│                 │(/visual-verification)│
+└─────────────┘                 └─────────────────┘                 └──────────────────────┘
        ▲                                                                       │
        │                                                                Continue
        │                                                                       ▼
@@ -205,7 +205,7 @@ The breadcrumb system provides contextual navigation within the main workflow:
 |------|------|-------|----------------|----------------|
 | 1 | Welcome | `/` | `active` (on landing), `completed` (after) | Always |
 | 2 | Treatment Date | `/treatment-date` | `active` (on page), `completed` (after) | After visiting |
-| 3 | Identity Check | `/identity-check` | `active` (on page), `completed` (after) | After visiting |
+| 3 | Visual Verification | `/visual-verification` | `active` (on page), `completed` (after) | After visiting |
 | 4 | QR Verification | `/scanner` | `active` (on page), `completed` (after) | After visiting |
 | 5 | Results | `/results` | `active` (on page), `completed` (after) | After visiting |
 | 6 | Finalization | `/finalization` | `active` (on page) | Never (final step) |
@@ -269,7 +269,7 @@ All pages include consistent navigation access:
 ### Translation-Enabled Views
 - ✅ `landing.ejs` - Full translation support with externalized styles
 - ✅ `treatment-date.ejs` - Full translation support with externalized styles and JavaScript
-- ✅ `identity-check.ejs` - Full translation support with externalized styles and JavaScript
+- ✅ `visual-verification.ejs` - Full translation support with externalized styles and JavaScript
 - ✅ `scan.ejs` - Full translation support with externalized styles and JavaScript
 - ⏳ `results.ejs` - Pending translation implementation
 - ⏳ `finalization.ejs` - Pending translation implementation
@@ -306,7 +306,7 @@ All pages include consistent navigation access:
 views/
 ├── landing.ejs           # Welcome page (/) - ✅ Translated + Externalized
 ├── treatment-date.ejs    # Treatment date input (/treatment-date) - ✅ Translated + Externalized
-├── identity-check.ejs    # Identity verification (/identity-check) - ✅ Translated + Externalized
+├── visual-verification.ejs # Identity verification (/visual-verification) - ✅ Translated + Externalized
 ├── scan.ejs             # Scanner interface (/scanner) - ✅ Translated + Externalized
 ├── results.ejs          # Verification results (/results)
 ├── finalization.ejs     # Final summary (/finalization)
@@ -323,7 +323,7 @@ public/
 ├── js/
 │   ├── manageLocale.js  # Translation system
 │   ├── treatment-date.js # Treatment date page logic
-│   ├── identity-check.js # Identity verification logic
+│   ├── visual-verification.js # Visual verification logic
 │   ├── scan.js          # Scanner page logic and version selection
 │   ├── scanner-simple.js # Simple scanner implementation
 │   ├── scanner-debug.js  # Debug scanner implementation
@@ -366,7 +366,7 @@ All views are mobile-responsive with:
 
 ### Page-Specific JavaScript Files
 - `treatment-date.js` - Date validation, form handling, and navigation
-- `identity-check.js` - Checkbox validation and verification state management
+- `visual-verification.js` - Checkbox validation and verification state management
 - `scan.js` - Scanner version selection and dynamic script loading
 - `manageLocale.js` - Language switching and translation management
 

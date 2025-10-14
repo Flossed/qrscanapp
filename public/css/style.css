@@ -2087,10 +2087,10 @@ body {
 }
 
 /* ========================================
-   IDENTITY CHECK PAGE SPECIFIC STYLES
+   VISUAL VERIFICATION PAGE SPECIFIC STYLES
    ======================================== */
 
-.identity-check-container {
+.visual-verification-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
@@ -2206,11 +2206,11 @@ body {
 }
 
 /* ========================================
-   IDENTITY CHECK RESPONSIVE STYLES
+   VISUAL VERIFICATION RESPONSIVE STYLES
    ======================================== */
 
 @media (max-width: 768px) {
-    .identity-check-container {
+    .visual-verification-container {
         grid-template-columns: 1fr;
         gap: 0;
         padding: 1rem;
