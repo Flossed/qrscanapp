@@ -1386,23 +1386,47 @@ router.post('/api/send-verification-email', async (req, res) => {
             });
         }
 
-        // Determine overall status
+        // Check for visual verification errors
+        let visualVerificationHasErrors = false;
+        let visualVerificationHasWarnings = false;
+
+        if (identityVerification) {
+            try {
+                const identityData = JSON.parse(identityVerification);
+                const identityValue = identityData.identityVerification || 'not-checked';
+                const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                // Check for visual verification errors
+                if (identityValue === 'not-matched' || birthdateValue === 'not-matched') {
+                    visualVerificationHasErrors = true;
+                }
+
+                // Check for visual verification warnings
+                if (identityValue === 'not-checked' || birthdateValue === 'not-checked') {
+                    visualVerificationHasWarnings = true;
+                }
+            } catch (e) {
+                console.error('Could not parse identity verification data for PDF overall status determination');
+            }
+        }
+
+        // Determine overall status (including visual verification status)
         let pdfOverallStatusText;
         let pdfStatusSymbol;
 
-        if (hasErrors) {
-            pdfOverallStatusText = getTranslation('pdf-verification-rejected', pdfLanguage);
+        if (hasErrors || visualVerificationHasErrors) {
+            pdfOverallStatusText = 'Verification Failed';
             pdfStatusSymbol = '❌';
         } else {
-            pdfOverallStatusText = getTranslation('pdf-verification-approved', pdfLanguage);
+            pdfOverallStatusText = 'Verification Approved';
             pdfStatusSymbol = '✅';
         }
 
         doc.font('Helvetica-Bold').fontSize(12)
            .text(`${getTranslation('pdf-verification', pdfLanguage)} ${pdfStatusSymbol} ${pdfOverallStatusText}`, { align: 'center' });
 
-        // Add subheader for optional validation warnings
-        if (hasWarnings && !hasErrors) {
+        // Add subheader for optional validation warnings (only if overall verification passed)
+        if (!visualVerificationHasErrors && !hasErrors && (hasWarnings || visualVerificationHasWarnings)) {
             doc.font('Helvetica').fontSize(10)
                .text(`⚠️ ${getTranslation('pdf-optional-warnings', pdfLanguage)}`, { align: 'center' });
         }
@@ -1421,55 +1445,6 @@ router.post('/api/send-verification-email', async (req, res) => {
         const failedText = getTranslation('email-failed', pdfLanguage);
         const skippedText = 'SKIPPED';
 
-        // Add identity verification warning if skipped
-        if (identityVerification) {
-            try {
-                const identityData = JSON.parse(identityVerification);
-                let warningMessages = [];
-
-                if (!identityData.identityVerified) {
-                    warningMessages.push('Identity (name) verification was skipped');
-                }
-                if (!identityData.birthdateVerified) {
-                    warningMessages.push('Birthdate verification was skipped');
-                }
-
-                if (warningMessages.length > 0) {
-                    // Create a highlighted warning box
-                    const pageWidth = doc.page.width;
-                    const margin = 50;
-                    const boxWidth = pageWidth - (margin * 2);
-                    const boxHeight = 30 + (warningMessages.length > 1 ? 15 : 0);
-                    const currentY = doc.y;
-
-                    // Draw warning box background
-                    doc.rect(margin, currentY, boxWidth, boxHeight)
-                       .fillAndStroke('#FFE4B5', '#FFA500');
-
-                    // Add warning text
-                    doc.fillColor('#B8860B')
-                       .font('Helvetica-Bold')
-                       .fontSize(10);
-
-                    let textY = currentY + 8;
-                    warningMessages.forEach((msg) => {
-                        doc.text(`WARNING: ${msg}`, margin + 10, textY, {
-                            width: boxWidth - 20,
-                            align: 'center'
-                        });
-                        textY += 15;
-                    });
-
-                    // Reset text color and move down
-                    doc.fillColor('black')
-                       .font('Helvetica')
-                       .fontSize(9);
-                    doc.y = currentY + boxHeight + 10;
-                }
-            } catch (e) {
-                console.error('Could not parse identity verification data for PDF');
-            }
-        }
 
         // Technical Validations Section
         doc.font('Helvetica-Bold').fontSize(10)
@@ -1522,6 +1497,67 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.text(`${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : getValidationSkipped('revocationStatus') ? 'skipped - no revocation data' : failedText}`);
 
         doc.moveDown(1);
+
+        // Visual Verification Section - moved from earlier in the document
+        if (identityVerification) {
+            try {
+                const identityData = JSON.parse(identityVerification);
+                let statusMessages = [];
+                let hasErrors = false;
+                let hasWarnings = false;
+
+                // Handle identity verification status
+                const identityValue = identityData.identityVerification || 'not-checked';
+                switch(identityValue) {
+                    case 'matched':
+                        statusMessages.push('✅ Identity (name) verification: Checked and matched');
+                        break;
+                    case 'not-matched':
+                        statusMessages.push('❌ Identity (name) verification: Checked and not matched');
+                        hasErrors = true;
+                        break;
+                    case 'not-checked':
+                    default:
+                        statusMessages.push('⚠️ Identity (name) verification: Not checked');
+                        hasWarnings = true;
+                        break;
+                }
+
+                // Handle birthdate verification status
+                const birthdateValue = identityData.birthdateVerification || 'not-checked';
+                switch(birthdateValue) {
+                    case 'matched':
+                        statusMessages.push('✅ Birthdate verification: Checked and matched');
+                        break;
+                    case 'not-matched':
+                        statusMessages.push('❌ Birthdate verification: Checked and not matched');
+                        hasErrors = true;
+                        break;
+                    case 'not-checked':
+                    default:
+                        statusMessages.push('⚠️ Birthdate verification: Not checked');
+                        hasWarnings = true;
+                        break;
+                }
+
+                if (statusMessages.length > 0) {
+                    // Visual Verification Section
+                    doc.font('Helvetica-Bold').fontSize(10)
+                       .fillColor('black')
+                       .text('VISUAL VERIFICATION', { align: 'left' });
+                    doc.moveDown(0.5);
+                    doc.font('Helvetica').fontSize(9);
+
+                    statusMessages.forEach((msg) => {
+                        doc.text(msg, { align: 'left' });
+                    });
+
+                    doc.moveDown(1);
+                }
+            } catch (e) {
+                console.error('Could not parse identity verification data for PDF');
+            }
+        }
 
         // Treatment Date Validations Section
         doc.font('Helvetica-Bold').fontSize(10)
@@ -1757,20 +1793,44 @@ router.post('/api/send-verification-email', async (req, res) => {
                 });
             }
 
+            // Check for visual verification errors in bilingual PDF
+            let visualVerificationHasErrors2 = false;
+            let visualVerificationHasWarnings2 = false;
+
+            if (identityVerification) {
+                try {
+                    const identityData = JSON.parse(identityVerification);
+                    const identityValue = identityData.identityVerification || 'not-checked';
+                    const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                    // Check for visual verification errors
+                    if (identityValue === 'not-matched' || birthdateValue === 'not-matched') {
+                        visualVerificationHasErrors2 = true;
+                    }
+
+                    // Check for visual verification warnings
+                    if (identityValue === 'not-checked' || birthdateValue === 'not-checked') {
+                        visualVerificationHasWarnings2 = true;
+                    }
+                } catch (e) {
+                    console.error('Could not parse identity verification data for bilingual PDF overall status determination');
+                }
+            }
+
             let pdfOverallStatusText2;
             let pdfStatusSymbol2;
-            if (hasErrors2) {
-                pdfOverallStatusText2 = getTranslation('pdf-verification-rejected', lang2);
+            if (hasErrors2 || visualVerificationHasErrors2) {
+                pdfOverallStatusText2 = 'Verification Failed';
                 pdfStatusSymbol2 = '❌';
             } else {
-                pdfOverallStatusText2 = getTranslation('pdf-verification-approved', lang2);
+                pdfOverallStatusText2 = 'Verification Approved';
                 pdfStatusSymbol2 = '✅';
             }
 
             doc2.font('Helvetica-Bold').fontSize(12)
                .text(`${getTranslation('pdf-verification', lang2)} ${pdfStatusSymbol2} ${pdfOverallStatusText2}`, { align: 'center' });
 
-            if (hasWarnings2 && !hasErrors2) {
+            if (!visualVerificationHasErrors2 && !hasErrors2 && (hasWarnings2 || visualVerificationHasWarnings2)) {
                 doc2.font('Helvetica').fontSize(10)
                    .text(`⚠️ ${getTranslation('pdf-optional-warnings', lang2)}`, { align: 'center' });
             }
@@ -1787,41 +1847,6 @@ router.post('/api/send-verification-email', async (req, res) => {
             const passedText2 = getTranslation('email-passed', lang2);
             const failedText2 = getTranslation('email-failed', lang2);
 
-            // Identity verification warning
-            if (identityVerification) {
-                try {
-                    const identityData2 = JSON.parse(identityVerification);
-                    let warningMessages2 = [];
-                    if (!identityData2.identityVerified) warningMessages2.push('Identity (name) verification was skipped');
-                    if (!identityData2.birthdateVerified) warningMessages2.push('Birthdate verification was skipped');
-
-                    if (warningMessages2.length > 0) {
-                        const pageWidth2Val = doc2.page.width;
-                        const margin2 = 50;
-                        const boxWidth2Val = pageWidth2Val - (margin2 * 2);
-                        const boxHeight2Val = 30 + (warningMessages2.length > 1 ? 15 : 0);
-                        const currentY2Val = doc2.y;
-
-                        doc2.rect(margin2, currentY2Val, boxWidth2Val, boxHeight2Val)
-                           .fillAndStroke('#FFE4B5', '#FFA500');
-                        doc2.fillColor('#B8860B').font('Helvetica-Bold').fontSize(10);
-
-                        let textY2 = currentY2Val + 8;
-                        warningMessages2.forEach((msg) => {
-                            doc2.text(`WARNING: ${msg}`, margin2 + 10, textY2, {
-                                width: boxWidth2Val - 20,
-                                align: 'center'
-                            });
-                            textY2 += 15;
-                        });
-
-                        doc2.fillColor('black').font('Helvetica').fontSize(9);
-                        doc2.y = currentY2Val + boxHeight2Val + 10;
-                    }
-                } catch (e) {
-                    logger.error('Could not parse identity verification data for second PDF');
-                }
-            }
 
             // Technical Validations
             doc2.font('Helvetica-Bold').fontSize(10).text('TECHNICAL VALIDATIONS', { align: 'left' });
@@ -1866,6 +1891,67 @@ router.post('/api/send-verification-email', async (req, res) => {
             doc2.text(`${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText2 : getValidationSkipped('revocationStatus') ? 'skipped - no revocation data' : failedText2}`);
             doc2.moveDown(1);
 
+            // Visual Verification Section - moved from earlier in the document (bilingual PDF)
+            if (identityVerification) {
+                try {
+                    const identityData = JSON.parse(identityVerification);
+                    let statusMessages = [];
+                    let hasErrors = false;
+                    let hasWarnings = false;
+
+                    // Handle identity verification status
+                    const identityValue = identityData.identityVerification || 'not-checked';
+                    switch(identityValue) {
+                        case 'matched':
+                            statusMessages.push('✅ Identity (name) verification: Checked and matched');
+                            break;
+                        case 'not-matched':
+                            statusMessages.push('❌ Identity (name) verification: Checked and not matched');
+                            hasErrors = true;
+                            break;
+                        case 'not-checked':
+                        default:
+                            statusMessages.push('⚠️ Identity (name) verification: Not checked');
+                            hasWarnings = true;
+                            break;
+                    }
+
+                    // Handle birthdate verification status
+                    const birthdateValue = identityData.birthdateVerification || 'not-checked';
+                    switch(birthdateValue) {
+                        case 'matched':
+                            statusMessages.push('✅ Birthdate verification: Checked and matched');
+                            break;
+                        case 'not-matched':
+                            statusMessages.push('❌ Birthdate verification: Checked and not matched');
+                            hasErrors = true;
+                            break;
+                        case 'not-checked':
+                        default:
+                            statusMessages.push('⚠️ Birthdate verification: Not checked');
+                            hasWarnings = true;
+                            break;
+                    }
+
+                    if (statusMessages.length > 0) {
+                        // Visual Verification Section
+                        doc2.font('Helvetica-Bold').fontSize(10)
+                           .fillColor('black')
+                           .text('VISUAL VERIFICATION', { align: 'left' });
+                        doc2.moveDown(0.5);
+                        doc2.font('Helvetica').fontSize(9);
+
+                        statusMessages.forEach((msg) => {
+                            doc2.text(msg, { align: 'left' });
+                        });
+
+                        doc2.moveDown(1);
+                    }
+                } catch (e) {
+                    console.error('Could not parse identity verification data for bilingual PDF');
+                }
+            }
+
             // Treatment Date Validations
             doc2.font('Helvetica-Bold').fontSize(10).text('TREATMENT DATE VALIDATIONS', { align: 'left' });
             doc2.moveDown(0.5);
@@ -1893,14 +1979,38 @@ router.post('/api/send-verification-email', async (req, res) => {
             });
         }
 
-        // Determine status icon and text
+        // Process identity verification data first to check for visual verification errors
+        let emailVisualVerificationHasErrors = false;
+        let emailVisualVerificationHasWarnings = false;
+
+        if (identityVerification) {
+            try {
+                const identityData = JSON.parse(identityVerification);
+                const identityValue = identityData.identityVerification || 'not-checked';
+                const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                // Check for visual verification errors
+                if (identityValue === 'not-matched' || birthdateValue === 'not-matched') {
+                    emailVisualVerificationHasErrors = true;
+                }
+
+                // Check for visual verification warnings
+                if (identityValue === 'not-checked' || birthdateValue === 'not-checked') {
+                    emailVisualVerificationHasWarnings = true;
+                }
+            } catch (e) {
+                console.error('Could not parse identity verification data for overall status determination');
+            }
+        }
+
+        // Determine status icon and text (including visual verification status)
         let statusIcon;
         let statusText;
 
-        if (emailHasErrors) {
+        if (emailHasErrors || emailVisualVerificationHasErrors) {
             statusIcon = '❌';
             statusText = getTranslation('email-failed', userLanguage);
-        } else if (emailHasWarnings) {
+        } else if (emailHasWarnings || emailVisualVerificationHasWarnings) {
             statusIcon = '⚠️';
             statusText = getTranslation('email-warnings', userLanguage);
         } else {
@@ -1908,28 +2018,55 @@ router.post('/api/send-verification-email', async (req, res) => {
             statusText = getTranslation('email-successful', userLanguage);
         }
 
-        // Process identity verification data
+        // Process identity verification data with new radio button values
         let identityVerificationWarning = '';
         if (identityVerification) {
             try {
                 const identityData = JSON.parse(identityVerification);
-                let warningMessages = [];
+                let statusMessages = [];
+                let hasWarnings = false;
+                let hasErrors = false;
 
-                if (!identityData.identityVerified) {
-                    warningMessages.push('Identity (name) verification was skipped');
-                }
-                if (!identityData.birthdateVerified) {
-                    warningMessages.push('Birthdate verification was skipped');
+                // Handle identity verification status
+                const identityValue = identityData.identityVerification || 'not-checked';
+                switch(identityValue) {
+                    case 'matched':
+                        statusMessages.push('<span style="color: #28a745;">✅ Identity (name) verification: Checked and matched</span>');
+                        break;
+                    case 'not-matched':
+                        statusMessages.push('<span style="color: #dc3545;">❌ Identity (name) verification: Checked and not matched</span>');
+                        hasErrors = true;
+                        break;
+                    case 'not-checked':
+                    default:
+                        statusMessages.push('<span style="color: #f39c12;">⚠️ Identity (name) verification: Not checked</span>');
+                        hasWarnings = true;
+                        break;
                 }
 
-                if (warningMessages.length > 0) {
+                // Handle birthdate verification status
+                const birthdateValue = identityData.birthdateVerification || 'not-checked';
+                switch(birthdateValue) {
+                    case 'matched':
+                        statusMessages.push('<span style="color: #28a745;">✅ Birthdate verification: Checked and matched</span>');
+                        break;
+                    case 'not-matched':
+                        statusMessages.push('<span style="color: #dc3545;">❌ Birthdate verification: Checked and not matched</span>');
+                        hasErrors = true;
+                        break;
+                    case 'not-checked':
+                    default:
+                        statusMessages.push('<span style="color: #f39c12;">⚠️ Birthdate verification: Not checked</span>');
+                        hasWarnings = true;
+                        break;
+                }
+
+                if (statusMessages.length > 0) {
                     identityVerificationWarning = `
-                        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 5px;">
-                            <p style="color: #856404; margin: 0;"><strong>⚠️ Warning:</strong></p>
-                            <ul style="color: #856404; margin: 5px 0 0 20px;">
-                                ${warningMessages.map(msg => `<li>${msg}</li>`).join('')}
-                            </ul>
-                        </div>
+                        <h4 style="color: #2c3e50; margin-top: 20px;">Visual Verification</h4>
+                        <ul>
+                            ${statusMessages.map(msg => `<li>${msg}</li>`).join('')}
+                        </ul>
                     `;
                 }
             } catch (e) {
@@ -1937,15 +2074,89 @@ router.post('/api/send-verification-email', async (req, res) => {
             }
         }
 
-        // Email HTML content with translated text
+        // Create Visual Verification section content
+        let visualVerificationHTML = '';
+        if (identityVerification) {
+            try {
+                const identityData = JSON.parse(identityVerification);
+                const identityValue = identityData.identityVerification || 'not-checked';
+                const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                let identityStatusHTML = '';
+                let birthdateStatusHTML = '';
+
+                switch(identityValue) {
+                    case 'matched':
+                        identityStatusHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
+                        break;
+                    case 'not-matched':
+                        identityStatusHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
+                        break;
+                    case 'not-checked':
+                    default:
+                        identityStatusHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
+                        break;
+                }
+
+                switch(birthdateValue) {
+                    case 'matched':
+                        birthdateStatusHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
+                        break;
+                    case 'not-matched':
+                        birthdateStatusHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
+                        break;
+                    case 'not-checked':
+                    default:
+                        birthdateStatusHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
+                        break;
+                }
+
+                visualVerificationHTML = `
+                    <p><strong>📅 Treatment Date:</strong> ${treatmentDate}</p>
+                    <p><strong>👁️ Visual Verification:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>Identity:</strong> ${identityStatusHTML}</li>
+                        <li><strong>Birthdate:</strong> ${birthdateStatusHTML}</li>
+                    </ul>
+                `;
+            } catch (e) {
+                console.error('Could not parse identity verification data for email visual verification section');
+                visualVerificationHTML = `
+                    <p><strong>📅 Treatment Date:</strong> ${treatmentDate}</p>
+                    <p><strong>👁️ Visual Verification:</strong> No verification data available</p>
+                `;
+            }
+        } else {
+            visualVerificationHTML = `
+                <p><strong>📅 Treatment Date:</strong> ${treatmentDate}</p>
+                <p><strong>👁️ Visual Verification:</strong> No verification data available</p>
+            `;
+        }
+
+        // Create warning notification for optional checks that failed/were skipped (only if overall verification passed)
+        let warningNotificationHTML = '';
+        if (!emailVisualVerificationHasErrors && !emailHasErrors && (emailVisualVerificationHasWarnings || emailHasWarnings)) {
+            warningNotificationHTML = `
+                <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 10px; margin: 15px 0;">
+                    <span style="color: #856404;">⚠️ Some non-blocking warnings found</span>
+                </div>
+            `;
+        }
+
+        // Email HTML content with translated text matching finalization page structure exactly
         const emailHTML = `
-            <h2>${getTranslation('email-title', userLanguage, { status: statusText })}</h2>
+            <div style="background-color: ${emailVisualVerificationHasErrors || emailHasErrors ? '#f8d7da' : '#d4edda'}; border-radius: 8px; padding: 20px; margin: 20px 0; color: ${emailVisualVerificationHasErrors || emailHasErrors ? '#721c24' : '#155724'};">
+                <h1 style="margin: 0 0 10px 0; font-size: 24px;">${emailVisualVerificationHasErrors || emailHasErrors ? '❌' : '✅'} ${emailVisualVerificationHasErrors || emailHasErrors ? 'Verification Failed' : 'Verification Approved'}</h1>
+                <p style="margin: 0; font-size: 16px;">${emailVisualVerificationHasErrors || emailHasErrors ? 'One or more verification steps have failed' : 'EHIC valid and verified'}</p>
+            </div>
+
+            ${warningNotificationHTML}
+
             <p><strong>${getTranslation('email-reference-number', userLanguage)}</strong> ${referenceNumber}</p>
-            <p><strong>${getTranslation('email-treatment-date', userLanguage)}</strong> ${treatmentDate}</p>
             <p><strong>${getTranslation('email-verification-time', userLanguage)}</strong> ${new Date(timestamp).toLocaleString('en-GB', { timeZoneName: 'short' })}</p>
             <hr>
-            ${identityVerificationWarning}
-            <h3>${getTranslation('email-verification-status', userLanguage, { icon: statusIcon, status: statusText })}</h3>
+
+            <h3>Validation Details</h3>
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Technical Validations</h4>
             <ul>
@@ -1983,6 +2194,53 @@ router.post('/api/send-verification-email', async (req, res) => {
                 <li>${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence ${getValidationSkipped('revocationPresence') ? '<span style="color: #f39c12;">(Skipped - No revocation data)</span>' : ''}</li>
                 <li>${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check ${getValidationSkipped('revocationStatus') ? '<span style="color: #f39c12;">(Skipped - No revocation data)</span>' : ''}</li>
             </ul>
+
+            <h4 style="color: #2c3e50; margin-top: 20px;">Visual Verification</h4>
+            ${identityVerification ? (() => {
+                try {
+                    const identityData = JSON.parse(identityVerification);
+                    const identityValue = identityData.identityVerification || 'not-checked';
+                    const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                    let identityStatusHTML = '';
+                    let birthdateStatusHTML = '';
+
+                    switch(identityValue) {
+                        case 'matched':
+                            identityStatusHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
+                            break;
+                        case 'not-matched':
+                            identityStatusHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
+                            break;
+                        case 'not-checked':
+                        default:
+                            identityStatusHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
+                            break;
+                    }
+
+                    switch(birthdateValue) {
+                        case 'matched':
+                            birthdateStatusHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
+                            break;
+                        case 'not-matched':
+                            birthdateStatusHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
+                            break;
+                        case 'not-checked':
+                        default:
+                            birthdateStatusHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
+                            break;
+                    }
+
+                    return `
+                        <ul>
+                            <li><strong>Identity (name) verification:</strong> ${identityStatusHTML}</li>
+                            <li><strong>Birthdate verification:</strong> ${birthdateStatusHTML}</li>
+                        </ul>
+                    `;
+                } catch (e) {
+                    return '<p>No verification data available</p>';
+                }
+            })() : '<p>No verification data available</p>'}
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Treatment Date Validations</h4>
             <ul>
@@ -2944,15 +3202,39 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
             });
         }
 
+        // Check for visual verification errors
+        let pdf3VisualVerificationHasErrors = false;
+        let pdf3VisualVerificationHasWarnings = false;
+
+        if (identityVerification) {
+            try {
+                const identityData = JSON.parse(identityVerification);
+                const identityValue = identityData.identityVerification || 'not-checked';
+                const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                // Check for visual verification errors
+                if (identityValue === 'not-matched' || birthdateValue === 'not-matched') {
+                    pdf3VisualVerificationHasErrors = true;
+                }
+
+                // Check for visual verification warnings
+                if (identityValue === 'not-checked' || birthdateValue === 'not-checked') {
+                    pdf3VisualVerificationHasWarnings = true;
+                }
+            } catch (e) {
+                console.error('Could not parse identity verification data for PDF overall status determination');
+            }
+        }
+
         let statusText, statusColor;
-        if (hasErrors) {
-            statusText = getTranslation('pdf-verification-failed', pdfLanguage);
+        if (hasErrors || pdf3VisualVerificationHasErrors) {
+            statusText = 'Verification Failed';
             statusColor = '#cc0000';
-        } else if (hasWarnings) {
-            statusText = getTranslation('pdf-verification-warnings', pdfLanguage);
+        } else if (hasWarnings || pdf3VisualVerificationHasWarnings) {
+            statusText = 'Verification Approved';
             statusColor = '#ff8c00';
         } else {
-            statusText = getTranslation('pdf-verification-approved', pdfLanguage);
+            statusText = 'Verification Approved';
             statusColor = '#006600';
         }
 
@@ -3058,6 +3340,67 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
         doc.text(`${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : getValidationSkipped('revocationStatus') ? 'skipped - no revocation data' : failedText}`);
 
         doc.moveDown(1);
+
+        // Visual Verification Section - moved from earlier in the document
+        if (identityVerification) {
+            try {
+                const identityData = JSON.parse(identityVerification);
+                let statusMessages = [];
+                let hasErrors = false;
+                let hasWarnings = false;
+
+                // Handle identity verification status
+                const identityValue = identityData.identityVerification || 'not-checked';
+                switch(identityValue) {
+                    case 'matched':
+                        statusMessages.push('✅ Identity (name) verification: Checked and matched');
+                        break;
+                    case 'not-matched':
+                        statusMessages.push('❌ Identity (name) verification: Checked and not matched');
+                        hasErrors = true;
+                        break;
+                    case 'not-checked':
+                    default:
+                        statusMessages.push('⚠️ Identity (name) verification: Not checked');
+                        hasWarnings = true;
+                        break;
+                }
+
+                // Handle birthdate verification status
+                const birthdateValue = identityData.birthdateVerification || 'not-checked';
+                switch(birthdateValue) {
+                    case 'matched':
+                        statusMessages.push('✅ Birthdate verification: Checked and matched');
+                        break;
+                    case 'not-matched':
+                        statusMessages.push('❌ Birthdate verification: Checked and not matched');
+                        hasErrors = true;
+                        break;
+                    case 'not-checked':
+                    default:
+                        statusMessages.push('⚠️ Birthdate verification: Not checked');
+                        hasWarnings = true;
+                        break;
+                }
+
+                if (statusMessages.length > 0) {
+                    // Visual Verification Section
+                    doc.font('Helvetica-Bold').fontSize(10)
+                       .fillColor('black')
+                       .text('VISUAL VERIFICATION', { align: 'left' });
+                    doc.moveDown(0.5);
+                    doc.font('Helvetica').fontSize(9);
+
+                    statusMessages.forEach((msg) => {
+                        doc.text(msg, { align: 'left' });
+                    });
+
+                    doc.moveDown(1);
+                }
+            } catch (e) {
+                console.error('Could not parse identity verification data for PDF');
+            }
+        }
 
         // Treatment Date Validations Section
         doc.font('Helvetica-Bold').fontSize(10)
