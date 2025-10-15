@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
+const packageJson = require('./package.json');
 require('dotenv').config();
 
 const app = express();
@@ -94,11 +95,12 @@ app.use((req, res, next) => {
 const APP_MODE = (process.env.MODE || 'DEBUG').toUpperCase();
 console.log(`Application running in ${APP_MODE} mode`);
 
-// Make mode available to all views
+// Make mode and version available to all views
 app.use((req, res, next) => {
   res.locals.appMode = APP_MODE;
   res.locals.isDebugMode = APP_MODE === 'DEBUG';
   res.locals.isProductionMode = APP_MODE === 'PRODUCTION';
+  res.locals.appVersion = packageJson.version;
   next();
 });
 
