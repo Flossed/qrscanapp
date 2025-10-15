@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - 2025-10-15
+
+### Added
+- **Bilingual PDF Generation**: PDFs now generated in both issuing country language and selected UI language
+  - Comprehensive verification documentation in dual languages for enhanced accessibility
+  - Separate PDF files generated for different language contexts
+  - Email recipients receive multiple PDF attachments with same content in different languages
+
+### Changed
+- **Enhanced Terminology**: Updated endpoint and UI terminology from "Identity Check" to "Visual Verification"
+  - Endpoint renamed from `/identity-check` to `/visual-verification` for clearer medical terminology
+  - Button text updated from "Identity Check" to "Visual Verification" throughout application
+  - More appropriate healthcare terminology for patient verification workflows
+- **Authentication System Removal**: Intentionally removed authentication requirements to simplify workflow
+  - Login/register UI elements removed from navbar and landing page
+  - Authentication requirement removed - all functionality accessible without login
+  - Show all history in DEBUG mode without user restrictions
+  - Streamlined verification process for universal access
+
+### Enhanced
+- **User Experience**: Simplified workflow with removed authentication barriers
+- **Medical Terminology**: Professional healthcare terminology throughout verification process
+- **Universal Access**: Verification system accessible to all users without registration requirements
+- **Bilingual Documentation**: Enhanced international compliance with dual-language PDF support
+
+### Technical Improvements
+- **Endpoint Consistency**: All references to identity-check updated to visual-verification
+- **UI Cleanup**: Removed authentication-related UI components and dependencies
+- **Workflow Simplification**: Eliminated authentication middleware and login requirements
+- **PDF Generation Enhancement**: Extended PDF generation system to support multiple language outputs
+
+### Removed
+- **User Authentication Requirements**: Login system disabled for simplified access
+- **Registration Workflow**: User registration and account management removed
+- **Session Management**: Simplified session handling without user authentication
+- **Access Restrictions**: Removed user-based access controls for universal verification access
+
 ## [0.27.0] - 2025-10-03
 
 ### Fixed

@@ -411,7 +411,7 @@ router.get('/landing', (req, res) => {
 });
 
 // Treatment date route
-router.get('/treatment-date', (req, res) => {
+router.get('/treatment-date', isAuthenticated, (req, res) => {
     res.render('treatment-date');
 });
 
@@ -425,7 +425,7 @@ router.get('/', (req, res) => {
 });
 
 // Scanner page (moved from root)
-router.get('/scanner', (req, res) => {
+router.get('/scanner', isAuthenticated, (req, res) => {
     res.render('scan', { user: req.user });
 });
 
@@ -562,7 +562,7 @@ router.delete('/api/scans/:id', async (req, res) => {
 
 
 // Verification route
-router.get('/verify', (req, res) => {
+router.get('/verify', isAuthenticated, (req, res) => {
     // Only accessible in DEBUG mode
     if (APP_MODE !== 'DEBUG') {
         return res.status(403).render('error', {
@@ -574,12 +574,12 @@ router.get('/verify', (req, res) => {
 });
 
 // Results route
-router.get('/results', (req, res) => {
+router.get('/results', isAuthenticated, (req, res) => {
     res.render('results', { user: req.user });
 });
 
 // Finalization route
-router.get('/finalization', (req, res) => {
+router.get('/finalization', isAuthenticated, (req, res) => {
     res.render('finalization', { user: req.user });
 });
 

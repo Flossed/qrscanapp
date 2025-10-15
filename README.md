@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 0.27.0 - 2025-10-03
+## Current Status - Version 0.28.0 - 2025-10-15
 
 ### ✅ Completed Features
 
@@ -43,11 +43,13 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **PRC Data Display** - Shows extracted certificate information for comparison with identity documents
 - **Improved Workflow** - Logical flow: Treatment Date → QR Verification → Results → Visual Verification → Finalization
 - **Warning System** - Clear warnings in finalization, email, and PDF when visual verification is skipped
+- **Enhanced Terminology** - Endpoint and UI updated from "Identity Check" to "Visual Verification" for clearer medical terminology
 
 #### Results & Finalization
 - **Detailed Results Display** - Shows all validation steps with success/failure status
 - **PDF Report Generation** - Creates comprehensive verification reports with all test results
 - **Dynamic PDF Language** - PDFs automatically render in issuing country's native language
+- **Bilingual PDF Generation** - PDFs now generated in both issuing country language and selected UI language for comprehensive verification documentation
 - **Email Integration** - Sends verification summaries with detailed test status
 - **JSON Output Attachment** - Structured JSON verification results attached to emails
 - **JSON Schema Validation** - Validates output against comprehensive schema for data integrity
@@ -178,8 +180,7 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 
 ### 📋 Current Limitations
 
-- **Missing Feature**:
-  - User authentication/login system
+- **Authentication System** - Intentionally removed to simplify verification workflow and enable universal access in DEBUG mode
 
 ### 🏗 Architecture
 
@@ -235,7 +236,8 @@ The system provides a comprehensive validation banner showing:
 
 ### 🚀 Next Steps
 
-- User authentication and role management
+- Enhanced reporting and analytics features
+- Additional PDF customization options
 
 ---
 
