@@ -144,7 +144,6 @@
     "finalization-enter-email": "Syötä sähköpostiosoite",
     "finalization-send-email": "Lähetä Sähköposti",
     "finalization-sending": "Lähetetään...",
-    "finalization-print-summary": "Tulosta Yhteenveto",
     "finalization-start-new-verification": "Aloita Uusi Vahvistus",
     "finalization-email-success": "✅ Vahvistusyhteenveto lähetetty onnistuneesti osoitteeseen {email}",
     "finalization-email-error": "Sähköpostin lähettäminen epäonnistui. Yritä uudelleen.",

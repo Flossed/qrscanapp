@@ -136,7 +136,6 @@
     "finalization-enter-email": "Ingrese dirección de email",
     "finalization-send-email": "Enviar Email",
     "finalization-sending": "Enviando...",
-    "finalization-print-summary": "Imprimir Resumen",
     "finalization-start-new-verification": "Iniciar Nueva Verificación",
     "finalization-email-success": "✅ Resumen de verificación enviado exitosamente a {email}",
     "finalization-email-error": "Falló el envío de email. Por favor, intente nuevamente.",

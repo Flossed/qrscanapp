@@ -144,7 +144,6 @@
     "finalization-enter-email": "Įveskite el. pašto adresą",
     "finalization-send-email": "Siųsti el. paštą",
     "finalization-sending": "Siunčiama...",
-    "finalization-print-summary": "Spausdinti santrauką",
     "finalization-start-new-verification": "Pradėti naują tikrinimą",
     "finalization-email-success": "✅ Tikrinimo santrauka sėkmingai išsiųsta į {email}",
     "finalization-email-error": "El. pašto siuntimas nepavyko. Bandykite dar kartą.",

@@ -144,7 +144,6 @@
     "finalization-enter-email": "Въведете имейл адрес",
     "finalization-send-email": "Изпращане на имейл",
     "finalization-sending": "Изпращане...",
-    "finalization-print-summary": "Печат на резюмето",
     "finalization-start-new-verification": "Стартиране на нова верификация",
     "finalization-email-success": "✅ Резюмето на верификацията е изпратено успешно до {email}",
     "finalization-email-error": "Изпращането на имейла се провали. Моля, опитайте отново.",

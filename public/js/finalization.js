@@ -279,10 +279,7 @@ document.getElementById('send-email').addEventListener('click', async () => {
     }
 });
 
-// Print functionality
-document.getElementById('print-summary').addEventListener('click', () => {
-    window.print();
-});
+// Print functionality removed - print summary button no longer available
 
 // PDF Print functionality
 document.getElementById('print-pdf').addEventListener('click', async () => {

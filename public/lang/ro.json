@@ -144,7 +144,6 @@
     "finalization-enter-email": "Introduceți adresa de email",
     "finalization-send-email": "Trimite email",
     "finalization-sending": "Se trimite...",
-    "finalization-print-summary": "Printează rezumatul",
     "finalization-start-new-verification": "Începe o nouă verificare",
     "finalization-email-success": "✅ Rezumatul verificării trimis cu succes la {email}",
     "finalization-email-error": "Trimiterea emailului a eșuat. Vă rugăm să încercați din nou.",

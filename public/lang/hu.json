@@ -144,7 +144,6 @@
     "finalization-enter-email": "Email cím megadása",
     "finalization-send-email": "Email küldése",
     "finalization-sending": "Küldés...",
-    "finalization-print-summary": "Összefoglaló nyomtatása",
     "finalization-start-new-verification": "Új ellenőrzés indítása",
     "finalization-email-success": "✅ Ellenőrzés összefoglaló sikeresen elküldve ide: {email}",
     "finalization-email-error": "Email küldése sikertelen. Kérjük próbálja újra.",
