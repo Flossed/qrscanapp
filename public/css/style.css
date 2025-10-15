@@ -1457,9 +1457,43 @@ body {
 .footer {
     background-color: var(--dark-color);
     color: white;
-    text-align: center;
     padding: 1rem;
     margin-top: auto;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.footer-left {
+    text-align: center;
+}
+
+.footer-right {
+    position: absolute;
+    right: 0;
+    font-family: monospace;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+/* Mobile responsive footer */
+@media (max-width: 480px) {
+    .footer-content {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+
+    .footer-right {
+        position: static;
+        right: auto;
+    }
 }
 
 .mobile-scanner-header {
