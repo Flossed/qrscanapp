@@ -134,48 +134,7 @@ if (verificationResults) {
     }
 }
 
-// Update identity verification status
-const identityVerificationData = sessionStorage.getItem('identityVerification');
-const identityStatusElement = document.getElementById('identity-verification-status');
-const birthdateStatusElement = document.getElementById('birthdate-verification-status');
-
-if (identityVerificationData) {
-    try {
-        const identityData = JSON.parse(identityVerificationData);
-
-        // Handle identity verification status with new radio button values
-        const identityValue = identityData.identityVerification || 'not-checked';
-        switch(identityValue) {
-            case 'matched':
-                identityStatusElement.innerHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
-                break;
-            case 'not-matched':
-                identityStatusElement.innerHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
-                break;
-            case 'not-checked':
-            default:
-                identityStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
-                break;
-        }
-
-        // Handle birthdate verification status with new radio button values
-        const birthdateValue = identityData.birthdateVerification || 'not-checked';
-        switch(birthdateValue) {
-            case 'matched':
-                birthdateStatusElement.innerHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
-                break;
-            case 'not-matched':
-                birthdateStatusElement.innerHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
-                break;
-            case 'not-checked':
-            default:
-                birthdateStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
-                break;
-        }
-    } catch (e) {
-        console.error('Could not parse identity verification data');
-    }
-}
+// Identity verification status is now handled in displayValidationSummary() function
 
 // Get treatment date from sessionStorage if available
 let treatmentDate = null;
@@ -738,7 +697,57 @@ function displayValidationSummary() {
             </div>
         `;
 
-        // Append the 4 tiles to the summary grid
+        // Visual Verification Category Tile
+        const identityVerificationData = sessionStorage.getItem('identityVerification');
+        let visualStatusIcon = '✗';
+        let visualStatusText = 'Not checked';
+        let visualSuccessCount = 0;
+        let visualTotalCount = 2; // Identity and birthdate
+        let visualErrorCount = 0;
+        let visualWarningCount = 0;
+
+        if (identityVerificationData) {
+            try {
+                const identityData = JSON.parse(identityVerificationData);
+                const identityValue = identityData.identityVerification || 'not-checked';
+                const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                // Count the results
+                if (identityValue === 'matched') visualSuccessCount++;
+                else if (identityValue === 'not-matched') visualErrorCount++;
+                else if (identityValue === 'not-checked') visualWarningCount++;
+
+                if (birthdateValue === 'matched') visualSuccessCount++;
+                else if (birthdateValue === 'not-matched') visualErrorCount++;
+                else if (birthdateValue === 'not-checked') visualWarningCount++;
+
+                // Determine overall status
+                if (visualErrorCount > 0) {
+                    visualStatusIcon = '❌';
+                    visualStatusText = `${visualSuccessCount}/${visualTotalCount} passed (${visualErrorCount} errors)`;
+                } else if (visualWarningCount > 0) {
+                    visualStatusIcon = '⚠️';
+                    visualStatusText = `${visualSuccessCount}/${visualTotalCount} passed (${visualWarningCount} not checked)`;
+                } else {
+                    visualStatusIcon = '✅';
+                    visualStatusText = `${visualSuccessCount}/${visualTotalCount} passed`;
+                }
+            } catch (e) {
+                console.error('Could not parse identity verification data for visual verification tile');
+            }
+        }
+
+        tilesHTML += `
+            <div class="summary-item">
+                <span class="summary-icon">👁️</span>
+                <div class="summary-details">
+                    <div class="summary-label">Visual Verification</div>
+                    <div class="summary-value">${visualStatusIcon} ${visualStatusText}</div>
+                </div>
+            </div>
+        `;
+
+        // Append the 5 tiles to the summary grid
         summaryGrid.insertAdjacentHTML('beforeend', tilesHTML);
 
         // Hide the validation details section since we moved everything to summary
