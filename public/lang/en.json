@@ -161,6 +161,7 @@
     "finalization-pdf-network-error": "Network error while generating PDF. Please try again.",
     "finalization-download-pdf": "Download PDF",
     "finalization-download-pdf-bilingual": "Download PDF (Bilingual)",
+    "finalization-download-verification-results": "Download Verification Results",
     "finalization-downloading-pdf": "Downloading PDF...",
     "finalization-download-error": "Failed to download PDF: ",
     "finalization-download-network-error": "Network error while downloading PDF. Please try again.",

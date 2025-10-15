@@ -3861,6 +3861,756 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
     }
 });
 
+// ZIP download endpoint for verification results (all evidences)
+router.post('/api/download-verification-results', async (req, res) => {
+    try {
+        const { referenceNumber, treatmentDate, verificationData, verificationStatus, identityVerification, timestamp, language } = req.body;
+
+        // Validate required data
+        if (!referenceNumber) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing reference number'
+            });
+        }
+
+        // Log the ZIP generation request
+        logger.info('ZIP download request', {
+            referenceNumber: referenceNumber,
+            language: language,
+            timestamp: timestamp
+        });
+
+        // Debug: Log the data types we're receiving
+        logger.debug('ZIP request data types', {
+            verificationDataType: typeof verificationData,
+            verificationStatusType: typeof verificationStatus,
+            identityVerificationType: typeof identityVerification,
+            identityVerificationValue: identityVerification
+        });
+
+        const JSZip = require('jszip');
+        const PDFDocument = require('pdfkit');
+        const QRCode = require('qrcode');
+        const fs = require('fs');
+        const path = require('path');
+
+        // Create ZIP archive
+        const zip = new JSZip();
+
+        // Generate timestamp for filenames
+        const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
+
+        // 1. Generate regular PDF (reuse existing PDF generation logic)
+        const regularPdfBuffer = await generatePDFBuffer(req.body, false);
+        zip.file(`EHIC-Verification-${referenceNumber}-${dateStr}.pdf`, regularPdfBuffer);
+
+        // 2. Generate bilingual PDF if language is not English
+        if (language && language !== 'en') {
+            const bilingualPdfBuffer = await generatePDFBuffer(req.body, true);
+            zip.file(`EHIC-Verification-${referenceNumber}-bilingual-${dateStr}.pdf`, bilingualPdfBuffer);
+        }
+
+        // 3. Generate JSON file with verification data
+        let parsedIdentityVerification = null;
+        if (identityVerification) {
+            try {
+                // Check if it's already an object or if it's a JSON string
+                if (typeof identityVerification === 'string') {
+                    parsedIdentityVerification = JSON.parse(identityVerification);
+                } else {
+                    parsedIdentityVerification = identityVerification;
+                }
+            } catch (parseError) {
+                logger.warn('Failed to parse identityVerification', {
+                    error: parseError.message,
+                    identityVerificationType: typeof identityVerification,
+                    identityVerificationValue: identityVerification
+                });
+                parsedIdentityVerification = identityVerification; // Use as-is if parsing fails
+            }
+        }
+
+        const jsonData = {
+            referenceNumber: referenceNumber,
+            treatmentDate: treatmentDate,
+            timestamp: timestamp,
+            language: language,
+            verificationData: verificationData, // Raw QR code data, not JSON
+            verificationStatus: verificationStatus,
+            identityVerification: parsedIdentityVerification,
+            generatedAt: new Date().toISOString(),
+            version: "1.0"
+        };
+
+        zip.file(`verification-data-${referenceNumber}.json`, JSON.stringify(jsonData, null, 2));
+
+        // Generate ZIP buffer
+        const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+        // Set response headers for ZIP download
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="verification-results-${referenceNumber}-${dateStr}.zip"`);
+        res.setHeader('Content-Length', zipBuffer.length);
+
+        // Send ZIP buffer
+        res.send(zipBuffer);
+
+        logger.info('ZIP file generated successfully', {
+            referenceNumber: referenceNumber,
+            fileSize: zipBuffer.length
+        });
+
+    } catch (error) {
+        logger.error('ZIP generation error', {
+            error: error.message,
+            stack: error.stack,
+            referenceNumber: req.body.referenceNumber
+        });
+
+        res.status(500).json({
+            success: false,
+            error: 'Failed to generate verification results',
+            message: error.message
+        });
+    }
+});
+
+// Helper function to generate PDF buffer (extracted from existing PDF generation logic)
+async function generatePDFBuffer(requestData, bilingual = false) {
+    const { referenceNumber, treatmentDate, verificationData, verificationStatus, identityVerification, timestamp, language } = requestData;
+
+    // Import required dependencies for PDF generation
+    const PDFDocument = require('pdfkit');
+    const QRCode = require('qrcode');
+    const { getTranslation } = require('../utils/translations');
+
+    return new Promise(async (resolve, reject) => {
+        try {
+            const doc = new PDFDocument();
+            const buffers = [];
+
+            doc.on('data', buffers.push.bind(buffers));
+            doc.on('end', () => {
+                const pdfBuffer = Buffer.concat(buffers);
+                resolve(pdfBuffer);
+            });
+
+            // Use the same PDF language determination logic as the existing endpoint
+            const userLanguage = language || 'en';
+            let pdfLanguage = 'en'; // Default fallback
+
+            // Determine PDF language based on issuing country (same logic as email)
+            const countryToLanguageMap = {
+                'AT': 'de', 'BE': 'en', 'BG': 'bg', 'HR': 'hr', 'CY': 'el', 'CZ': 'cs',
+                'DK': 'da', 'EE': 'et', 'FI': 'fi', 'FR': 'fr', 'DE': 'de', 'GR': 'el',
+                'HU': 'hu', 'IS': 'is', 'IE': 'en', 'IT': 'it', 'LV': 'lv', 'LI': 'de',
+                'LT': 'lt', 'LU': 'en', 'MT': 'en', 'NL': 'nl', 'NO': 'no', 'PL': 'pl',
+                'PT': 'pt', 'RO': 'ro', 'SK': 'sk', 'SI': 'sl', 'ES': 'es', 'SE': 'sv',
+                'CH': 'en'
+            };
+
+            // Extract PRC data and determine PDF language
+            let prcData = {
+                issuingMemberState: 'N/A',
+                cardHolderName: 'N/A',
+                cardHolderGivenName: 'N/A',
+                dateOfBirth: 'N/A',
+                personalIdNumber: 'N/A',
+                institutionId: 'N/A',
+                institutionName: 'N/A',
+                cardId: 'N/A',
+                expiryDate: 'N/A',
+                validityStart: 'N/A',
+                validityEnd: 'N/A',
+                deliveryDate: 'N/A'
+            };
+
+            // Extract EHIC/PRC data from JWT payload
+            if (verificationStatus?.details?.jwt?.payload) {
+                const payload = verificationStatus.details.jwt.payload;
+                let cert = null;
+
+                if (payload.prc) {
+                    cert = payload.prc;
+                } else if (payload.hcert && payload.hcert.v) {
+                    cert = payload.hcert.v[0];
+                }
+
+                if (cert) {
+                    let institutionId = cert.ii || 'N/A';
+                    let institutionName = cert.in || 'N/A';
+
+                    prcData = {
+                        issuingMemberState: cert.ic || payload.iss?.split('/').pop() || 'N/A',
+                        cardHolderName: cert.fn || 'N/A',
+                        cardHolderGivenName: cert.gn || 'N/A',
+                        dateOfBirth: cert.dob ? formatDate(cert.dob) : 'N/A',
+                        personalIdNumber: cert.hi || 'N/A',
+                        institutionId: institutionId,
+                        institutionName: institutionName,
+                        cardId: cert.ci || 'N/A',
+                        expiryDate: cert.xd ? formatDate(cert.xd) : 'N/A',
+                        validityStart: cert.sd ? formatDate(cert.sd) : 'N/A',
+                        validityEnd: cert.ed ? formatDate(cert.ed) : 'N/A',
+                        deliveryDate: cert.di ? formatDate(cert.di) : 'N/A'
+                    };
+                }
+            }
+
+            // Update the PDF language based on issuing country
+            if (prcData && prcData.issuingMemberState && prcData.issuingMemberState !== 'N/A') {
+                pdfLanguage = countryToLanguageMap[prcData.issuingMemberState.toUpperCase()] || 'en';
+            }
+
+            // Helper function to format dates
+            function formatDate(dateStr) {
+                try {
+                    if (!dateStr) return 'N/A';
+                    const date = new Date(dateStr);
+                    return date.toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+                } catch (e) {
+                    return dateStr;
+                }
+            }
+
+            // Helper function validation logic
+            const validationData = verificationStatus?.validationSummary || verificationStatus?.steps || {};
+
+            const drawColoredBullet = (doc, x, y, color) => {
+                doc.save();
+                doc.fillColor(color);
+                doc.circle(x + 3, y + 4, 3).fill();
+                doc.restore();
+                doc.fillColor('black');
+                return x + 10;
+            };
+
+            const getBulletColor = (status) => {
+                switch(status) {
+                    case 'success': return '#28a745';
+                    case 'error': return '#dc3545';
+                    case 'warning': return '#ffc107';
+                    case 'skipped': return '#6c757d';
+                    default: return '#dc3545';
+                }
+            };
+
+            const getValidationStatusInfo = (key, fallbackKey) => {
+                const validation = validationData[key];
+                if (validation && typeof validation === 'object') {
+                    return {
+                        status: validation.status || 'error',
+                        color: getBulletColor(validation.status || 'error')
+                    };
+                }
+                const oldStatus = validationData[fallbackKey];
+                const status = oldStatus ? 'success' : 'error';
+                return {
+                    status: status,
+                    color: getBulletColor(status)
+                };
+            };
+
+            const getValidationStatus = (key, fallbackKey) => {
+                const validation = validationData[key];
+                if (validation && typeof validation === 'object') {
+                    return validation.status === 'success';
+                }
+                return validationData[fallbackKey] || false;
+            };
+
+            const getValidationSkipped = (key) => {
+                const validation = validationData[key];
+                if (validation && typeof validation === 'object') {
+                    return validation.status === 'skipped';
+                }
+                return false;
+            };
+
+            const drawValidationLine = (doc, key, fallbackKey, label, passedText, failedText, skippedText = null) => {
+                const statusInfo = getValidationStatusInfo(key, fallbackKey);
+                let validationStatusText;
+
+                const isValidated = getValidationStatus(key, fallbackKey);
+                const isSkipped = skippedText && getValidationSkipped && getValidationSkipped(key);
+
+                if (isSkipped) {
+                    validationStatusText = skippedText;
+                } else {
+                    validationStatusText = isValidated ? passedText : failedText;
+                }
+
+                const lineY = doc.y;
+                const bulletX = 72;
+                const textX = drawColoredBullet(doc, bulletX, lineY, statusInfo.color);
+                doc.text(`${label}: ${validationStatusText}`, textX, lineY);
+            };
+
+            // Start PDF generation with exact same logic as existing endpoint
+
+            // Move up to reduce top margin before main title
+            doc.moveUp(2.5);
+
+            // Main titles: Arial 12pt Bold (in appropriate language)
+            doc.font('Helvetica-Bold').fontSize(12)
+               .text(getTranslation('pdf-title1', pdfLanguage), { align: 'center' });
+            doc.text(getTranslation('pdf-title2', pdfLanguage), { align: 'center' });
+            doc.text(getTranslation('pdf-title3', pdfLanguage), { align: 'center' });
+
+            // Subtitles: Arial 9pt Italics (in appropriate language)
+            doc.font('Helvetica-Oblique').fontSize(9)
+               .text(getTranslation('pdf-subtitle1', pdfLanguage), { align: 'center' });
+            doc.text(getTranslation('pdf-subtitle2', pdfLanguage), { align: 'center' });
+            doc.moveDown(1);
+
+            // Calculate page dimensions
+            const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+            const leftMargin = doc.page.margins.left;
+            const fullPageWidth = doc.page.width - leftMargin - doc.page.margins.right;
+
+            // Right-aligned section header
+            doc.font('Helvetica-Oblique').fontSize(9)
+               .text(getTranslation('pdf-issuing-member-state', pdfLanguage), { align: 'right' });
+            doc.moveDown(0.5);
+
+            // Create bordered text boxes for fields 1 and 2
+            const currentY = doc.y;
+            const boxHeight = 30;
+            const box1Width = pageWidth * 0.48;
+            const box2Width = pageWidth * 0.48;
+            const box2X = doc.x + pageWidth * 0.52;
+
+            // Box 1 and 2
+            doc.lineWidth(0.5);
+            doc.rect(doc.x, currentY, box1Width, boxHeight).stroke();
+            doc.font('Helvetica').fontSize(9).text('1.', doc.x + 5, currentY + 10);
+
+            doc.rect(box2X, currentY, box2Width, boxHeight).stroke();
+            doc.text(`2. ${prcData.issuingMemberState}`, box2X + 5, currentY + 10);
+
+            doc.y = currentY + boxHeight + 10;
+
+            // Card holder information section
+            doc.font('Helvetica-Oblique').fontSize(9)
+               .text(getTranslation('pdf-card-holder-info', pdfLanguage), leftMargin, doc.y);
+            doc.moveDown(0.5);
+
+            let fieldY = doc.y;
+            const groupBoxHeight = 80;
+
+            doc.lineWidth(0.5);
+            doc.rect(leftMargin, fieldY, fullPageWidth, groupBoxHeight).stroke();
+
+            const fieldLeftMargin = leftMargin + 5;
+
+            doc.font('Helvetica').fontSize(9)
+               .text(`3. ${getTranslation('pdf-name-field', pdfLanguage)} ${prcData.cardHolderName}`,
+                      fieldLeftMargin, fieldY + 8);
+            doc.text(`4. ${getTranslation('pdf-given-name-field', pdfLanguage)} ${prcData.cardHolderGivenName}`,
+                     fieldLeftMargin, fieldY + 28);
+            doc.text(`5. ${getTranslation('pdf-date-of-birth-field', pdfLanguage)} ${prcData.dateOfBirth}`,
+                     fieldLeftMargin, fieldY + 48);
+            doc.text(`6. ${getTranslation('pdf-personal-id-field', pdfLanguage)} ${prcData.personalIdNumber}`,
+                     fieldLeftMargin, fieldY + 68);
+
+            doc.y = fieldY + groupBoxHeight + 10;
+
+            // Institution information
+            doc.font('Helvetica-Oblique').fontSize(9)
+               .text(getTranslation('pdf-competent-institution-info', pdfLanguage), leftMargin, doc.y);
+            doc.moveDown(0.5);
+
+            fieldY = doc.y;
+            const institutionBoxHeight = 35;
+            doc.lineWidth(0.5);
+            doc.rect(leftMargin, fieldY, fullPageWidth, institutionBoxHeight).stroke();
+
+            doc.font('Helvetica').fontSize(9);
+            doc.text(`7. ${getTranslation('pdf-institution-id-field', pdfLanguage)}`, leftMargin + 5, fieldY + 5);
+
+            const lineSpacing = 3.15;
+            let institutionData = "";
+            if (prcData.institutionId !== 'N/A' && prcData.institutionName !== 'N/A') {
+                institutionData = `    ${prcData.institutionId} - ${prcData.institutionName}`;
+            } else if (prcData.institutionId !== 'N/A') {
+                institutionData = `    ${prcData.institutionId}`;
+            } else if (prcData.institutionName !== 'N/A') {
+                institutionData = `    ${prcData.institutionName}`;
+            } else {
+                institutionData = `    N/A`;
+            }
+
+            doc.text(institutionData, leftMargin + 5, fieldY + 5 + 12 + lineSpacing, {
+                width: fullPageWidth - 10
+            });
+            doc.moveDown(0.5);
+
+            doc.y = fieldY + institutionBoxHeight + 10;
+
+            // Card information
+            doc.font('Helvetica-Oblique').fontSize(9)
+               .text(getTranslation('pdf-card-info', pdfLanguage), leftMargin, doc.y);
+            doc.moveDown(0.5);
+
+            fieldY = doc.y;
+            const combinedBoxHeight = 45;
+            doc.lineWidth(0.5);
+            doc.rect(leftMargin, fieldY, fullPageWidth, combinedBoxHeight).stroke();
+            doc.font('Helvetica').fontSize(9)
+               .text(`8. ${getTranslation('pdf-card-id-field', pdfLanguage)} ${prcData.cardId}`, leftMargin + 5, fieldY + 8);
+            doc.text(`9. ${getTranslation('pdf-expiry-date-field', pdfLanguage)} ${prcData.expiryDate}`, leftMargin + 5, fieldY + 28);
+
+            doc.y = fieldY + combinedBoxHeight + 10;
+
+            // Certificate validity and delivery sections
+            const validityBoxWidth = fullPageWidth * 0.48;
+            const deliveryBoxWidth = fullPageWidth * 0.48;
+            const deliveryBoxX = leftMargin + fullPageWidth * 0.52;
+            const splitBoxHeight = 50;
+
+            const headerY = doc.y;
+
+            doc.font('Helvetica-Oblique').fontSize(9)
+               .text(getTranslation('pdf-certificate-validity-period', pdfLanguage), leftMargin, headerY);
+            doc.text(getTranslation('pdf-certificate-delivery-date', pdfLanguage), deliveryBoxX, headerY);
+            doc.moveDown(0.5);
+
+            fieldY = doc.y;
+
+            doc.lineWidth(0.5);
+            doc.rect(leftMargin, fieldY, validityBoxWidth, splitBoxHeight).stroke();
+            doc.rect(deliveryBoxX, fieldY, deliveryBoxWidth, splitBoxHeight).stroke();
+
+            doc.font('Helvetica').fontSize(9)
+               .text(`(a). ${getTranslation('pdf-from-field', pdfLanguage)} ${prcData.validityStart}`,
+                      leftMargin + 5, fieldY + 8);
+            doc.text(`(b). ${getTranslation('pdf-to-field', pdfLanguage)} ${prcData.validityEnd}`,
+                     leftMargin + 5, fieldY + 28);
+            doc.text(`(c). ${prcData.deliveryDate}`, deliveryBoxX + 5, fieldY + 18);
+
+            doc.y = fieldY + splitBoxHeight + 10;
+
+            // Signature section with QR code
+            const signatureHeaderX = leftMargin + (pageWidth * 0.52);
+            doc.font('Helvetica-Oblique').fontSize(9)
+               .text(getTranslation('pdf-signature-stamp', pdfLanguage), signatureHeaderX, doc.y);
+            doc.moveDown();
+
+            const signatureBoxY = doc.y;
+            const signatureBoxHeight = 160;
+            const signatureBoxWidth = pageWidth * 0.35;
+            const signatureBoxX = leftMargin + (pageWidth * 0.52);
+
+            doc.lineWidth(0.5);
+            doc.rect(signatureBoxX, signatureBoxY, signatureBoxWidth, signatureBoxHeight).stroke();
+
+            // Add QR code in signature box
+            if (verificationData) {
+                try {
+                    const qrCodeBuffer = await QRCode.toBuffer(verificationData, {
+                        type: 'png',
+                        width: 140,
+                        margin: 1,
+                        color: {
+                            dark: '#000000',
+                            light: '#FFFFFF'
+                        }
+                    });
+
+                    const qrCodeSize = 140;
+                    const qrCodeX = signatureBoxX + (signatureBoxWidth - qrCodeSize) / 2;
+                    const qrCodeY = signatureBoxY + (signatureBoxHeight - qrCodeSize) / 2;
+
+                    doc.image(qrCodeBuffer, qrCodeX, qrCodeY, {
+                        width: qrCodeSize,
+                        height: qrCodeSize
+                    });
+                } catch (qrError) {
+                    doc.fontSize(9);
+                    doc.text('QR Code Generation Failed', signatureBoxX + 20, signatureBoxY + 60);
+                    doc.fontSize(7);
+                    doc.text(`Error: ${qrError.message}`, signatureBoxX + 20, signatureBoxY + 80);
+                    doc.text(`Data length: ${verificationData.length} chars`, signatureBoxX + 20, signatureBoxY + 95);
+                }
+            }
+
+            doc.y = signatureBoxY + signatureBoxHeight + 15;
+
+            // Add horizontal ruler
+            doc.moveTo(leftMargin, doc.y)
+               .lineTo(leftMargin + pageWidth, doc.y)
+               .lineWidth(0.5)
+               .stroke();
+            doc.moveDown(0.5);
+
+            doc.font('Helvetica-Oblique').fontSize(9)
+               .text(getTranslation('pdf-notes-title', pdfLanguage), leftMargin, doc.y);
+            doc.moveDown(0.3);
+            doc.font('Helvetica').fontSize(9)
+               .text(getTranslation('pdf-notes-text', pdfLanguage), leftMargin, doc.y, {
+                width: pageWidth,
+                align: 'justify'
+            });
+
+            // Add page 2 with verification status
+            doc.addPage();
+
+            // Verification status logic
+            let hasErrors = false;
+            let hasWarnings = false;
+
+            if (validationData) {
+                Object.values(validationData).forEach(validation => {
+                    if (validation && typeof validation === 'object') {
+                        if (validation.status === 'error') hasErrors = true;
+                        if (validation.status === 'warning') hasWarnings = true;
+                    }
+                });
+            }
+
+            // Visual verification checks
+            let pdf3VisualVerificationHasErrors = false;
+            let pdf3VisualVerificationHasWarnings = false;
+
+            if (identityVerification) {
+                try {
+                    const identityData = JSON.parse(identityVerification);
+                    const identityValue = identityData.identityVerification || 'not-checked';
+                    const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                    if (identityValue === 'not-matched' || birthdateValue === 'not-matched') {
+                        pdf3VisualVerificationHasErrors = true;
+                    }
+
+                    if (identityValue === 'not-checked' || birthdateValue === 'not-checked') {
+                        pdf3VisualVerificationHasWarnings = true;
+                    }
+                } catch (e) {
+                    // Parse error handling
+                }
+            }
+
+            let pdf3StatusText;
+            if (hasErrors || pdf3VisualVerificationHasErrors) {
+                pdf3StatusText = 'Verification Failed';
+            } else if (hasWarnings || pdf3VisualVerificationHasWarnings) {
+                pdf3StatusText = 'Verification Approved';
+            } else {
+                pdf3StatusText = 'Verification Approved';
+            }
+
+            // Page 2 headers
+            doc.font('Helvetica-Bold').fontSize(14).fillColor('#000000')
+               .text(getTranslation('pdf-verification-information', pdfLanguage), { align: 'center' });
+            doc.moveDown(1);
+
+            doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000');
+            const statusLineText = `${getTranslation('pdf-verification', pdfLanguage)} ${pdf3StatusText}`;
+            doc.text(statusLineText, { align: 'center' });
+            doc.moveDown(0.5);
+
+            // Status messages
+            if (hasErrors || pdf3VisualVerificationHasErrors) {
+                doc.font('Helvetica').fontSize(10).fillColor('#dc3545')
+                   .text('Mandatory verifications failed', { align: 'center' });
+                doc.fillColor('#000000');
+                doc.moveDown(0.5);
+            } else if (hasWarnings || pdf3VisualVerificationHasWarnings) {
+                doc.font('Helvetica').fontSize(10).fillColor('#ff8c00')
+                   .text('Optional verifications have failed', { align: 'center' });
+                doc.fillColor('#000000');
+                doc.moveDown(0.5);
+            }
+
+            doc.moveDown(0.5);
+
+            // Status summary box
+            const statusY = doc.y;
+            const statusBoxHeight = 80;
+            doc.lineWidth(1);
+            doc.rect(leftMargin, statusY, fullPageWidth, statusBoxHeight).stroke();
+
+            doc.font('Helvetica').fontSize(9).fillColor('#000000');
+            doc.text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber}`, leftMargin + 10, statusY + 10);
+            doc.text(`${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate || 'N/A'}`, leftMargin + 10, statusY + 30);
+            doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleDateString()}`, leftMargin + 10, statusY + 50);
+
+            doc.y = statusY + statusBoxHeight + 15;
+
+            // Validation sections
+            const passedText = 'PASSED';
+            const failedText = 'FAILED';
+
+            // Technical Validations
+            doc.font('Helvetica-Bold').fontSize(10)
+               .text('TECHNICAL VALIDATIONS', { align: 'left' });
+            doc.moveDown(0.5);
+            doc.font('Helvetica').fontSize(9);
+
+            drawValidationLine(doc, 'qrCodeAnalysis', 'qrCodeAnalysis', 'QR Code Analysis', passedText, failedText);
+            drawValidationLine(doc, 'base45Decode', 'base45Decode', 'BASE45 Decoding', passedText, failedText);
+            drawValidationLine(doc, 'zlibDecompress', 'zlibDecompress', 'ZLIB Decompression', passedText, failedText);
+            drawValidationLine(doc, 'jwtParsing', 'jwtParsing', 'JWT Parsing', passedText, failedText);
+            drawValidationLine(doc, 'schemaFileCheck', 'schemaFileCheck', 'Schema File Check', passedText, failedText);
+            drawValidationLine(doc, 'schemaValidation', 'schemaValidation', 'Schema Validation', passedText, failedText);
+            drawValidationLine(doc, 'kidHeaderValidation', 'kidHeaderValidation', 'Kid Header Validation', passedText, failedText);
+            drawValidationLine(doc, 'algorithmHeaderValidation', 'algorithmHeaderValidation', 'Algorithm Header Validation', passedText, failedText);
+            drawValidationLine(doc, 'signatureVerification', 'signatureVerification', 'Signature Retrieval', passedText, failedText);
+            drawValidationLine(doc, 'signatureCountValidation', 'signatureCountValidation', 'Signature Count Validation', passedText, failedText);
+            drawValidationLine(doc, 'countryCodeValidation', 'countryCodeValidation', 'Country Code Validation', passedText, failedText);
+            drawValidationLine(doc, 'officialIdValidation', 'officialIdValidation', 'Official ID Validation', passedText, failedText);
+            drawValidationLine(doc, 'jwtSignatureValidation', 'jwtSignatureValidation', 'JWT Signature Validation', passedText, failedText);
+
+            doc.moveDown(1);
+
+            // Business Validations
+            doc.font('Helvetica-Bold').fontSize(10)
+               .text('BUSINESS VALIDATIONS', { align: 'left' });
+            doc.moveDown(0.5);
+            doc.font('Helvetica').fontSize(9);
+
+            drawValidationLine(doc, 'certificateValidityDate', 'certificateValidityDate', 'Certificate Validity Date', passedText, failedText);
+            drawValidationLine(doc, 'ehicAccreditation', 'ehicAccreditation', 'EHIC Accreditation', passedText, failedText);
+            drawValidationLine(doc, 'dateOfBirthValidation', 'dateOfBirthValidation', 'Date of Birth Validation', passedText, failedText);
+            drawValidationLine(doc, 'dateRangeValidation', 'dateRangeValidation', 'Start/End Date Validation', passedText, failedText);
+            drawValidationLine(doc, 'startIssuanceValidation', 'startIssuanceValidation', 'Start/Issuance Date Validation', passedText, failedText);
+            drawValidationLine(doc, 'issuanceEndValidation', 'issuanceEndValidation', 'Issuance/End Date Validation', passedText, failedText);
+            drawValidationLine(doc, 'expiryDateValidation', 'expiryDateValidation', 'Expiry Date Validation', passedText, failedText, 'skipped - no expiry date found');
+            drawValidationLine(doc, 'institutionLengthValidation', 'institutionLengthValidation', 'Institution Length Validation (Optional)', passedText, failedText, 'skipped - no expiry date found');
+            drawValidationLine(doc, 'cardIdDigitValidation', 'cardIdDigitValidation', 'Card ID Digit Validation (Optional)', passedText, failedText, 'skipped - no card id found');
+            drawValidationLine(doc, 'institutionIdDigitValidation', 'institutionIdDigitValidation', 'Institution ID Digit Validation (Optional)', passedText, failedText, 'skipped - no institution id found');
+
+            doc.moveDown(1);
+
+            // Revocation Validations
+            doc.font('Helvetica-Bold').fontSize(10)
+               .text('REVOCATION VALIDATIONS', { align: 'left' });
+            doc.moveDown(0.5);
+            doc.font('Helvetica').fontSize(9);
+
+            drawValidationLine(doc, 'revocationPresence', 'revocationPresence', 'Revocation Information Presence', passedText, failedText, 'skipped - no revocation data');
+            drawValidationLine(doc, 'revocationStatus', 'revocationStatus', 'Revocation Status Check', passedText, failedText, 'skipped - no revocation data');
+
+            doc.moveDown(1);
+
+            // Visual verification
+            if (identityVerification) {
+                try {
+                    const identityData = JSON.parse(identityVerification);
+
+                    doc.font('Helvetica-Bold').fontSize(10)
+                       .text('VISUAL VERIFICATION', { align: 'left' });
+                    doc.moveDown(0.5);
+                    doc.font('Helvetica').fontSize(9);
+
+                    const identityValue = identityData.identityVerification || 'not-checked';
+                    let identityColor, identityText;
+                    switch(identityValue) {
+                        case 'matched':
+                            identityColor = '#28a745';
+                            identityText = 'Identity (name) verification: Checked and matched: PASSED';
+                            break;
+                        case 'not-matched':
+                            identityColor = '#dc3545';
+                            identityText = 'Identity (name) verification: Checked and not matched: FAILED';
+                            break;
+                        case 'not-checked':
+                        default:
+                            identityColor = '#ffc107';
+                            identityText = 'Identity (name) verification: skipped - Not Checked';
+                            break;
+                    }
+
+                    const identityY = doc.y;
+                    const identityBulletX = 72;
+                    const identityTextX = drawColoredBullet(doc, identityBulletX, identityY, identityColor);
+                    doc.text(identityText, identityTextX, identityY);
+                    doc.moveDown(0.5);
+
+                    const birthdateValue = identityData.birthdateVerification || 'not-checked';
+                    let birthdateColor, birthdateText;
+                    switch(birthdateValue) {
+                        case 'matched':
+                            birthdateColor = '#28a745';
+                            birthdateText = 'Birthdate verification: Checked and matched: PASSED';
+                            break;
+                        case 'not-matched':
+                            birthdateColor = '#dc3545';
+                            birthdateText = 'Birthdate verification: Checked and not matched: FAILED';
+                            break;
+                        case 'not-checked':
+                        default:
+                            birthdateColor = '#ffc107';
+                            birthdateText = 'Birthdate verification: skipped - Not Checked';
+                            break;
+                    }
+
+                    const birthdateY = doc.y;
+                    const birthdateBulletX = 72;
+                    const birthdateTextX = drawColoredBullet(doc, birthdateBulletX, birthdateY, birthdateColor);
+                    doc.text(birthdateText, birthdateTextX, birthdateY);
+                    doc.moveDown(0.5);
+
+                    doc.moveDown(1);
+                } catch (e) {
+                    // Parse error handling
+                }
+            }
+
+            // Treatment Date Validations
+            doc.font('Helvetica-Bold').fontSize(10)
+               .text('TREATMENT DATE VALIDATIONS', { align: 'left' });
+            doc.moveDown(0.5);
+            doc.font('Helvetica').fontSize(9);
+
+            drawValidationLine(doc, 'treatmentDatePresence', 'treatmentDatePresence', 'Treatment Date Presence', passedText, failedText, 'skipped - no treatment date');
+            drawValidationLine(doc, 'treatmentDateRange', 'treatmentDateRange', 'Treatment Date Range Validation', passedText, failedText, 'skipped - no treatment date');
+            doc.moveDown(1);
+
+            // Legend
+            const legendHeight = 80;
+            if (doc.y > (doc.page.height - doc.page.margins.bottom - legendHeight)) {
+                doc.addPage();
+            }
+
+            doc.font('Helvetica-Bold').fontSize(10)
+               .text('LEGEND', { align: 'left' });
+            doc.moveDown(0.5);
+            doc.font('Helvetica').fontSize(9);
+
+            const legendCurrentY = doc.y;
+            const legendCurrentLeftMargin = 72;
+
+            const passedCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, legendCurrentY, '#28a745');
+            doc.text('Passed', passedCurrentTextX, legendCurrentY);
+
+            const failedCurrentY = legendCurrentY + 15;
+            const failedCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, failedCurrentY, '#dc3545');
+            doc.text('Failed', failedCurrentTextX, failedCurrentY);
+
+            const warningCurrentY = legendCurrentY + 30;
+            const warningCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, warningCurrentY, '#ffc107');
+            doc.text('Optional/Not Checked', warningCurrentTextX, warningCurrentY);
+
+            const skippedCurrentY = legendCurrentY + 45;
+            const skippedCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, skippedCurrentY, '#6c757d');
+            doc.text('Skipped', skippedCurrentTextX, skippedCurrentY);
+
+            doc.moveDown(2);
+
+            // Finalize PDF
+            doc.end();
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
 
 
 // Set up multer for file uploads

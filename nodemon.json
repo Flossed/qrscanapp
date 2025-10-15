@@ -1,0 +1,26 @@
+{
+  "ignore": [
+    "temp/*",
+    "*.json",
+    "public/uploads/*",
+    "logs/*",
+    "*.log",
+    "*.pdf",
+    "node_modules/*",
+    ".git",
+    ".env"
+  ],
+  "watch": [
+    "server.js",
+    "routes/",
+    "models/",
+    "middleware/",
+    "utils/",
+    "config/"
+  ],
+  "ext": "js,json,ejs",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "verbose": false
+}
