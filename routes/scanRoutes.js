@@ -1476,29 +1476,34 @@ router.post('/api/send-verification-email', async (req, res) => {
             pdfStatusColor = '#28a745'; // Green
         }
 
-        // Draw overall status with colored bullet
-        doc.font('Helvetica-Bold').fontSize(12);
-        const statusY = doc.y;
+        // Title: "Verification Information"
+        doc.font('Helvetica-Bold').fontSize(14).fillColor('#000000')
+           .text('Verification Information', { align: 'center' });
+        doc.moveDown(1);
+
+        // Status line: "Verification: Verification Approved/Failed" - always black
+        doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000');
         const statusText = `${getTranslation('pdf-verification', pdfLanguage)} ${pdfOverallStatusText}`;
-        const statusWidth = doc.widthOfString(statusText);
-        const centerX = (doc.page.width - statusWidth - 15) / 2; // Account for bullet space
+        doc.text(statusText, { align: 'center' });
+        doc.moveDown(0.5);
 
-        drawColoredBullet(doc, centerX, statusY, pdfStatusColor);
-        doc.text(statusText, centerX + 15, statusY, { align: 'left' });
-        doc.moveDown();
-
-        // Add subheader for optional validation warnings (only if overall verification passed)
-        if (!visualVerificationHasErrors && !hasErrors && (hasWarnings || visualVerificationHasWarnings)) {
-            doc.font('Helvetica').fontSize(10);
-            const warningY = doc.y;
-            const warningText = getTranslation('pdf-optional-warnings', pdfLanguage);
-            const warningWidth = doc.widthOfString(warningText);
-            const warningCenterX = (doc.page.width - warningWidth - 15) / 2; // Account for bullet space
-
-            drawColoredBullet(doc, warningCenterX, warningY, '#ffc107'); // Yellow
-            doc.text(warningText, warningCenterX + 15, warningY, { align: 'left' });
-            doc.moveDown();
+        // Add colored status lines based on verification results
+        if (hasErrors || visualVerificationHasErrors) {
+            // Red text for errors
+            doc.font('Helvetica').fontSize(10).fillColor('#dc3545')
+               .text('Mandatory verifications failed', { align: 'center' });
+            doc.fillColor('#000000');
+            doc.moveDown(0.5);
+        } else if (hasWarnings || visualVerificationHasWarnings) {
+            // Orange text for warnings
+            doc.font('Helvetica').fontSize(10).fillColor('#ff8c00')
+               .text('Optional verifications have failed', { align: 'center' });
+            doc.fillColor('#000000');
+            doc.moveDown(0.5);
         }
+
+        // Extra spacing before status box as requested
+        doc.moveDown(0.5);
 
         // Determine verification status (same logic as print PDF)
         let emailVisualVerificationHasErrors = false;
@@ -1542,16 +1547,17 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.lineWidth(1);
         doc.rect(statusLeftMargin, emailStatusY, emailFullPageWidth, statusBoxHeight).stroke();
 
-        // Add status and header information
-        doc.font('Helvetica').fontSize(9).fillColor(statusColor)
-           .text(`${getTranslation('pdf-verification', pdfLanguage)} ${emailStatusText}`, statusLeftMargin + 10, emailStatusY + 10);
-        doc.fillColor('#000000');
-
-        doc.text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber}`, statusLeftMargin + 10, emailStatusY + 30);
-        doc.text(`${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate || 'N/A'}`, statusLeftMargin + 10, emailStatusY + 45);
-        doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleDateString()}`, statusLeftMargin + 10, emailStatusY + 60);
+        // Add reference and details inside status box (no verification status here anymore)
+        doc.font('Helvetica').fontSize(9).fillColor('#000000');
+        doc.text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber}`, statusLeftMargin + 10, emailStatusY + 10);
+        doc.text(`${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate || 'N/A'}`, statusLeftMargin + 10, emailStatusY + 30);
+        doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleDateString()}`, statusLeftMargin + 10, emailStatusY + 50);
 
         doc.y = emailStatusY + statusBoxHeight + 15;
+
+        // Removed duplicate colored status lines that were appearing above Technical Validations
+        // (The correct warning text already appears after the main status line above)
+
         doc.font('Helvetica').fontSize(9);
         const passedText = getTranslation('email-passed', pdfLanguage);
         const failedText = getTranslation('email-failed', pdfLanguage);
@@ -1991,28 +1997,34 @@ router.post('/api/send-verification-email', async (req, res) => {
                 pdfStatusColor2 = '#28a745'; // Green
             }
 
-            // Draw overall status with colored bullet for second PDF
-            doc2.font('Helvetica-Bold').fontSize(12);
-            const statusY2 = doc2.y;
+            // Title: "Verification Information" (bilingual PDF)
+            doc2.font('Helvetica-Bold').fontSize(14).fillColor('#000000')
+               .text('Verification Information', { align: 'center' });
+            doc2.moveDown(1);
+
+            // Status line: "Verification: Verification Approved/Failed" - always black (bilingual)
+            doc2.font('Helvetica-Bold').fontSize(10).fillColor('#000000');
             const statusText2 = `${getTranslation('pdf-verification', lang2)} ${pdfOverallStatusText2}`;
-            const statusWidth2 = doc2.widthOfString(statusText2);
-            const centerX2 = (doc2.page.width - statusWidth2 - 15) / 2; // Account for bullet space
+            doc2.text(statusText2, { align: 'center' });
+            doc2.moveDown(0.5);
 
-            drawColoredBullet(doc2, centerX2, statusY2, pdfStatusColor2);
-            doc2.text(statusText2, centerX2 + 15, statusY2, { align: 'left' });
-            doc2.moveDown();
-
-            if (!visualVerificationHasErrors2 && !hasErrors2 && (hasWarnings2 || visualVerificationHasWarnings2)) {
-                doc2.font('Helvetica').fontSize(10);
-                const warningY2 = doc2.y;
-                const warningText2 = getTranslation('pdf-optional-warnings', lang2);
-                const warningWidth2 = doc2.widthOfString(warningText2);
-                const warningCenterX2 = (doc2.page.width - warningWidth2 - 15) / 2; // Account for bullet space
-
-                drawColoredBullet(doc2, warningCenterX2, warningY2, '#ffc107'); // Yellow
-                doc2.text(warningText2, warningCenterX2 + 15, warningY2, { align: 'left' });
-                doc2.moveDown();
+            // Add colored status lines based on verification results (bilingual PDF)
+            if (hasErrors2 || visualVerificationHasErrors2) {
+                // Red text for errors
+                doc2.font('Helvetica').fontSize(10).fillColor('#dc3545')
+                   .text('Mandatory verifications failed', { align: 'center' });
+                doc2.fillColor('#000000');
+                doc2.moveDown(0.5);
+            } else if (hasWarnings2 || visualVerificationHasWarnings2) {
+                // Orange text for warnings
+                doc2.font('Helvetica').fontSize(10).fillColor('#ff8c00')
+                   .text('Optional verifications have failed', { align: 'center' });
+                doc2.fillColor('#000000');
+                doc2.moveDown(0.5);
             }
+
+            // Extra spacing before status box as requested (bilingual)
+            doc2.moveDown(0.5);
 
             // Determine verification status for bilingual PDF (same logic as print PDF)
             let bilingualVisualVerificationHasErrors = false;
@@ -2056,16 +2068,29 @@ router.post('/api/send-verification-email', async (req, res) => {
             doc2.lineWidth(1);
             doc2.rect(bilingualStatusLeftMargin, bilingualStatusY, bilingualFullPageWidth, bilingualStatusBoxHeight).stroke();
 
-            // Add status and header information
-            doc2.font('Helvetica').fontSize(9).fillColor(statusColor2)
-               .text(`${getTranslation('pdf-verification', lang2)} ${bilingualStatusText}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 10);
-            doc2.fillColor('#000000');
-
-            doc2.text(`${getTranslation('pdf-reference', lang2)} ${referenceNumber}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 30);
-            doc2.text(`${getTranslation('pdf-treatment-date', lang2)} ${treatmentDate || 'N/A'}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 45);
-            doc2.text(`${getTranslation('pdf-verified', lang2)} ${new Date(timestamp).toLocaleDateString()}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 60);
+            // Add reference and details inside status box (no verification status here anymore - bilingual)
+            doc2.font('Helvetica').fontSize(9).fillColor('#000000');
+            doc2.text(`${getTranslation('pdf-reference', lang2)} ${referenceNumber}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 10);
+            doc2.text(`${getTranslation('pdf-treatment-date', lang2)} ${treatmentDate || 'N/A'}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 30);
+            doc2.text(`${getTranslation('pdf-verified', lang2)} ${new Date(timestamp).toLocaleDateString()}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 50);
 
             doc2.y = bilingualStatusY + bilingualStatusBoxHeight + 15;
+
+            // Add colored status lines based on verification results (bilingual PDF)
+            if (hasErrors2 || bilingualVisualVerificationHasErrors) {
+                // Red text for errors
+                doc2.font('Helvetica').fontSize(9).fillColor('#dc3545')
+                   .text('Mandatory verifications failed', bilingualStatusLeftMargin, doc2.y);
+                doc2.fillColor('#000000');
+                doc2.moveDown(0.5);
+            } else if (hasWarnings2 || bilingualVisualVerificationHasWarnings) {
+                // Orange text for warnings
+                doc2.font('Helvetica').fontSize(9).fillColor('#ff8c00')
+                   .text('Optional verifications have failed', bilingualStatusLeftMargin, doc2.y);
+                doc2.fillColor('#000000');
+                doc2.moveDown(0.5);
+            }
+
             doc2.font('Helvetica').fontSize(9);
             const passedText2 = getTranslation('email-passed', lang2);
             const failedText2 = getTranslation('email-failed', lang2);
@@ -3572,13 +3597,33 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
             statusColor = '#006600';
         }
 
-        // Status header
-        doc.font('Helvetica-Bold').fontSize(14)
+        // Title: "Verification Information" (print/download PDF)
+        doc.font('Helvetica-Bold').fontSize(14).fillColor('#000000')
            .text(getTranslation('pdf-verification-information', pdfLanguage), { align: 'center' });
         doc.moveDown(1);
 
-        doc.font('Helvetica-Bold').fontSize(10)
-           .text(getTranslation('pdf-verification-status', pdfLanguage), leftMargin);
+        // Status line: "Verification: Verification Approved/Failed" - always black (print PDF)
+        doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000');
+        const statusLineText = `${getTranslation('pdf-verification', pdfLanguage)} ${pdf3StatusText}`;
+        doc.text(statusLineText, { align: 'center' });
+        doc.moveDown(0.5);
+
+        // Add colored status lines based on verification results (print PDF)
+        if (hasErrors || pdf3VisualVerificationHasErrors) {
+            // Red text for errors
+            doc.font('Helvetica').fontSize(10).fillColor('#dc3545')
+               .text('Mandatory verifications failed', { align: 'center' });
+            doc.fillColor('#000000');
+            doc.moveDown(0.5);
+        } else if (hasWarnings || pdf3VisualVerificationHasWarnings) {
+            // Orange text for warnings
+            doc.font('Helvetica').fontSize(10).fillColor('#ff8c00')
+               .text('Optional verifications have failed', { align: 'center' });
+            doc.fillColor('#000000');
+            doc.moveDown(0.5);
+        }
+
+        // Extra spacing before status box as requested (print PDF)
         doc.moveDown(0.5);
 
         // Status summary box
@@ -3587,37 +3632,17 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
         doc.lineWidth(1);
         doc.rect(leftMargin, statusY, fullPageWidth, statusBoxHeight).stroke();
 
-        doc.font('Helvetica').fontSize(9).fillColor(statusColor)
-           .text(`${getTranslation('pdf-verification', pdfLanguage)} ${pdf3StatusText}`, leftMargin + 10, statusY + 10);
-        doc.fillColor('#000000');
-
-        doc.text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber}`, leftMargin + 10, statusY + 30);
-        doc.text(`${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate || 'N/A'}`, leftMargin + 10, statusY + 45);
-        doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleDateString()}`, leftMargin + 10, statusY + 60);
+        // Reference and details inside status box (no verification status here anymore)
+        doc.font('Helvetica').fontSize(9).fillColor('#000000');
+        doc.text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber}`, leftMargin + 10, statusY + 10);
+        doc.text(`${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate || 'N/A'}`, leftMargin + 10, statusY + 30);
+        doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleDateString()}`, leftMargin + 10, statusY + 50);
 
         doc.y = statusY + statusBoxHeight + 15;
 
-        // Identity verification warnings
+        // Identity verification warnings - replaced box with colored text lines
         const identityData = identityVerification ? JSON.parse(identityVerification) : {};
-        if (identityData.identitySkipped || identityData.birthdateSkipped) {
-            const warningY = doc.y;
-            const warningBoxHeight = 45;
-            doc.lineWidth(1);
-            doc.rect(leftMargin, warningY, fullPageWidth, warningBoxHeight).stroke();
-            doc.fillColor('#ff8c00');
-            doc.font('Helvetica-Bold').fontSize(9)
-               .text('⚠️ WARNING', leftMargin + 10, warningY + 8);
-            doc.fillColor('#000000');
-            doc.font('Helvetica').fontSize(8);
-
-            if (identityData.identitySkipped) {
-                doc.text('• Identity verification was skipped', leftMargin + 10, warningY + 22);
-            }
-            if (identityData.birthdateSkipped) {
-                doc.text('• Birthdate verification was skipped', leftMargin + 10, warningY + 32);
-            }
-            doc.y = warningY + warningBoxHeight + 15;
-        }
+        // Warning box removed - now handled by status text above
 
         // VALIDATION RESULTS SECTIONS
         const passedText = 'PASSED';
