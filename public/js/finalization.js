@@ -378,24 +378,20 @@ async function printPDF(bilingual = false) {
     }
 }
 
-// PDF Download functionality
-document.getElementById('download-pdf').addEventListener('click', async () => {
-    await downloadPDF(false); // Single language PDF
+// Verification Results Download functionality
+document.getElementById('download-verification-results').addEventListener('click', async () => {
+    await downloadVerificationResults();
 });
 
-document.getElementById('download-pdf-bilingual').addEventListener('click', async () => {
-    await downloadPDF(true); // Bilingual PDF
-});
-
-// Function to generate and download PDF
-async function downloadPDF(bilingual = false) {
-    const downloadButton = bilingual ? document.getElementById('download-pdf-bilingual') : document.getElementById('download-pdf');
+// Function to generate and download verification results as ZIP
+async function downloadVerificationResults() {
+    const downloadButton = document.getElementById('download-verification-results');
     const originalText = downloadButton.textContent;
 
     try {
         // Disable button while generating
         downloadButton.disabled = true;
-        downloadButton.textContent = getTranslatedText('finalization-downloading-pdf', 'Downloading PDF...');
+        downloadButton.textContent = getTranslatedText('finalization-downloading-pdf', 'Downloading Verification Results...');
 
         // Prepare the same data structure as email functionality
         const verificationResults = sessionStorage.getItem('verificationResults');
@@ -420,35 +416,33 @@ async function downloadPDF(bilingual = false) {
             }
         }
 
-        const pdfData = {
+        const zipData = {
             referenceNumber: document.getElementById('reference-number').textContent,
             treatmentDate: document.getElementById('treatment-date-summary').textContent,
             verificationData: sessionStorage.getItem('verificationData') || '',
             verificationStatus: verificationStatus,
             identityVerification: sessionStorage.getItem('identityVerification'),
             timestamp: new Date().toISOString(),
-            language: sessionStorage.getItem('usedLanguage') || 'en',
-            bilingual: bilingual
+            language: sessionStorage.getItem('usedLanguage') || 'en'
         };
 
-        // Call PDF generation API
-        const response = await fetch('/api/generate-verification-pdf', {
+        // Call ZIP generation API
+        const response = await fetch('/api/download-verification-results', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(pdfData)
+            body: JSON.stringify(zipData)
         });
 
         if (response.ok) {
             // Create blob from response
             const blob = await response.blob();
 
-            // Generate filename based on reference number and bilingual status
+            // Generate filename based on reference number
             const referenceNumber = document.getElementById('reference-number').textContent;
-            const languageSuffix = bilingual ? '-bilingual' : '';
             const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
-            const filename = `EHIC-Verification-${referenceNumber}${languageSuffix}-${timestamp}.pdf`;
+            const filename = `verification-results-${referenceNumber}-${timestamp}.zip`;
 
             // Create temporary anchor element for download
             const url = window.URL.createObjectURL(blob);
@@ -469,11 +463,11 @@ async function downloadPDF(bilingual = false) {
 
         } else {
             const error = await response.json();
-            alert(getTranslatedText('finalization-download-error', 'Failed to download PDF: ') + (error.error || 'Unknown error'));
+            alert(getTranslatedText('finalization-download-error', 'Failed to download verification results: ') + (error.error || 'Unknown error'));
         }
     } catch (error) {
-        console.error('PDF download error:', error);
-        alert(getTranslatedText('finalization-download-network-error', 'Network error while downloading PDF. Please try again.'));
+        console.error('Verification results download error:', error);
+        alert(getTranslatedText('finalization-download-network-error', 'Network error while downloading verification results. Please try again.'));
     } finally {
         // Re-enable button
         downloadButton.disabled = false;
