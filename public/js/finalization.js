@@ -351,6 +351,109 @@ async function printPDF(bilingual = false) {
     }
 }
 
+// PDF Download functionality
+document.getElementById('download-pdf').addEventListener('click', async () => {
+    await downloadPDF(false); // Single language PDF
+});
+
+document.getElementById('download-pdf-bilingual').addEventListener('click', async () => {
+    await downloadPDF(true); // Bilingual PDF
+});
+
+// Function to generate and download PDF
+async function downloadPDF(bilingual = false) {
+    const downloadButton = bilingual ? document.getElementById('download-pdf-bilingual') : document.getElementById('download-pdf');
+    const originalText = downloadButton.textContent;
+
+    try {
+        // Disable button while generating
+        downloadButton.disabled = true;
+        downloadButton.textContent = getTranslatedText('finalization-downloading-pdf', 'Downloading PDF...');
+
+        // Prepare the same data structure as email functionality
+        const verificationResults = sessionStorage.getItem('verificationResults');
+        let verificationStatus = {
+            overall: true,
+            steps: {
+                base45Decode: true,
+                zlibDecompression: true,
+                jwtParsing: true,
+                signatureVerification: true,
+                certificateAuthority: true
+            }
+        };
+
+        // Parse verification results if available
+        if (verificationResults) {
+            try {
+                const results = JSON.parse(verificationResults);
+                verificationStatus = results;
+            } catch (e) {
+                console.error('Could not parse verification results');
+            }
+        }
+
+        const pdfData = {
+            referenceNumber: document.getElementById('reference-number').textContent,
+            treatmentDate: document.getElementById('treatment-date-summary').textContent,
+            verificationData: sessionStorage.getItem('verificationData') || '',
+            verificationStatus: verificationStatus,
+            identityVerification: sessionStorage.getItem('identityVerification'),
+            timestamp: new Date().toISOString(),
+            language: sessionStorage.getItem('usedLanguage') || 'en',
+            bilingual: bilingual
+        };
+
+        // Call PDF generation API
+        const response = await fetch('/api/generate-verification-pdf', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(pdfData)
+        });
+
+        if (response.ok) {
+            // Create blob from response
+            const blob = await response.blob();
+
+            // Generate filename based on reference number and bilingual status
+            const referenceNumber = document.getElementById('reference-number').textContent;
+            const languageSuffix = bilingual ? '-bilingual' : '';
+            const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
+            const filename = `EHIC-Verification-${referenceNumber}${languageSuffix}-${timestamp}.pdf`;
+
+            // Create temporary anchor element for download
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+
+            // Append to body, click, and remove
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Clean up blob URL after a delay
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+            }, 1000);
+
+        } else {
+            const error = await response.json();
+            alert(getTranslatedText('finalization-download-error', 'Failed to download PDF: ') + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('PDF download error:', error);
+        alert(getTranslatedText('finalization-download-network-error', 'Network error while downloading PDF. Please try again.'));
+    } finally {
+        // Re-enable button
+        downloadButton.disabled = false;
+        downloadButton.textContent = originalText;
+    }
+}
+
 // Show/hide bilingual PDF button based on verification data
 function updatePDFButtons() {
     const verificationResults = sessionStorage.getItem('verificationResults');
@@ -363,12 +466,20 @@ function updatePDFButtons() {
 
             // Check if we have verification data that would support bilingual PDFs
             if (verificationData && language !== 'en') {
-                const bilingualButton = document.getElementById('print-pdf-bilingual');
-                if (bilingualButton) {
-                    bilingualButton.style.display = 'inline-block';
-                    // Update button text to show languages
-                    const countryLang = getCountryLanguage(results) || 'Country Language';
-                    bilingualButton.textContent = `Print PDF (${language.toUpperCase()} + ${countryLang.toUpperCase()})`;
+                const countryLang = getCountryLanguage(results) || 'Country Language';
+
+                // Show and update print bilingual button
+                const bilingualPrintButton = document.getElementById('print-pdf-bilingual');
+                if (bilingualPrintButton) {
+                    bilingualPrintButton.style.display = 'inline-block';
+                    bilingualPrintButton.textContent = `Print PDF (${language.toUpperCase()} + ${countryLang.toUpperCase()})`;
+                }
+
+                // Show and update download bilingual button
+                const bilingualDownloadButton = document.getElementById('download-pdf-bilingual');
+                if (bilingualDownloadButton) {
+                    bilingualDownloadButton.style.display = 'inline-block';
+                    bilingualDownloadButton.textContent = `Download PDF (${language.toUpperCase()} + ${countryLang.toUpperCase()})`;
                 }
             }
         } catch (e) {
