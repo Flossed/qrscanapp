@@ -144,7 +144,6 @@
     "finalization-enter-email": "Sláðu inn tölvupóstfang",
     "finalization-send-email": "Senda tölvupóst",
     "finalization-sending": "Sendi...",
-    "finalization-print-summary": "Prenta samantekt",
     "finalization-start-new-verification": "Byrja nýja sannprófun",
     "finalization-email-success": "✅ Sannprófunarsamantekt send með góðum árangri til {email}",
     "finalization-email-error": "Tölvupóstursending misheppnaðist. Vinsamlegast reyndu aftur.",

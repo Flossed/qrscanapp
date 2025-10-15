@@ -144,7 +144,6 @@
     "finalization-enter-email": "Sisestage e-posti aadress",
     "finalization-send-email": "Saada e-post",
     "finalization-sending": "Saatmine...",
-    "finalization-print-summary": "Prindi kokkuvõte",
     "finalization-start-new-verification": "Alusta uut kinnitamist",
     "finalization-email-success": "✅ Kinnitamise kokkuvõte edukalt saadetud aadressile {email}",
     "finalization-email-error": "E-posti saatmine ebaõnnestus. Palun proovige uuesti.",

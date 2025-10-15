@@ -144,7 +144,6 @@
     "finalization-enter-email": "Unesite e-mail adresu",
     "finalization-send-email": "Pošaljite e-mail",
     "finalization-sending": "Šalje se...",
-    "finalization-print-summary": "Ispiši sažetak",
     "finalization-start-new-verification": "Započni novu provjeru",
     "finalization-email-success": "✅ Sažetak provjere uspješno poslan na {email}",
     "finalization-email-error": "Slanje e-maila neuspješno. Molimo pokušajte ponovno.",

@@ -144,7 +144,6 @@
     "finalization-enter-email": "Inserire indirizzo email",
     "finalization-send-email": "Invia Email",
     "finalization-sending": "Invio...",
-    "finalization-print-summary": "Stampa Riassunto",
     "finalization-start-new-verification": "Inizia Nuova Verifica",
     "finalization-email-success": "✅ Riassunto della verifica inviato con successo a {email}",
     "finalization-email-error": "Invio email fallito. Si prega di riprovare.",

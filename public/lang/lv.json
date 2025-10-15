@@ -144,7 +144,6 @@
     "finalization-enter-email": "Ievadiet e-pasta adresi",
     "finalization-send-email": "Sūtīt e-pastu",
     "finalization-sending": "Sūtu...",
-    "finalization-print-summary": "Drukāt kopsavilkumu",
     "finalization-start-new-verification": "Sākt jaunu verifikāciju",
     "finalization-email-success": "✅ Verifikācijas kopsavilkums veiksmīgi nosūtīts uz {email}",
     "finalization-email-error": "E-pasta sūtīšana neizdevās. Lūdzu mēģiniet vēlreiz.",

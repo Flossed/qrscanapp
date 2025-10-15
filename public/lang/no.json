@@ -144,7 +144,6 @@
     "finalization-enter-email": "Skriv inn e-postadresse",
     "finalization-send-email": "Send E-post",
     "finalization-sending": "Sender...",
-    "finalization-print-summary": "Skriv ut Sammendrag",
     "finalization-start-new-verification": "Start Ny Verifikasjon",
     "finalization-email-success": "✅ Verifikasjonssammendrag sendt vellykket til {email}",
     "finalization-email-error": "Mislyktes å sende e-post. Vennligst prøv igjen.",

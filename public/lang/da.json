@@ -144,7 +144,6 @@
     "finalization-enter-email": "Indtast e-mailadresse",
     "finalization-send-email": "Send E-mail",
     "finalization-sending": "Sender...",
-    "finalization-print-summary": "Udskriv Sammendrag",
     "finalization-start-new-verification": "Start Ny Verificering",
     "finalization-email-success": "✅ Verificeringssammendrag sendt succesfuldt til {email}",
     "finalization-email-error": "Mislykkedes at sende e-mail. Prøv venligst igen.",

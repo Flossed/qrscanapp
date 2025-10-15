@@ -144,7 +144,6 @@
     "finalization-enter-email": "Wprowadź adres email",
     "finalization-send-email": "Wyślij Email",
     "finalization-sending": "Wysyłanie...",
-    "finalization-print-summary": "Drukuj Podsumowanie",
     "finalization-start-new-verification": "Rozpocznij Nową Weryfikację",
     "finalization-email-success": "✅ Podsumowanie weryfikacji wysłane pomyślnie na {email}",
     "finalization-email-error": "Wysłanie email nieudane. Spróbuj ponownie.",

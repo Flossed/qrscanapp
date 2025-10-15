@@ -144,7 +144,6 @@
     "finalization-enter-email": "Zadejte e-mailovou adresu",
     "finalization-send-email": "Odeslat E-mail",
     "finalization-sending": "Odesílání...",
-    "finalization-print-summary": "Vytisknout Souhrn",
     "finalization-start-new-verification": "Zahájit Nové Ověření",
     "finalization-email-success": "✅ Souhrn ověření úspěšně odeslán na {email}",
     "finalization-email-error": "Odeslání e-mailu selhalo. Zkuste to prosím znovu.",

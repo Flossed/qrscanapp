@@ -144,7 +144,6 @@
     "finalization-enter-email": "Zadajte e-mailovú adresu",
     "finalization-send-email": "Odoslať e-mail",
     "finalization-sending": "Odosielam...",
-    "finalization-print-summary": "Vytlačiť zhrnutie",
     "finalization-start-new-verification": "Začať novú verifikáciu",
     "finalization-email-success": "✅ Zhrnutie verifikácie úspešne odoslané na {email}",
     "finalization-email-error": "Nepodarilo sa odoslať e-mail. Prosím skúste znovu.",

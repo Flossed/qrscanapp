@@ -144,7 +144,6 @@
     "finalization-enter-email": "Daħħal l-indirizz tal-email",
     "finalization-send-email": "Ibgħat email",
     "finalization-sending": "Qed nibgħat...",
-    "finalization-print-summary": "Stampa sommarju",
     "finalization-start-new-verification": "Ibda verifika ġdida",
     "finalization-email-success": "✅ Sommarju tal-verifika mibgħut b'suċċess lil {email}",
     "finalization-email-error": "L-email ma rnexxielux jintbagħat. Jekk jogħġbok erġa' pprova.",

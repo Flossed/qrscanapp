@@ -144,7 +144,6 @@
     "finalization-enter-email": "Ange e-postadress",
     "finalization-send-email": "Skicka E-post",
     "finalization-sending": "Skickar...",
-    "finalization-print-summary": "Skriv ut Sammanfattning",
     "finalization-start-new-verification": "Starta Ny Verifiering",
     "finalization-email-success": "✅ Verifieringssammanfattning skickad framgångsrikt till {email}",
     "finalization-email-error": "Misslyckades att skicka e-post. Vänligen försök igen.",

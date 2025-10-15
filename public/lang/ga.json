@@ -144,7 +144,6 @@
     "finalization-enter-email": "Cuir isteach seoladh ríomhphoist",
     "finalization-send-email": "Seol Ríomhphost",
     "finalization-sending": "Ag seoladh...",
-    "finalization-print-summary": "Priontáil Achoimre",
     "finalization-start-new-verification": "Tosaigh Fíorúchán Nua",
     "finalization-email-success": "✅ Achoimre fíorúcháin seolta go rathúil chuig {email}",
     "finalization-email-error": "Theip ar sheoladh ríomhphoist. Triail arís.",

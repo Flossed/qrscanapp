@@ -144,7 +144,6 @@
     "finalization-enter-email": "Εισάγετε διεύθυνση email",
     "finalization-send-email": "Αποστολή email",
     "finalization-sending": "Αποστέλλεται...",
-    "finalization-print-summary": "Εκτύπωση περίληψης",
     "finalization-start-new-verification": "Εκκίνηση νέας επαλήθευσης",
     "finalization-email-success": "✅ Η περίληψη επαλήθευσης στάλθηκε με επιτυχία στο {email}",
     "finalization-email-error": "Η αποστολή email απέτυχε. Παρακαλώ δοκιμάστε ξανά.",
