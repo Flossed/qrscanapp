@@ -719,22 +719,76 @@ router.post('/api/send-verification-email', async (req, res) => {
         // Helper function to get validation status (used by both PDF and email)
         const validationData = verificationStatus?.validationSummary || verificationStatus?.steps || {};
 
-        // STATUS SYMBOLS - to be used later
-        // Updated to handle warning and skipped states
-        const statusSymbol = (key, fallbackKey) => {
+        // COLORED BULLET HELPER FUNCTIONS
+        // Helper function to draw colored bullets in PDF
+        const drawColoredBullet = (doc, x, y, color) => {
+            doc.save();
+            doc.fillColor(color);
+            doc.circle(x + 3, y + 4, 3).fill();
+            doc.restore();
+            doc.fillColor('black'); // Reset to black for text
+            return x + 10; // Return x position after bullet for text
+        };
+
+        // Helper function to get bullet color based on status
+        const getBulletColor = (status) => {
+            switch(status) {
+                case 'success': return '#28a745'; // Green
+                case 'error': return '#dc3545';   // Red
+                case 'warning': return '#ffc107'; // Yellow
+                case 'skipped': return '#6c757d'; // Gray
+                default: return '#dc3545';       // Red (default for error)
+            }
+        };
+
+        // Helper function to get status symbol for HTML (email)
+        const getStatusSymbolHTML = (key, fallbackKey) => {
+            const statusInfo = getValidationStatusInfo(key, fallbackKey);
+            switch(statusInfo.status) {
+                case 'success': return '<span style="color: #28a745;">●</span>'; // Green bullet
+                case 'error': return '<span style="color: #dc3545;">●</span>';   // Red bullet
+                case 'warning': return '<span style="color: #ffc107;">●</span>'; // Yellow bullet
+                case 'skipped': return '<span style="color: #6c757d;">●</span>'; // Gray bullet
+                default: return '<span style="color: #dc3545;">●</span>';       // Red bullet (default)
+            }
+        };
+
+        // Updated status function to work with colored bullets
+        const getValidationStatusInfo = (key, fallbackKey) => {
             const validation = validationData[key];
             if (validation && typeof validation === 'object') {
-                switch(validation.status) {
-                    case 'success': return '✅';
-                    case 'error': return '❌';
-                    case 'warning': return '⚠️';
-                    case 'skipped': return '➖';
-                    default: return '❌';
-                }
+                return {
+                    status: validation.status || 'error',
+                    color: getBulletColor(validation.status || 'error')
+                };
             }
             // Fallback to old boolean format
             const oldStatus = validationData[fallbackKey];
-            return oldStatus ? '✅' : '❌';
+            const status = oldStatus ? 'success' : 'error';
+            return {
+                status: status,
+                color: getBulletColor(status)
+            };
+        };
+
+        // Helper function to draw validation line with colored bullet
+        const drawValidationLine = (doc, key, fallbackKey, label, passedText, failedText, skippedText = null) => {
+            const statusInfo = getValidationStatusInfo(key, fallbackKey);
+            let validationStatusText;
+
+            const isValidated = getValidationStatus(key, fallbackKey);
+            const isSkipped = skippedText && getValidationSkipped && getValidationSkipped(key);
+
+            if (isSkipped) {
+                validationStatusText = skippedText;
+            } else {
+                validationStatusText = isValidated ? passedText : failedText;
+            }
+
+            const lineY = doc.y;
+            const bulletX = 72; // Fixed left margin for consistent bullet alignment
+            const textX = drawColoredBullet(doc, bulletX, lineY, statusInfo.color);
+            doc.text(`${label}: ${validationStatusText}`, textX, lineY);
         };
 
         // Debug logging
@@ -1412,34 +1466,92 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Determine overall status (including visual verification status)
         let pdfOverallStatusText;
-        let pdfStatusSymbol;
+        let pdfStatusColor;
 
         if (hasErrors || visualVerificationHasErrors) {
             pdfOverallStatusText = 'Verification Failed';
-            pdfStatusSymbol = '❌';
+            pdfStatusColor = '#dc3545'; // Red
         } else {
             pdfOverallStatusText = 'Verification Approved';
-            pdfStatusSymbol = '✅';
+            pdfStatusColor = '#28a745'; // Green
         }
 
-        doc.font('Helvetica-Bold').fontSize(12)
-           .text(`${getTranslation('pdf-verification', pdfLanguage)} ${pdfStatusSymbol} ${pdfOverallStatusText}`, { align: 'center' });
+        // Draw overall status with colored bullet
+        doc.font('Helvetica-Bold').fontSize(12);
+        const statusY = doc.y;
+        const statusText = `${getTranslation('pdf-verification', pdfLanguage)} ${pdfOverallStatusText}`;
+        const statusWidth = doc.widthOfString(statusText);
+        const centerX = (doc.page.width - statusWidth - 15) / 2; // Account for bullet space
+
+        drawColoredBullet(doc, centerX, statusY, pdfStatusColor);
+        doc.text(statusText, centerX + 15, statusY, { align: 'left' });
+        doc.moveDown();
 
         // Add subheader for optional validation warnings (only if overall verification passed)
         if (!visualVerificationHasErrors && !hasErrors && (hasWarnings || visualVerificationHasWarnings)) {
-            doc.font('Helvetica').fontSize(10)
-               .text(`⚠️ ${getTranslation('pdf-optional-warnings', pdfLanguage)}`, { align: 'center' });
+            doc.font('Helvetica').fontSize(10);
+            const warningY = doc.y;
+            const warningText = getTranslation('pdf-optional-warnings', pdfLanguage);
+            const warningWidth = doc.widthOfString(warningText);
+            const warningCenterX = (doc.page.width - warningWidth - 15) / 2; // Account for bullet space
+
+            drawColoredBullet(doc, warningCenterX, warningY, '#ffc107'); // Yellow
+            doc.text(warningText, warningCenterX + 15, warningY, { align: 'left' });
+            doc.moveDown();
         }
 
-        doc.font('Helvetica').fontSize(9)
-           .text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber} | ${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate}`, { align: 'center' });
-        doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleString('en-GB', { timeZoneName: 'short' })}`, { align: 'center' });
-        doc.moveDown(2);
+        // Determine verification status (same logic as print PDF)
+        let emailVisualVerificationHasErrors = false;
+        let emailVisualVerificationHasWarnings = false;
 
-        // Add verification results section - Arial 9pt italics header, Arial 9pt content
-        doc.font('Helvetica-Oblique').fontSize(9)
-           .text(getTranslation('pdf-verification-results', pdfLanguage), { align: 'center' });
-        doc.moveDown();
+        if (identityVerification) {
+            try {
+                const identityData = JSON.parse(identityVerification);
+                const identityValue = identityData.identityVerification || 'not-checked';
+                const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                if (identityValue === 'not-matched' || birthdateValue === 'not-matched') {
+                    emailVisualVerificationHasErrors = true;
+                } else if (identityValue === 'not-checked' || birthdateValue === 'not-checked') {
+                    emailVisualVerificationHasWarnings = true;
+                }
+            } catch (e) {
+                console.error('Could not parse identity verification data for email PDF status determination');
+            }
+        }
+
+        let emailStatusText, statusColor;
+        if (hasErrors || emailVisualVerificationHasErrors) {
+            emailStatusText = 'Verification Failed';
+            statusColor = '#cc0000';
+        } else if (hasWarnings || emailVisualVerificationHasWarnings) {
+            emailStatusText = 'Verification Approved';
+            statusColor = '#ff8c00';
+        } else {
+            emailStatusText = 'Verification Approved';
+            statusColor = '#006600';
+        }
+
+        // Create status box and header info to match print PDF format
+        const statusLeftMargin = 72;
+        const emailStatusY = doc.y;
+        const statusBoxHeight = 80;
+        const emailFullPageWidth = doc.page.width - 2 * statusLeftMargin;
+
+        // Draw status box
+        doc.lineWidth(1);
+        doc.rect(statusLeftMargin, emailStatusY, emailFullPageWidth, statusBoxHeight).stroke();
+
+        // Add status and header information
+        doc.font('Helvetica').fontSize(9).fillColor(statusColor)
+           .text(`${getTranslation('pdf-verification', pdfLanguage)} ${emailStatusText}`, statusLeftMargin + 10, emailStatusY + 10);
+        doc.fillColor('#000000');
+
+        doc.text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber}`, statusLeftMargin + 10, emailStatusY + 30);
+        doc.text(`${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate || 'N/A'}`, statusLeftMargin + 10, emailStatusY + 45);
+        doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleDateString()}`, statusLeftMargin + 10, emailStatusY + 60);
+
+        doc.y = emailStatusY + statusBoxHeight + 15;
         doc.font('Helvetica').fontSize(9);
         const passedText = getTranslation('email-passed', pdfLanguage);
         const failedText = getTranslation('email-failed', pdfLanguage);
@@ -1452,19 +1564,19 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol('qrCodeAnalysis', 'qrCodeAnalysis')} QR Code Analysis: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('base45Decode', 'base45Decode')} BASE45 Decoding: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('zlibDecompress', 'zlibDecompression')} ZLIB Decompression: ${getValidationStatus('zlibDecompress', 'zlibDecompression') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('jwtParsing', 'jwtParsing')} JWT Parsing: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('schemaFileCheck', 'schemaFileCheck')} Schema File Check: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('schemaValidation', 'schemaValidation')} Schema Validation: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('kidHeaderValidation', 'kidHeaderValidation')} Kid Header Validation: ${getValidationStatus('kidHeaderValidation', 'kidHeaderValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('algorithmHeaderValidation', 'algorithmHeaderValidation')} Algorithm Header Validation: ${getValidationStatus('algorithmHeaderValidation', 'algorithmHeaderValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('signatureVerification', 'certificateAuthority')} Signature Retrieval: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('signatureCountValidation', 'signatureCountValidation')} Signature Count Validation: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('countryCodeValidation', 'countryCodeValidation')} Country Code Validation: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('officialIdValidation', 'officialIdValidation')} Official ID Validation: ${getValidationStatus('officialIdValidation', 'officialIdValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('jwtSignatureValidation', 'signatureVerification')} JWT Signature Validation: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText : failedText}`);
+        drawValidationLine(doc, 'qrCodeAnalysis', 'qrCodeAnalysis', 'QR Code Analysis', passedText, failedText);
+        drawValidationLine(doc, 'base45Decode', 'base45Decode', 'BASE45 Decoding', passedText, failedText);
+        drawValidationLine(doc, 'zlibDecompress', 'zlibDecompression', 'ZLIB Decompression', passedText, failedText);
+        drawValidationLine(doc, 'jwtParsing', 'jwtParsing', 'JWT Parsing', passedText, failedText);
+        drawValidationLine(doc, 'schemaFileCheck', 'schemaFileCheck', 'Schema File Check', passedText, failedText);
+        drawValidationLine(doc, 'schemaValidation', 'schemaValidation', 'Schema Validation', passedText, failedText);
+        drawValidationLine(doc, 'kidHeaderValidation', 'kidHeaderValidation', 'Kid Header Validation', passedText, failedText);
+        drawValidationLine(doc, 'algorithmHeaderValidation', 'algorithmHeaderValidation', 'Algorithm Header Validation', passedText, failedText);
+        drawValidationLine(doc, 'signatureVerification', 'certificateAuthority', 'Signature Retrieval', passedText, failedText);
+        drawValidationLine(doc, 'signatureCountValidation', 'signatureCountValidation', 'Signature Count Validation', passedText, failedText);
+        drawValidationLine(doc, 'countryCodeValidation', 'countryCodeValidation', 'Country Code Validation', passedText, failedText);
+        drawValidationLine(doc, 'officialIdValidation', 'officialIdValidation', 'Official ID Validation', passedText, failedText);
+        drawValidationLine(doc, 'jwtSignatureValidation', 'signatureVerification', 'JWT Signature Validation', passedText, failedText);
 
         doc.moveDown(1);
 
@@ -1474,16 +1586,16 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol('certificateValidityDate', 'certificateValidityDate')} Certificate Validity Date: ${getValidationStatus('certificateValidityDate', 'certificateValidityDate') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('ehicAccreditation', 'ehicAccreditation')} EHIC Accreditation: ${getValidationStatus('ehicAccreditation', 'ehicAccreditation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('dateOfBirthValidation', 'dateOfBirthValidation')} Date of Birth Validation: ${getValidationStatus('dateOfBirthValidation', 'dateOfBirthValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('dateRangeValidation', 'dateRangeValidation')} Start/End Date Validation: ${getValidationStatus('dateRangeValidation', 'dateRangeValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('startIssuanceValidation', 'startIssuanceValidation')} Start/Issuance Date Validation: ${getValidationStatus('startIssuanceValidation', 'startIssuanceValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('issuanceEndValidation', 'issuanceEndValidation')} Issuance/End Date Validation: ${getValidationStatus('issuanceEndValidation', 'issuanceEndValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation: ${getValidationStatus('expiryDateValidation', 'expiryDateValidation') ? passedText : getValidationSkipped('expiryDateValidation') ? 'skipped - no expiry date found' : failedText}`);
-        doc.text(`${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation (Optional): ${getValidationStatus('institutionLengthValidation', 'institutionLengthValidation') ? passedText : getValidationSkipped('institutionLengthValidation') ? 'skipped - no expiry date found' : failedText}`);
-        doc.text(`${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation (Optional): ${getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation') ? passedText : getValidationSkipped('cardIdDigitValidation') ? 'skipped - no card id found' : failedText}`);
-        doc.text(`${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation (Optional): ${getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation') ? passedText : getValidationSkipped('institutionIdDigitValidation') ? 'skipped - no institution id found' : failedText}`);
+        drawValidationLine(doc, 'certificateValidityDate', 'certificateValidityDate', 'Certificate Validity Date', passedText, failedText);
+        drawValidationLine(doc, 'ehicAccreditation', 'ehicAccreditation', 'EHIC Accreditation', passedText, failedText);
+        drawValidationLine(doc, 'dateOfBirthValidation', 'dateOfBirthValidation', 'Date of Birth Validation', passedText, failedText);
+        drawValidationLine(doc, 'dateRangeValidation', 'dateRangeValidation', 'Start/End Date Validation', passedText, failedText);
+        drawValidationLine(doc, 'startIssuanceValidation', 'startIssuanceValidation', 'Start/Issuance Date Validation', passedText, failedText);
+        drawValidationLine(doc, 'issuanceEndValidation', 'issuanceEndValidation', 'Issuance/End Date Validation', passedText, failedText);
+        drawValidationLine(doc, 'expiryDateValidation', 'expiryDateValidation', 'Expiry Date Validation', passedText, failedText, 'skipped - no expiry date found');
+        drawValidationLine(doc, 'institutionLengthValidation', 'institutionLengthValidation', 'Institution Length Validation (Optional)', passedText, failedText, 'skipped - no expiry date found');
+        drawValidationLine(doc, 'cardIdDigitValidation', 'cardIdDigitValidation', 'Card ID Digit Validation (Optional)', passedText, failedText, 'skipped - no card id found');
+        drawValidationLine(doc, 'institutionIdDigitValidation', 'institutionIdDigitValidation', 'Institution ID Digit Validation (Optional)', passedText, failedText, 'skipped - no institution id found');
 
         doc.moveDown(1);
 
@@ -1493,8 +1605,8 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence: ${getValidationStatus('revocationPresence', 'revocationPresence') ? passedText : getValidationSkipped('revocationPresence') ? 'skipped - no revocation data' : failedText}`);
-        doc.text(`${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : getValidationSkipped('revocationStatus') ? 'skipped - no revocation data' : failedText}`);
+        drawValidationLine(doc, 'revocationPresence', 'revocationPresence', 'Revocation Information Presence', passedText, failedText, 'skipped - no revocation data');
+        drawValidationLine(doc, 'revocationStatus', 'revocationStatus', 'Revocation Status Check', passedText, failedText, 'skipped - no revocation data');
 
         doc.moveDown(1);
 
@@ -1506,54 +1618,69 @@ router.post('/api/send-verification-email', async (req, res) => {
                 let hasErrors = false;
                 let hasWarnings = false;
 
+                // Visual Verification Header
+                doc.font('Helvetica-Bold').fontSize(10)
+                   .text('VISUAL VERIFICATION', { align: 'left' });
+                doc.moveDown(0.5);
+                doc.font('Helvetica').fontSize(9);
+
                 // Handle identity verification status
                 const identityValue = identityData.identityVerification || 'not-checked';
+                let identityColor, identityText;
                 switch(identityValue) {
                     case 'matched':
-                        statusMessages.push('✅ Identity (name) verification: Checked and matched');
+                        identityColor = '#28a745'; // Green
+                        identityText = 'Identity (name) verification: Checked and matched: PASSED';
                         break;
                     case 'not-matched':
-                        statusMessages.push('❌ Identity (name) verification: Checked and not matched');
+                        identityColor = '#dc3545'; // Red
+                        identityText = 'Identity (name) verification: Checked and not matched: FAILED';
                         hasErrors = true;
                         break;
                     case 'not-checked':
                     default:
-                        statusMessages.push('⚠️ Identity (name) verification: Not checked');
+                        identityColor = '#ffc107'; // Yellow
+                        identityText = 'Identity (name) verification: skipped - Not Checked';
                         hasWarnings = true;
                         break;
                 }
+
+                // Draw identity verification with colored bullet
+                const identityY = doc.y;
+                const identityBulletX = 72;
+                const identityTextX = drawColoredBullet(doc, identityBulletX, identityY, identityColor);
+                doc.text(identityText, identityTextX, identityY);
+                doc.moveDown(0.5);
 
                 // Handle birthdate verification status
                 const birthdateValue = identityData.birthdateVerification || 'not-checked';
+                let birthdateColor, birthdateText;
                 switch(birthdateValue) {
                     case 'matched':
-                        statusMessages.push('✅ Birthdate verification: Checked and matched');
+                        birthdateColor = '#28a745'; // Green
+                        birthdateText = 'Birthdate verification: Checked and matched: PASSED';
                         break;
                     case 'not-matched':
-                        statusMessages.push('❌ Birthdate verification: Checked and not matched');
+                        birthdateColor = '#dc3545'; // Red
+                        birthdateText = 'Birthdate verification: Checked and not matched: FAILED';
                         hasErrors = true;
                         break;
                     case 'not-checked':
                     default:
-                        statusMessages.push('⚠️ Birthdate verification: Not checked');
+                        birthdateColor = '#ffc107'; // Yellow
+                        birthdateText = 'Birthdate verification: skipped - Not Checked';
                         hasWarnings = true;
                         break;
                 }
 
-                if (statusMessages.length > 0) {
-                    // Visual Verification Section
-                    doc.font('Helvetica-Bold').fontSize(10)
-                       .fillColor('black')
-                       .text('VISUAL VERIFICATION', { align: 'left' });
-                    doc.moveDown(0.5);
-                    doc.font('Helvetica').fontSize(9);
+                // Draw birthdate verification with colored bullet
+                const birthdateY = doc.y;
+                const birthdateBulletX = 72;
+                const birthdateTextX = drawColoredBullet(doc, birthdateBulletX, birthdateY, birthdateColor);
+                doc.text(birthdateText, birthdateTextX, birthdateY);
+                doc.moveDown(0.5);
 
-                    statusMessages.forEach((msg) => {
-                        doc.text(msg, { align: 'left' });
-                    });
-
-                    doc.moveDown(1);
-                }
+                doc.moveDown(1);
             } catch (e) {
                 console.error('Could not parse identity verification data for PDF');
             }
@@ -1565,8 +1692,45 @@ router.post('/api/send-verification-email', async (req, res) => {
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence: ${getValidationStatus('treatmentDatePresence', 'treatmentDatePresence') ? passedText : getValidationSkipped('treatmentDatePresence') ? 'skipped - no treatment date' : failedText}`);
-        doc.text(`${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation: ${getValidationStatus('treatmentDateRange', 'treatmentDateRange') ? passedText : getValidationSkipped('treatmentDateRange') ? 'skipped - no treatment date' : failedText}`);
+        drawValidationLine(doc, 'treatmentDatePresence', 'treatmentDatePresence', 'Treatment Date Presence', passedText, failedText, 'skipped - no treatment date');
+        drawValidationLine(doc, 'treatmentDateRange', 'treatmentDateRange', 'Treatment Date Range Validation', passedText, failedText, 'skipped - no treatment date');
+        doc.moveDown(1);
+
+        // Check if there's enough space for the legend (need ~80 points for header + 4 items)
+        const legendHeight = 80;
+        if (doc.y > (doc.page.height - doc.page.margins.bottom - legendHeight)) {
+            doc.addPage();
+        }
+
+        // Add legend for bullet color coding
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text('LEGEND', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica').fontSize(9);
+
+        // Draw legend items with colored bullets
+        const legendCurrentY = doc.y;
+        const legendCurrentLeftMargin = 72;
+
+        // Passed (Green)
+        const passedCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, legendCurrentY, '#28a745');
+        doc.text('Passed', passedCurrentTextX, legendCurrentY);
+
+        // Failed (Red)
+        const failedCurrentY = legendCurrentY + 15;
+        const failedCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, failedCurrentY, '#dc3545');
+        doc.text('Failed', failedCurrentTextX, failedCurrentY);
+
+        // Warning (Yellow)
+        const warningCurrentY = legendCurrentY + 30;
+        const warningCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, warningCurrentY, '#ffc107');
+        doc.text('Optional/Not Checked', warningCurrentTextX, warningCurrentY);
+
+        // Skipped (Gray)
+        const skippedCurrentY = legendCurrentY + 45;
+        const skippedCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, skippedCurrentY, '#6c757d');
+        doc.text('Skipped', skippedCurrentTextX, skippedCurrentY);
+
         doc.moveDown(2);
 
         // === PDF VERIFICATION INFORMATION SECTION (at end of document) ===
@@ -1818,31 +1982,90 @@ router.post('/api/send-verification-email', async (req, res) => {
             }
 
             let pdfOverallStatusText2;
-            let pdfStatusSymbol2;
+            let pdfStatusColor2;
             if (hasErrors2 || visualVerificationHasErrors2) {
                 pdfOverallStatusText2 = 'Verification Failed';
-                pdfStatusSymbol2 = '❌';
+                pdfStatusColor2 = '#dc3545'; // Red
             } else {
                 pdfOverallStatusText2 = 'Verification Approved';
-                pdfStatusSymbol2 = '✅';
+                pdfStatusColor2 = '#28a745'; // Green
             }
 
-            doc2.font('Helvetica-Bold').fontSize(12)
-               .text(`${getTranslation('pdf-verification', lang2)} ${pdfStatusSymbol2} ${pdfOverallStatusText2}`, { align: 'center' });
+            // Draw overall status with colored bullet for second PDF
+            doc2.font('Helvetica-Bold').fontSize(12);
+            const statusY2 = doc2.y;
+            const statusText2 = `${getTranslation('pdf-verification', lang2)} ${pdfOverallStatusText2}`;
+            const statusWidth2 = doc2.widthOfString(statusText2);
+            const centerX2 = (doc2.page.width - statusWidth2 - 15) / 2; // Account for bullet space
+
+            drawColoredBullet(doc2, centerX2, statusY2, pdfStatusColor2);
+            doc2.text(statusText2, centerX2 + 15, statusY2, { align: 'left' });
+            doc2.moveDown();
 
             if (!visualVerificationHasErrors2 && !hasErrors2 && (hasWarnings2 || visualVerificationHasWarnings2)) {
-                doc2.font('Helvetica').fontSize(10)
-                   .text(`⚠️ ${getTranslation('pdf-optional-warnings', lang2)}`, { align: 'center' });
+                doc2.font('Helvetica').fontSize(10);
+                const warningY2 = doc2.y;
+                const warningText2 = getTranslation('pdf-optional-warnings', lang2);
+                const warningWidth2 = doc2.widthOfString(warningText2);
+                const warningCenterX2 = (doc2.page.width - warningWidth2 - 15) / 2; // Account for bullet space
+
+                drawColoredBullet(doc2, warningCenterX2, warningY2, '#ffc107'); // Yellow
+                doc2.text(warningText2, warningCenterX2 + 15, warningY2, { align: 'left' });
+                doc2.moveDown();
             }
 
-            doc2.font('Helvetica').fontSize(9)
-               .text(`${getTranslation('pdf-reference', lang2)} ${referenceNumber} | ${getTranslation('pdf-treatment-date', lang2)} ${treatmentDate}`, { align: 'center' });
-            doc2.text(`${getTranslation('pdf-verified', lang2)} ${new Date(timestamp).toLocaleString('en-GB', { timeZoneName: 'short' })}`, { align: 'center' });
-            doc2.moveDown(2);
+            // Determine verification status for bilingual PDF (same logic as print PDF)
+            let bilingualVisualVerificationHasErrors = false;
+            let bilingualVisualVerificationHasWarnings = false;
 
-            doc2.font('Helvetica-Oblique').fontSize(9)
-               .text(getTranslation('pdf-verification-results', lang2), { align: 'center' });
-            doc2.moveDown();
+            if (identityVerification) {
+                try {
+                    const identityData = JSON.parse(identityVerification);
+                    const identityValue = identityData.identityVerification || 'not-checked';
+                    const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                    if (identityValue === 'not-matched' || birthdateValue === 'not-matched') {
+                        bilingualVisualVerificationHasErrors = true;
+                    } else if (identityValue === 'not-checked' || birthdateValue === 'not-checked') {
+                        bilingualVisualVerificationHasWarnings = true;
+                    }
+                } catch (e) {
+                    console.error('Could not parse identity verification data for bilingual PDF status determination');
+                }
+            }
+
+            let bilingualStatusText, statusColor2;
+            if (hasErrors2 || bilingualVisualVerificationHasErrors) {
+                bilingualStatusText = 'Verification Failed';
+                statusColor2 = '#cc0000';
+            } else if (hasWarnings2 || bilingualVisualVerificationHasWarnings) {
+                bilingualStatusText = 'Verification Approved';
+                statusColor2 = '#ff8c00';
+            } else {
+                bilingualStatusText = 'Verification Approved';
+                statusColor2 = '#006600';
+            }
+
+            // Create status box and header info to match print PDF format (bilingual)
+            const bilingualStatusLeftMargin = 72;
+            const bilingualStatusY = doc2.y;
+            const bilingualStatusBoxHeight = 80;
+            const bilingualFullPageWidth = doc2.page.width - 2 * bilingualStatusLeftMargin;
+
+            // Draw status box
+            doc2.lineWidth(1);
+            doc2.rect(bilingualStatusLeftMargin, bilingualStatusY, bilingualFullPageWidth, bilingualStatusBoxHeight).stroke();
+
+            // Add status and header information
+            doc2.font('Helvetica').fontSize(9).fillColor(statusColor2)
+               .text(`${getTranslation('pdf-verification', lang2)} ${bilingualStatusText}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 10);
+            doc2.fillColor('#000000');
+
+            doc2.text(`${getTranslation('pdf-reference', lang2)} ${referenceNumber}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 30);
+            doc2.text(`${getTranslation('pdf-treatment-date', lang2)} ${treatmentDate || 'N/A'}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 45);
+            doc2.text(`${getTranslation('pdf-verified', lang2)} ${new Date(timestamp).toLocaleDateString()}`, bilingualStatusLeftMargin + 10, bilingualStatusY + 60);
+
+            doc2.y = bilingualStatusY + bilingualStatusBoxHeight + 15;
             doc2.font('Helvetica').fontSize(9);
             const passedText2 = getTranslation('email-passed', lang2);
             const failedText2 = getTranslation('email-failed', lang2);
@@ -1852,43 +2075,43 @@ router.post('/api/send-verification-email', async (req, res) => {
             doc2.font('Helvetica-Bold').fontSize(10).text('TECHNICAL VALIDATIONS', { align: 'left' });
             doc2.moveDown(0.5);
             doc2.font('Helvetica').fontSize(9);
-            doc2.text(`${statusSymbol('qrCodeAnalysis', 'qrCodeAnalysis')} QR Code Analysis: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('base45Decode', 'base45Decode')} BASE45 Decoding: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('zlibDecompress', 'zlibDecompression')} ZLIB Decompression: ${getValidationStatus('zlibDecompress', 'zlibDecompression') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('jwtParsing', 'jwtParsing')} JWT Parsing: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('schemaFileCheck', 'schemaFileCheck')} Schema File Check: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('schemaValidation', 'schemaValidation')} Schema Validation: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('kidHeaderValidation', 'kidHeaderValidation')} Kid Header Validation: ${getValidationStatus('kidHeaderValidation', 'kidHeaderValidation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('algorithmHeaderValidation', 'algorithmHeaderValidation')} Algorithm Header Validation: ${getValidationStatus('algorithmHeaderValidation', 'algorithmHeaderValidation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('signatureVerification', 'certificateAuthority')} Signature Retrieval: ${getValidationStatus('signatureVerification', 'certificateAuthority') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('signatureCountValidation', 'signatureCountValidation')} Signature Count Validation: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('countryCodeValidation', 'countryCodeValidation')} Country Code Validation: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('officialIdValidation', 'officialIdValidation')} Official ID Validation: ${getValidationStatus('officialIdValidation', 'officialIdValidation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('jwtSignatureValidation', 'signatureVerification')} JWT Signature Validation: ${getValidationStatus('jwtSignatureValidation', 'signatureVerification') ? passedText2 : failedText2}`);
+            drawValidationLine(doc2, 'qrCodeAnalysis', 'qrCodeAnalysis', 'QR Code Analysis', passedText2, failedText2);
+            drawValidationLine(doc2, 'base45Decode', 'base45Decode', 'BASE45 Decoding', passedText2, failedText2);
+            drawValidationLine(doc2, 'zlibDecompress', 'zlibDecompression', 'ZLIB Decompression', passedText2, failedText2);
+            drawValidationLine(doc2, 'jwtParsing', 'jwtParsing', 'JWT Parsing', passedText2, failedText2);
+            drawValidationLine(doc2, 'schemaFileCheck', 'schemaFileCheck', 'Schema File Check', passedText2, failedText2);
+            drawValidationLine(doc2, 'schemaValidation', 'schemaValidation', 'Schema Validation', passedText2, failedText2);
+            drawValidationLine(doc2, 'kidHeaderValidation', 'kidHeaderValidation', 'Kid Header Validation', passedText2, failedText2);
+            drawValidationLine(doc2, 'algorithmHeaderValidation', 'algorithmHeaderValidation', 'Algorithm Header Validation', passedText2, failedText2);
+            drawValidationLine(doc2, 'signatureVerification', 'certificateAuthority', 'Signature Retrieval', passedText2, failedText2);
+            drawValidationLine(doc2, 'signatureCountValidation', 'signatureCountValidation', 'Signature Count Validation', passedText2, failedText2);
+            drawValidationLine(doc2, 'countryCodeValidation', 'countryCodeValidation', 'Country Code Validation', passedText2, failedText2);
+            drawValidationLine(doc2, 'officialIdValidation', 'officialIdValidation', 'Official ID Validation', passedText2, failedText2);
+            drawValidationLine(doc2, 'jwtSignatureValidation', 'signatureVerification', 'JWT Signature Validation', passedText2, failedText2);
             doc2.moveDown(1);
 
             // Business Validations
             doc2.font('Helvetica-Bold').fontSize(10).text('BUSINESS VALIDATIONS', { align: 'left' });
             doc2.moveDown(0.5);
             doc2.font('Helvetica').fontSize(9);
-            doc2.text(`${statusSymbol('certificateValidityDate', 'certificateValidityDate')} Certificate Validity Date: ${getValidationStatus('certificateValidityDate', 'certificateValidityDate') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('ehicAccreditation', 'ehicAccreditation')} EHIC Accreditation: ${getValidationStatus('ehicAccreditation', 'ehicAccreditation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('dateOfBirthValidation', 'dateOfBirthValidation')} Date of Birth Validation: ${getValidationStatus('dateOfBirthValidation', 'dateOfBirthValidation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('dateRangeValidation', 'dateRangeValidation')} Start/End Date Validation: ${getValidationStatus('dateRangeValidation', 'dateRangeValidation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('startIssuanceValidation', 'startIssuanceValidation')} Start/Issuance Date Validation: ${getValidationStatus('startIssuanceValidation', 'startIssuanceValidation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('issuanceEndValidation', 'issuanceEndValidation')} Issuance/End Date Validation: ${getValidationStatus('issuanceEndValidation', 'issuanceEndValidation') ? passedText2 : failedText2}`);
-            doc2.text(`${statusSymbol('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation: ${getValidationStatus('expiryDateValidation', 'expiryDateValidation') ? passedText2 : getValidationSkipped('expiryDateValidation') ? 'skipped - no expiry date found' : failedText2}`);
-            doc2.text(`${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation (Optional): ${getValidationStatus('institutionLengthValidation', 'institutionLengthValidation') ? passedText2 : getValidationSkipped('institutionLengthValidation') ? 'skipped - no expiry date found' : failedText2}`);
-            doc2.text(`${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation (Optional): ${getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation') ? passedText2 : getValidationSkipped('cardIdDigitValidation') ? 'skipped - no card id found' : failedText2}`);
-            doc2.text(`${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation (Optional): ${getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation') ? passedText2 : getValidationSkipped('institutionIdDigitValidation') ? 'skipped - no institution id found' : failedText2}`);
+            drawValidationLine(doc2, 'certificateValidityDate', 'certificateValidityDate', 'Certificate Validity Date', passedText2, failedText2);
+            drawValidationLine(doc2, 'ehicAccreditation', 'ehicAccreditation', 'EHIC Accreditation', passedText2, failedText2);
+            drawValidationLine(doc2, 'dateOfBirthValidation', 'dateOfBirthValidation', 'Date of Birth Validation', passedText2, failedText2);
+            drawValidationLine(doc2, 'dateRangeValidation', 'dateRangeValidation', 'Start/End Date Validation', passedText2, failedText2);
+            drawValidationLine(doc2, 'startIssuanceValidation', 'startIssuanceValidation', 'Start/Issuance Date Validation', passedText2, failedText2);
+            drawValidationLine(doc2, 'issuanceEndValidation', 'issuanceEndValidation', 'Issuance/End Date Validation', passedText2, failedText2);
+            drawValidationLine(doc2, 'expiryDateValidation', 'expiryDateValidation', 'Expiry Date Validation', passedText2, failedText2, 'skipped - no expiry date found');
+            drawValidationLine(doc2, 'institutionLengthValidation', 'institutionLengthValidation', 'Institution Length Validation (Optional)', passedText2, failedText2, 'skipped - no expiry date found');
+            drawValidationLine(doc2, 'cardIdDigitValidation', 'cardIdDigitValidation', 'Card ID Digit Validation (Optional)', passedText2, failedText2, 'skipped - no card id found');
+            drawValidationLine(doc2, 'institutionIdDigitValidation', 'institutionIdDigitValidation', 'Institution ID Digit Validation (Optional)', passedText2, failedText2, 'skipped - no institution id found');
             doc2.moveDown(1);
 
             // Revocation Validations
             doc2.font('Helvetica-Bold').fontSize(10).text('REVOCATION VALIDATIONS', { align: 'left' });
             doc2.moveDown(0.5);
             doc2.font('Helvetica').fontSize(9);
-            doc2.text(`${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence: ${getValidationStatus('revocationPresence', 'revocationPresence') ? passedText2 : getValidationSkipped('revocationPresence') ? 'skipped - no revocation data' : failedText2}`);
-            doc2.text(`${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText2 : getValidationSkipped('revocationStatus') ? 'skipped - no revocation data' : failedText2}`);
+            drawValidationLine(doc2, 'revocationPresence', 'revocationPresence', 'Revocation Information Presence', passedText2, failedText2, 'skipped - no revocation data');
+            drawValidationLine(doc2, 'revocationStatus', 'revocationStatus', 'Revocation Status Check', passedText2, failedText2, 'skipped - no revocation data');
             doc2.moveDown(1);
 
             // Visual Verification Section - moved from earlier in the document (bilingual PDF)
@@ -1903,15 +2126,18 @@ router.post('/api/send-verification-email', async (req, res) => {
                     const identityValue = identityData.identityVerification || 'not-checked';
                     switch(identityValue) {
                         case 'matched':
-                            statusMessages.push('✅ Identity (name) verification: Checked and matched');
+                            identityColor = '#28a745'; // Green
+                        identityText = 'Identity (name) verification: Checked and matched: PASSED';
                             break;
                         case 'not-matched':
-                            statusMessages.push('❌ Identity (name) verification: Checked and not matched');
+                            identityColor = '#dc3545'; // Red
+                        identityText = 'Identity (name) verification: Checked and not matched: FAILED';
                             hasErrors = true;
                             break;
                         case 'not-checked':
                         default:
-                            statusMessages.push('⚠️ Identity (name) verification: Not checked');
+                            identityColor = '#ffc107'; // Yellow
+                        identityText = 'Identity (name) verification: skipped - Not Checked';
                             hasWarnings = true;
                             break;
                     }
@@ -1920,15 +2146,18 @@ router.post('/api/send-verification-email', async (req, res) => {
                     const birthdateValue = identityData.birthdateVerification || 'not-checked';
                     switch(birthdateValue) {
                         case 'matched':
-                            statusMessages.push('✅ Birthdate verification: Checked and matched');
+                            birthdateColor = '#28a745'; // Green
+                        birthdateText = 'Birthdate verification: Checked and matched: PASSED';
                             break;
                         case 'not-matched':
-                            statusMessages.push('❌ Birthdate verification: Checked and not matched');
+                            birthdateColor = '#dc3545'; // Red
+                        birthdateText = 'Birthdate verification: Checked and not matched: FAILED';
                             hasErrors = true;
                             break;
                         case 'not-checked':
                         default:
-                            statusMessages.push('⚠️ Birthdate verification: Not checked');
+                            birthdateColor = '#ffc107'; // Yellow
+                        birthdateText = 'Birthdate verification: skipped - Not Checked';
                             hasWarnings = true;
                             break;
                     }
@@ -1956,8 +2185,45 @@ router.post('/api/send-verification-email', async (req, res) => {
             doc2.font('Helvetica-Bold').fontSize(10).text('TREATMENT DATE VALIDATIONS', { align: 'left' });
             doc2.moveDown(0.5);
             doc2.font('Helvetica').fontSize(9);
-            doc2.text(`${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence: ${getValidationStatus('treatmentDatePresence', 'treatmentDatePresence') ? passedText2 : getValidationSkipped('treatmentDatePresence') ? 'skipped - no treatment date' : failedText2}`);
-            doc2.text(`${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation: ${getValidationStatus('treatmentDateRange', 'treatmentDateRange') ? passedText2 : getValidationSkipped('treatmentDateRange') ? 'skipped - no treatment date' : failedText2}`);
+            drawValidationLine(doc2, 'treatmentDatePresence', 'treatmentDatePresence', 'Treatment Date Presence', passedText2, failedText2, 'skipped - no treatment date');
+            drawValidationLine(doc2, 'treatmentDateRange', 'treatmentDateRange', 'Treatment Date Range Validation', passedText2, failedText2, 'skipped - no treatment date');
+            doc2.moveDown(1);
+
+            // Check if there's enough space for the legend (need ~80 points for header + 4 items)
+            const bilingualLegendHeight = 80;
+            if (doc2.y > (doc2.page.height - doc2.page.margins.bottom - bilingualLegendHeight)) {
+                doc2.addPage();
+            }
+
+            // Add legend for bullet color coding (bilingual PDF)
+            doc2.font('Helvetica-Bold').fontSize(10)
+               .text('LEGEND', { align: 'left' });
+            doc2.moveDown(0.5);
+            doc2.font('Helvetica').fontSize(9);
+
+            // Draw legend items with colored bullets
+            const bilingualLegendY = doc2.y;
+            const bilingualLegendLeftMargin = 72;
+
+            // Passed (Green)
+            const bilingualPassedTextX = drawColoredBullet(doc2, bilingualLegendLeftMargin, bilingualLegendY, '#28a745');
+            doc2.text('Passed', bilingualPassedTextX, bilingualLegendY);
+
+            // Failed (Red)
+            const bilingualFailedY = bilingualLegendY + 15;
+            const bilingualFailedTextX = drawColoredBullet(doc2, bilingualLegendLeftMargin, bilingualFailedY, '#dc3545');
+            doc2.text('Failed', bilingualFailedTextX, bilingualFailedY);
+
+            // Warning (Yellow)
+            const bilingualWarningY = bilingualLegendY + 30;
+            const bilingualWarningTextX = drawColoredBullet(doc2, bilingualLegendLeftMargin, bilingualWarningY, '#ffc107');
+            doc2.text('Optional/Not Checked', bilingualWarningTextX, bilingualWarningY);
+
+            // Skipped (Gray)
+            const bilingualSkippedY = bilingualLegendY + 45;
+            const bilingualSkippedTextX = drawColoredBullet(doc2, bilingualLegendLeftMargin, bilingualSkippedY, '#6c757d');
+            doc2.text('Skipped', bilingualSkippedTextX, bilingualSkippedY);
+
             doc2.moveDown(2);
 
             doc2.end();
@@ -1980,8 +2246,8 @@ router.post('/api/send-verification-email', async (req, res) => {
         }
 
         // Process identity verification data first to check for visual verification errors
-        let emailVisualVerificationHasErrors = false;
-        let emailVisualVerificationHasWarnings = false;
+        let emailHTMLVisualVerificationHasErrors = false;
+        let emailHTMLVisualVerificationHasWarnings = false;
 
         if (identityVerification) {
             try {
@@ -1991,12 +2257,12 @@ router.post('/api/send-verification-email', async (req, res) => {
 
                 // Check for visual verification errors
                 if (identityValue === 'not-matched' || birthdateValue === 'not-matched') {
-                    emailVisualVerificationHasErrors = true;
+                    emailHTMLVisualVerificationHasErrors = true;
                 }
 
                 // Check for visual verification warnings
                 if (identityValue === 'not-checked' || birthdateValue === 'not-checked') {
-                    emailVisualVerificationHasWarnings = true;
+                    emailHTMLVisualVerificationHasWarnings = true;
                 }
             } catch (e) {
                 console.error('Could not parse identity verification data for overall status determination');
@@ -2005,17 +2271,17 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Determine status icon and text (including visual verification status)
         let statusIcon;
-        let statusText;
+        let htmlEmailStatusText;
 
         if (emailHasErrors || emailVisualVerificationHasErrors) {
             statusIcon = '❌';
-            statusText = getTranslation('email-failed', userLanguage);
-        } else if (emailHasWarnings || emailVisualVerificationHasWarnings) {
+            htmlEmailStatusText = getTranslation('email-failed', userLanguage);
+        } else if (emailHasWarnings || emailHTMLVisualVerificationHasWarnings) {
             statusIcon = '⚠️';
-            statusText = getTranslation('email-warnings', userLanguage);
+            htmlEmailStatusText = getTranslation('email-warnings', userLanguage);
         } else {
             statusIcon = '✅';
-            statusText = getTranslation('email-successful', userLanguage);
+            htmlEmailStatusText = getTranslation('email-successful', userLanguage);
         }
 
         // Process identity verification data with new radio button values
@@ -2031,7 +2297,7 @@ router.post('/api/send-verification-email', async (req, res) => {
                 const identityValue = identityData.identityVerification || 'not-checked';
                 switch(identityValue) {
                     case 'matched':
-                        statusMessages.push('<span style="color: #28a745;">✅ Identity (name) verification: Checked and matched</span>');
+                        statusMessages.push('<span style="color: #28a745;">✅ Identity (name) verification: Checked and matched: PASSED</span>');
                         break;
                     case 'not-matched':
                         statusMessages.push('<span style="color: #dc3545;">❌ Identity (name) verification: Checked and not matched</span>');
@@ -2039,7 +2305,7 @@ router.post('/api/send-verification-email', async (req, res) => {
                         break;
                     case 'not-checked':
                     default:
-                        statusMessages.push('<span style="color: #f39c12;">⚠️ Identity (name) verification: Not checked</span>');
+                        statusMessages.push('<span style="color: #f39c12;">⚠️ Identity (name) verification: skipped - Not Checked</span>');
                         hasWarnings = true;
                         break;
                 }
@@ -2048,7 +2314,7 @@ router.post('/api/send-verification-email', async (req, res) => {
                 const birthdateValue = identityData.birthdateVerification || 'not-checked';
                 switch(birthdateValue) {
                     case 'matched':
-                        statusMessages.push('<span style="color: #28a745;">✅ Birthdate verification: Checked and matched</span>');
+                        statusMessages.push('<span style="color: #28a745;">✅ Birthdate verification: Checked and matched: PASSED</span>');
                         break;
                     case 'not-matched':
                         statusMessages.push('<span style="color: #dc3545;">❌ Birthdate verification: Checked and not matched</span>');
@@ -2056,16 +2322,30 @@ router.post('/api/send-verification-email', async (req, res) => {
                         break;
                     case 'not-checked':
                     default:
-                        statusMessages.push('<span style="color: #f39c12;">⚠️ Birthdate verification: Not checked</span>');
+                        statusMessages.push('<span style="color: #f39c12;">⚠️ Birthdate verification: skipped - Not Checked</span>');
                         hasWarnings = true;
                         break;
                 }
 
-                if (statusMessages.length > 0) {
+                // Draw birthdate verification with colored bullet
+                const birthdateY = doc.y;
+                const birthdateBulletX = 72;
+                const birthdateTextX = drawColoredBullet(doc, birthdateBulletX, birthdateY, birthdateColor);
+                doc.text(birthdateText, birthdateTextX, birthdateY);
+                doc.moveDown(0.5);
+
+                // Visual Verification Section
+                doc.font('Helvetica-Bold').fontSize(10)
+                   .text('VISUAL VERIFICATION', { align: 'left' });
+                doc.moveDown(0.5);
+                doc.font('Helvetica').fontSize(9);
+
+                if (hasErrors || hasWarnings) {
                     identityVerificationWarning = `
                         <h4 style="color: #2c3e50; margin-top: 20px;">Visual Verification</h4>
                         <ul>
-                            ${statusMessages.map(msg => `<li>${msg}</li>`).join('')}
+                            <li><span style="color: ${identityColor};">●</span> ${identityText}</li>
+                            <li><span style="color: ${birthdateColor};">●</span> ${birthdateText}</li>
                         </ul>
                     `;
                 }
@@ -2087,27 +2367,27 @@ router.post('/api/send-verification-email', async (req, res) => {
 
                 switch(identityValue) {
                     case 'matched':
-                        identityStatusHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
+                        identityStatusHTML = '<span style="color: #28a745;">● Checked and matched: PASSED</span>';
                         break;
                     case 'not-matched':
-                        identityStatusHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
+                        identityStatusHTML = '<span style="color: #dc3545;">● Checked and not matched</span>';
                         break;
                     case 'not-checked':
                     default:
-                        identityStatusHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
+                        identityStatusHTML = '<span style="color: #ffc107;">● skipped - Not Checked</span>';
                         break;
                 }
 
                 switch(birthdateValue) {
                     case 'matched':
-                        birthdateStatusHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
+                        birthdateStatusHTML = '<span style="color: #28a745;">● Checked and matched: PASSED</span>';
                         break;
                     case 'not-matched':
-                        birthdateStatusHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
+                        birthdateStatusHTML = '<span style="color: #dc3545;">● Checked and not matched</span>';
                         break;
                     case 'not-checked':
                     default:
-                        birthdateStatusHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
+                        birthdateStatusHTML = '<span style="color: #ffc107;">● skipped - Not Checked</span>';
                         break;
                 }
 
@@ -2135,7 +2415,7 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Create warning notification for optional checks that failed/were skipped (only if overall verification passed)
         let warningNotificationHTML = '';
-        if (!emailVisualVerificationHasErrors && !emailHasErrors && (emailVisualVerificationHasWarnings || emailHasWarnings)) {
+        if (!emailHTMLVisualVerificationHasErrors && !emailHasErrors && (emailHTMLVisualVerificationHasWarnings || emailHasWarnings)) {
             warningNotificationHTML = `
                 <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 10px; margin: 15px 0;">
                     <span style="color: #856404;">⚠️ Some non-blocking warnings found</span>
@@ -2145,9 +2425,9 @@ router.post('/api/send-verification-email', async (req, res) => {
 
         // Email HTML content with translated text matching finalization page structure exactly
         const emailHTML = `
-            <div style="background-color: ${emailVisualVerificationHasErrors || emailHasErrors ? '#f8d7da' : '#d4edda'}; border-radius: 8px; padding: 20px; margin: 20px 0; color: ${emailVisualVerificationHasErrors || emailHasErrors ? '#721c24' : '#155724'};">
-                <h1 style="margin: 0 0 10px 0; font-size: 24px;">${emailVisualVerificationHasErrors || emailHasErrors ? '❌' : '✅'} ${emailVisualVerificationHasErrors || emailHasErrors ? 'Verification Failed' : 'Verification Approved'}</h1>
-                <p style="margin: 0; font-size: 16px;">${emailVisualVerificationHasErrors || emailHasErrors ? 'One or more verification steps have failed' : 'EHIC valid and verified'}</p>
+            <div style="background-color: ${emailHTMLVisualVerificationHasErrors || emailHasErrors ? '#f8d7da' : '#d4edda'}; border-radius: 8px; padding: 20px; margin: 20px 0; color: ${emailHTMLVisualVerificationHasErrors || emailHasErrors ? '#721c24' : '#155724'};">
+                <h1 style="margin: 0 0 10px 0; font-size: 24px;">${emailHTMLVisualVerificationHasErrors || emailHasErrors ? '❌' : '✅'} ${emailHTMLVisualVerificationHasErrors || emailHasErrors ? 'Verification Failed' : 'Verification Approved'}</h1>
+                <p style="margin: 0; font-size: 16px;">${emailHTMLVisualVerificationHasErrors || emailHasErrors ? 'One or more verification steps have failed' : 'EHIC valid and verified'}</p>
             </div>
 
             ${warningNotificationHTML}
@@ -2160,39 +2440,39 @@ router.post('/api/send-verification-email', async (req, res) => {
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Technical Validations</h4>
             <ul>
-                <li>${statusSymbol('qrCodeAnalysis', 'qrCodeAnalysis')} QR Code Analysis</li>
-                <li>${statusSymbol('base45Decode', 'base45Decode')} BASE45 Decoding</li>
-                <li>${statusSymbol('zlibDecompress', 'zlibDecompression')} ZLIB Decompression</li>
-                <li>${statusSymbol('jwtParsing', 'jwtParsing')} JWT Parsing</li>
-                <li>${statusSymbol('schemaFileCheck', 'schemaFileCheck')} Schema File Check</li>
-                <li>${statusSymbol('schemaValidation', 'schemaValidation')} Schema Validation</li>
-                <li>${statusSymbol('kidHeaderValidation', 'kidHeaderValidation')} Kid Header Validation</li>
-                <li>${statusSymbol('algorithmHeaderValidation', 'algorithmHeaderValidation')} Algorithm Header Validation</li>
-                <li>${statusSymbol('signatureVerification', 'certificateAuthority')} Signature Retrieval</li>
-                <li>${statusSymbol('signatureCountValidation', 'signatureCountValidation')} Signature Count Validation</li>
-                <li>${statusSymbol('countryCodeValidation', 'countryCodeValidation')} Country Code Validation</li>
-                <li>${statusSymbol('officialIdValidation', 'officialIdValidation')} Official ID Validation</li>
-                <li>${statusSymbol('jwtSignatureValidation', 'signatureVerification')} JWT Signature Validation</li>
+                <li>${getStatusSymbolHTML('qrCodeAnalysis', 'qrCodeAnalysis')} QR Code Analysis</li>
+                <li>${getStatusSymbolHTML('base45Decode', 'base45Decode')} BASE45 Decoding</li>
+                <li>${getStatusSymbolHTML('zlibDecompress', 'zlibDecompression')} ZLIB Decompression</li>
+                <li>${getStatusSymbolHTML('jwtParsing', 'jwtParsing')} JWT Parsing</li>
+                <li>${getStatusSymbolHTML('schemaFileCheck', 'schemaFileCheck')} Schema File Check</li>
+                <li>${getStatusSymbolHTML('schemaValidation', 'schemaValidation')} Schema Validation</li>
+                <li>${getStatusSymbolHTML('kidHeaderValidation', 'kidHeaderValidation')} Kid Header Validation</li>
+                <li>${getStatusSymbolHTML('algorithmHeaderValidation', 'algorithmHeaderValidation')} Algorithm Header Validation</li>
+                <li>${getStatusSymbolHTML('signatureVerification', 'certificateAuthority')} Signature Retrieval</li>
+                <li>${getStatusSymbolHTML('signatureCountValidation', 'signatureCountValidation')} Signature Count Validation</li>
+                <li>${getStatusSymbolHTML('countryCodeValidation', 'countryCodeValidation')} Country Code Validation</li>
+                <li>${getStatusSymbolHTML('officialIdValidation', 'officialIdValidation')} Official ID Validation</li>
+                <li>${getStatusSymbolHTML('jwtSignatureValidation', 'signatureVerification')} JWT Signature Validation</li>
             </ul>
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Business Validations</h4>
             <ul>
-                <li>${statusSymbol('certificateValidityDate', 'certificateValidityDate')} Certificate Validity Date</li>
-                <li>${statusSymbol('ehicAccreditation', 'ehicAccreditation')} EHIC Accreditation</li>
-                <li>${statusSymbol('dateOfBirthValidation', 'dateOfBirthValidation')} Date of Birth Validation</li>
-                <li>${statusSymbol('dateRangeValidation', 'dateRangeValidation')} Start/End Date Validation</li>
-                <li>${statusSymbol('startIssuanceValidation', 'startIssuanceValidation')} Start/Issuance Date Validation</li>
-                <li>${statusSymbol('issuanceEndValidation', 'issuanceEndValidation')} Issuance/End Date Validation</li>
-                <li>${statusSymbol('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation ${getValidationSkipped('expiryDateValidation') ? '<span style="color: #f39c12;">(Skipped - No expiry date found)</span>' : ''}</li>
-                <li>${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation ${getValidationSkipped('institutionLengthValidation') ? '<span style="color: #f39c12;">(Skipped - No expiry date found)</span>' : '<span style="color: #f39c12;">(Optional)</span>'}</li>
-                <li>${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation ${getValidationSkipped('cardIdDigitValidation') ? '<span style="color: #f39c12;">(Skipped - No card ID found)</span>' : '<span style="color: #f39c12;">(Optional)</span>'}</li>
-                <li>${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation ${getValidationSkipped('institutionIdDigitValidation') ? '<span style="color: #f39c12;">(Skipped - No institution ID found)</span>' : '<span style="color: #f39c12;">(Optional)</span>'}</li>
+                <li>${getStatusSymbolHTML('certificateValidityDate', 'certificateValidityDate')} Certificate Validity Date</li>
+                <li>${getStatusSymbolHTML('ehicAccreditation', 'ehicAccreditation')} EHIC Accreditation</li>
+                <li>${getStatusSymbolHTML('dateOfBirthValidation', 'dateOfBirthValidation')} Date of Birth Validation</li>
+                <li>${getStatusSymbolHTML('dateRangeValidation', 'dateRangeValidation')} Start/End Date Validation</li>
+                <li>${getStatusSymbolHTML('startIssuanceValidation', 'startIssuanceValidation')} Start/Issuance Date Validation</li>
+                <li>${getStatusSymbolHTML('issuanceEndValidation', 'issuanceEndValidation')} Issuance/End Date Validation</li>
+                <li>${getStatusSymbolHTML('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation ${getValidationSkipped('expiryDateValidation') ? '<span style="color: #f39c12;">(Skipped - No expiry date found)</span>' : ''}</li>
+                <li>${getStatusSymbolHTML('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation ${getValidationSkipped('institutionLengthValidation') ? '<span style="color: #f39c12;">(Skipped - No expiry date found)</span>' : '<span style="color: #f39c12;">(Optional)</span>'}</li>
+                <li>${getStatusSymbolHTML('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation ${getValidationSkipped('cardIdDigitValidation') ? '<span style="color: #f39c12;">(Skipped - No card ID found)</span>' : '<span style="color: #f39c12;">(Optional)</span>'}</li>
+                <li>${getStatusSymbolHTML('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation ${getValidationSkipped('institutionIdDigitValidation') ? '<span style="color: #f39c12;">(Skipped - No institution ID found)</span>' : '<span style="color: #f39c12;">(Optional)</span>'}</li>
             </ul>
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Revocation Validations</h4>
             <ul>
-                <li>${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence ${getValidationSkipped('revocationPresence') ? '<span style="color: #f39c12;">(Skipped - No revocation data)</span>' : ''}</li>
-                <li>${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check ${getValidationSkipped('revocationStatus') ? '<span style="color: #f39c12;">(Skipped - No revocation data)</span>' : ''}</li>
+                <li>${getStatusSymbolHTML('revocationPresence', 'revocationPresence')} Revocation Information Presence ${getValidationSkipped('revocationPresence') ? '<span style="color: #f39c12;">(Skipped - No revocation data)</span>' : ''}</li>
+                <li>${getStatusSymbolHTML('revocationStatus', 'revocationStatus')} Revocation Status Check ${getValidationSkipped('revocationStatus') ? '<span style="color: #f39c12;">(Skipped - No revocation data)</span>' : ''}</li>
             </ul>
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Visual Verification</h4>
@@ -2207,27 +2487,27 @@ router.post('/api/send-verification-email', async (req, res) => {
 
                     switch(identityValue) {
                         case 'matched':
-                            identityStatusHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
+                            identityStatusHTML = '<span style="color: #28a745;">✅ Checked and matched: PASSED</span>';
                             break;
                         case 'not-matched':
                             identityStatusHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
                             break;
                         case 'not-checked':
                         default:
-                            identityStatusHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
+                            identityStatusHTML = '<span style="color: #f39c12;">⚠️ skipped - Not Checked</span>';
                             break;
                     }
 
                     switch(birthdateValue) {
                         case 'matched':
-                            birthdateStatusHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
+                            birthdateStatusHTML = '<span style="color: #28a745;">✅ Checked and matched: PASSED</span>';
                             break;
                         case 'not-matched':
                             birthdateStatusHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
                             break;
                         case 'not-checked':
                         default:
-                            birthdateStatusHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
+                            birthdateStatusHTML = '<span style="color: #f39c12;">⚠️ skipped - Not Checked</span>';
                             break;
                     }
 
@@ -2244,8 +2524,8 @@ router.post('/api/send-verification-email', async (req, res) => {
 
             <h4 style="color: #2c3e50; margin-top: 20px;">Treatment Date Validations</h4>
             <ul>
-                <li>${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence ${getValidationSkipped('treatmentDatePresence') ? '<span style="color: #f39c12;">(Skipped - No treatment date)</span>' : ''}</li>
-                <li>${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation ${getValidationSkipped('treatmentDateRange') ? '<span style="color: #f39c12;">(Skipped - No treatment date)</span>' : ''}</li>
+                <li>${getStatusSymbolHTML('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence ${getValidationSkipped('treatmentDatePresence') ? '<span style="color: #f39c12;">(Skipped - No treatment date)</span>' : ''}</li>
+                <li>${getStatusSymbolHTML('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation ${getValidationSkipped('treatmentDateRange') ? '<span style="color: #f39c12;">(Skipped - No treatment date)</span>' : ''}</li>
             </ul>
             <hr>
             <h3>${getTranslation('email-prc-certificate-info', userLanguage)}</h3>
@@ -2399,7 +2679,7 @@ router.post('/api/send-verification-email', async (req, res) => {
             to: email,
             subject: getTranslation('email-subject', userLanguage, {
                 referenceNumber: referenceNumber,
-                status: statusText
+                status: htmlEmailStatusText
             }),
             html: emailHTML,
             attachments: attachments
@@ -2569,22 +2849,76 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
         // Helper function to get validation status (used by both PDF and email)
         const validationData = verificationStatus?.validationSummary || verificationStatus?.steps || {};
 
-        // STATUS SYMBOLS - to be used later
-        // Updated to handle warning and skipped states
-        const statusSymbol = (key, fallbackKey) => {
+        // COLORED BULLET HELPER FUNCTIONS
+        // Helper function to draw colored bullets in PDF
+        const drawColoredBullet = (doc, x, y, color) => {
+            doc.save();
+            doc.fillColor(color);
+            doc.circle(x + 3, y + 4, 3).fill();
+            doc.restore();
+            doc.fillColor('black'); // Reset to black for text
+            return x + 10; // Return x position after bullet for text
+        };
+
+        // Helper function to get bullet color based on status
+        const getBulletColor = (status) => {
+            switch(status) {
+                case 'success': return '#28a745'; // Green
+                case 'error': return '#dc3545';   // Red
+                case 'warning': return '#ffc107'; // Yellow
+                case 'skipped': return '#6c757d'; // Gray
+                default: return '#dc3545';       // Red (default for error)
+            }
+        };
+
+        // Helper function to get status symbol for HTML (email)
+        const getStatusSymbolHTML = (key, fallbackKey) => {
+            const statusInfo = getValidationStatusInfo(key, fallbackKey);
+            switch(statusInfo.status) {
+                case 'success': return '<span style="color: #28a745;">●</span>'; // Green bullet
+                case 'error': return '<span style="color: #dc3545;">●</span>';   // Red bullet
+                case 'warning': return '<span style="color: #ffc107;">●</span>'; // Yellow bullet
+                case 'skipped': return '<span style="color: #6c757d;">●</span>'; // Gray bullet
+                default: return '<span style="color: #dc3545;">●</span>';       // Red bullet (default)
+            }
+        };
+
+        // Updated status function to work with colored bullets
+        const getValidationStatusInfo = (key, fallbackKey) => {
             const validation = validationData[key];
             if (validation && typeof validation === 'object') {
-                switch(validation.status) {
-                    case 'success': return '✅';
-                    case 'error': return '❌';
-                    case 'warning': return '⚠️';
-                    case 'skipped': return '➖';
-                    default: return '❌';
-                }
+                return {
+                    status: validation.status || 'error',
+                    color: getBulletColor(validation.status || 'error')
+                };
             }
             // Fallback to old boolean format
             const oldStatus = validationData[fallbackKey];
-            return oldStatus ? '✅' : '❌';
+            const status = oldStatus ? 'success' : 'error';
+            return {
+                status: status,
+                color: getBulletColor(status)
+            };
+        };
+
+        // Helper function to draw validation line with colored bullet
+        const drawValidationLine = (doc, key, fallbackKey, label, passedText, failedText, skippedText = null) => {
+            const statusInfo = getValidationStatusInfo(key, fallbackKey);
+            let validationStatusText;
+
+            const isValidated = getValidationStatus(key, fallbackKey);
+            const isSkipped = skippedText && getValidationSkipped && getValidationSkipped(key);
+
+            if (isSkipped) {
+                validationStatusText = skippedText;
+            } else {
+                validationStatusText = isValidated ? passedText : failedText;
+            }
+
+            const lineY = doc.y;
+            const bulletX = 72; // Fixed left margin for consistent bullet alignment
+            const textX = drawColoredBullet(doc, bulletX, lineY, statusInfo.color);
+            doc.text(`${label}: ${validationStatusText}`, textX, lineY);
         };
 
         // Debug logging
@@ -3226,15 +3560,15 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
             }
         }
 
-        let statusText, statusColor;
+        let pdf3StatusText, statusColor;
         if (hasErrors || pdf3VisualVerificationHasErrors) {
-            statusText = 'Verification Failed';
+            pdf3StatusText = 'Verification Failed';
             statusColor = '#cc0000';
         } else if (hasWarnings || pdf3VisualVerificationHasWarnings) {
-            statusText = 'Verification Approved';
+            pdf3StatusText = 'Verification Approved';
             statusColor = '#ff8c00';
         } else {
-            statusText = 'Verification Approved';
+            pdf3StatusText = 'Verification Approved';
             statusColor = '#006600';
         }
 
@@ -3254,7 +3588,7 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
         doc.rect(leftMargin, statusY, fullPageWidth, statusBoxHeight).stroke();
 
         doc.font('Helvetica').fontSize(9).fillColor(statusColor)
-           .text(`${getTranslation('pdf-verification', pdfLanguage)} ${statusText}`, leftMargin + 10, statusY + 10);
+           .text(`${getTranslation('pdf-verification', pdfLanguage)} ${pdf3StatusText}`, leftMargin + 10, statusY + 10);
         doc.fillColor('#000000');
 
         doc.text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber}`, leftMargin + 10, statusY + 30);
@@ -3295,19 +3629,19 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol('qrCodeAnalysis', 'qrCodeAnalysis')} QR Code Analysis: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('base45Decode', 'base45Decode')} BASE45 Decoding: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('zlibDecompress', 'zlibDecompress')} ZLIB Decompression: ${getValidationStatus('zlibDecompress', 'zlibDecompress') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('jwtParsing', 'jwtParsing')} JWT Parsing: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('schemaFileCheck', 'schemaFileCheck')} Schema File Check: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('schemaValidation', 'schemaValidation')} Schema Validation: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('kidHeaderValidation', 'kidHeaderValidation')} Kid Header Validation: ${getValidationStatus('kidHeaderValidation', 'kidHeaderValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('algorithmHeaderValidation', 'algorithmHeaderValidation')} Algorithm Header Validation: ${getValidationStatus('algorithmHeaderValidation', 'algorithmHeaderValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('signatureVerification', 'signatureVerification')} Signature Retrieval: ${getValidationStatus('signatureVerification', 'signatureVerification') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('signatureCountValidation', 'signatureCountValidation')} Signature Count Validation: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('countryCodeValidation', 'countryCodeValidation')} Country Code Validation: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('officialIdValidation', 'officialIdValidation')} Official ID Validation: ${getValidationStatus('officialIdValidation', 'officialIdValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('jwtSignatureValidation', 'jwtSignatureValidation')} JWT Signature Validation: ${getValidationStatus('jwtSignatureValidation', 'jwtSignatureValidation') ? passedText : failedText}`);
+        drawValidationLine(doc, 'qrCodeAnalysis', 'qrCodeAnalysis', 'QR Code Analysis', passedText, failedText);
+        drawValidationLine(doc, 'base45Decode', 'base45Decode', 'BASE45 Decoding', passedText, failedText);
+        drawValidationLine(doc, 'zlibDecompress', 'zlibDecompress', 'ZLIB Decompression', passedText, failedText);
+        drawValidationLine(doc, 'jwtParsing', 'jwtParsing', 'JWT Parsing', passedText, failedText);
+        drawValidationLine(doc, 'schemaFileCheck', 'schemaFileCheck', 'Schema File Check', passedText, failedText);
+        drawValidationLine(doc, 'schemaValidation', 'schemaValidation', 'Schema Validation', passedText, failedText);
+        drawValidationLine(doc, 'kidHeaderValidation', 'kidHeaderValidation', 'Kid Header Validation', passedText, failedText);
+        drawValidationLine(doc, 'algorithmHeaderValidation', 'algorithmHeaderValidation', 'Algorithm Header Validation', passedText, failedText);
+        drawValidationLine(doc, 'signatureVerification', 'signatureVerification', 'Signature Retrieval', passedText, failedText);
+        drawValidationLine(doc, 'signatureCountValidation', 'signatureCountValidation', 'Signature Count Validation', passedText, failedText);
+        drawValidationLine(doc, 'countryCodeValidation', 'countryCodeValidation', 'Country Code Validation', passedText, failedText);
+        drawValidationLine(doc, 'officialIdValidation', 'officialIdValidation', 'Official ID Validation', passedText, failedText);
+        drawValidationLine(doc, 'jwtSignatureValidation', 'jwtSignatureValidation', 'JWT Signature Validation', passedText, failedText);
 
         doc.moveDown(1);
 
@@ -3317,16 +3651,16 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol('certificateValidityDate', 'certificateValidityDate')} Certificate Validity Date: ${getValidationStatus('certificateValidityDate', 'certificateValidityDate') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('ehicAccreditation', 'ehicAccreditation')} EHIC Accreditation: ${getValidationStatus('ehicAccreditation', 'ehicAccreditation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('dateOfBirthValidation', 'dateOfBirthValidation')} Date of Birth Validation: ${getValidationStatus('dateOfBirthValidation', 'dateOfBirthValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('dateRangeValidation', 'dateRangeValidation')} Start/End Date Validation: ${getValidationStatus('dateRangeValidation', 'dateRangeValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('startIssuanceValidation', 'startIssuanceValidation')} Start/Issuance Date Validation: ${getValidationStatus('startIssuanceValidation', 'startIssuanceValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('issuanceEndValidation', 'issuanceEndValidation')} Issuance/End Date Validation: ${getValidationStatus('issuanceEndValidation', 'issuanceEndValidation') ? passedText : failedText}`);
-        doc.text(`${statusSymbol('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation: ${getValidationStatus('expiryDateValidation', 'expiryDateValidation') ? passedText : getValidationSkipped('expiryDateValidation') ? 'skipped - no expiry date found' : failedText}`);
-        doc.text(`${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation (Optional): ${getValidationStatus('institutionLengthValidation', 'institutionLengthValidation') ? passedText : getValidationSkipped('institutionLengthValidation') ? 'skipped - no expiry date found' : failedText}`);
-        doc.text(`${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation (Optional): ${getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation') ? passedText : getValidationSkipped('cardIdDigitValidation') ? 'skipped - no card id found' : failedText}`);
-        doc.text(`${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation (Optional): ${getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation') ? passedText : getValidationSkipped('institutionIdDigitValidation') ? 'skipped - no institution id found' : failedText}`);
+        drawValidationLine(doc, 'certificateValidityDate', 'certificateValidityDate', 'Certificate Validity Date', passedText, failedText);
+        drawValidationLine(doc, 'ehicAccreditation', 'ehicAccreditation', 'EHIC Accreditation', passedText, failedText);
+        drawValidationLine(doc, 'dateOfBirthValidation', 'dateOfBirthValidation', 'Date of Birth Validation', passedText, failedText);
+        drawValidationLine(doc, 'dateRangeValidation', 'dateRangeValidation', 'Start/End Date Validation', passedText, failedText);
+        drawValidationLine(doc, 'startIssuanceValidation', 'startIssuanceValidation', 'Start/Issuance Date Validation', passedText, failedText);
+        drawValidationLine(doc, 'issuanceEndValidation', 'issuanceEndValidation', 'Issuance/End Date Validation', passedText, failedText);
+        drawValidationLine(doc, 'expiryDateValidation', 'expiryDateValidation', 'Expiry Date Validation', passedText, failedText, 'skipped - no expiry date found');
+        drawValidationLine(doc, 'institutionLengthValidation', 'institutionLengthValidation', 'Institution Length Validation (Optional)', passedText, failedText, 'skipped - no expiry date found');
+        drawValidationLine(doc, 'cardIdDigitValidation', 'cardIdDigitValidation', 'Card ID Digit Validation (Optional)', passedText, failedText, 'skipped - no card id found');
+        drawValidationLine(doc, 'institutionIdDigitValidation', 'institutionIdDigitValidation', 'Institution ID Digit Validation (Optional)', passedText, failedText, 'skipped - no institution id found');
 
         doc.moveDown(1);
 
@@ -3336,8 +3670,8 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence: ${getValidationStatus('revocationPresence', 'revocationPresence') ? passedText : getValidationSkipped('revocationPresence') ? 'skipped - no revocation data' : failedText}`);
-        doc.text(`${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : getValidationSkipped('revocationStatus') ? 'skipped - no revocation data' : failedText}`);
+        drawValidationLine(doc, 'revocationPresence', 'revocationPresence', 'Revocation Information Presence', passedText, failedText, 'skipped - no revocation data');
+        drawValidationLine(doc, 'revocationStatus', 'revocationStatus', 'Revocation Status Check', passedText, failedText, 'skipped - no revocation data');
 
         doc.moveDown(1);
 
@@ -3349,54 +3683,69 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
                 let hasErrors = false;
                 let hasWarnings = false;
 
+                // Visual Verification Header
+                doc.font('Helvetica-Bold').fontSize(10)
+                   .text('VISUAL VERIFICATION', { align: 'left' });
+                doc.moveDown(0.5);
+                doc.font('Helvetica').fontSize(9);
+
                 // Handle identity verification status
                 const identityValue = identityData.identityVerification || 'not-checked';
+                let identityColor, identityText;
                 switch(identityValue) {
                     case 'matched':
-                        statusMessages.push('✅ Identity (name) verification: Checked and matched');
+                        identityColor = '#28a745'; // Green
+                        identityText = 'Identity (name) verification: Checked and matched: PASSED';
                         break;
                     case 'not-matched':
-                        statusMessages.push('❌ Identity (name) verification: Checked and not matched');
+                        identityColor = '#dc3545'; // Red
+                        identityText = 'Identity (name) verification: Checked and not matched: FAILED';
                         hasErrors = true;
                         break;
                     case 'not-checked':
                     default:
-                        statusMessages.push('⚠️ Identity (name) verification: Not checked');
+                        identityColor = '#ffc107'; // Yellow
+                        identityText = 'Identity (name) verification: skipped - Not Checked';
                         hasWarnings = true;
                         break;
                 }
+
+                // Draw identity verification with colored bullet
+                const identityY = doc.y;
+                const identityBulletX = 72;
+                const identityTextX = drawColoredBullet(doc, identityBulletX, identityY, identityColor);
+                doc.text(identityText, identityTextX, identityY);
+                doc.moveDown(0.5);
 
                 // Handle birthdate verification status
                 const birthdateValue = identityData.birthdateVerification || 'not-checked';
+                let birthdateColor, birthdateText;
                 switch(birthdateValue) {
                     case 'matched':
-                        statusMessages.push('✅ Birthdate verification: Checked and matched');
+                        birthdateColor = '#28a745'; // Green
+                        birthdateText = 'Birthdate verification: Checked and matched: PASSED';
                         break;
                     case 'not-matched':
-                        statusMessages.push('❌ Birthdate verification: Checked and not matched');
+                        birthdateColor = '#dc3545'; // Red
+                        birthdateText = 'Birthdate verification: Checked and not matched: FAILED';
                         hasErrors = true;
                         break;
                     case 'not-checked':
                     default:
-                        statusMessages.push('⚠️ Birthdate verification: Not checked');
+                        birthdateColor = '#ffc107'; // Yellow
+                        birthdateText = 'Birthdate verification: skipped - Not Checked';
                         hasWarnings = true;
                         break;
                 }
 
-                if (statusMessages.length > 0) {
-                    // Visual Verification Section
-                    doc.font('Helvetica-Bold').fontSize(10)
-                       .fillColor('black')
-                       .text('VISUAL VERIFICATION', { align: 'left' });
-                    doc.moveDown(0.5);
-                    doc.font('Helvetica').fontSize(9);
+                // Draw birthdate verification with colored bullet
+                const birthdateY = doc.y;
+                const birthdateBulletX = 72;
+                const birthdateTextX = drawColoredBullet(doc, birthdateBulletX, birthdateY, birthdateColor);
+                doc.text(birthdateText, birthdateTextX, birthdateY);
+                doc.moveDown(0.5);
 
-                    statusMessages.forEach((msg) => {
-                        doc.text(msg, { align: 'left' });
-                    });
-
-                    doc.moveDown(1);
-                }
+                doc.moveDown(1);
             } catch (e) {
                 console.error('Could not parse identity verification data for PDF');
             }
@@ -3408,8 +3757,45 @@ router.post('/api/generate-verification-pdf', async (req, res) => {
         doc.moveDown(0.5);
         doc.font('Helvetica').fontSize(9);
 
-        doc.text(`${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence: ${getValidationStatus('treatmentDatePresence', 'treatmentDatePresence') ? passedText : getValidationSkipped('treatmentDatePresence') ? 'skipped - no treatment date' : failedText}`);
-        doc.text(`${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation: ${getValidationStatus('treatmentDateRange', 'treatmentDateRange') ? passedText : getValidationSkipped('treatmentDateRange') ? 'skipped - no treatment date' : failedText}`);
+        drawValidationLine(doc, 'treatmentDatePresence', 'treatmentDatePresence', 'Treatment Date Presence', passedText, failedText, 'skipped - no treatment date');
+        drawValidationLine(doc, 'treatmentDateRange', 'treatmentDateRange', 'Treatment Date Range Validation', passedText, failedText, 'skipped - no treatment date');
+        doc.moveDown(1);
+
+        // Check if there's enough space for the legend (need ~80 points for header + 4 items)
+        const legendHeight = 80;
+        if (doc.y > (doc.page.height - doc.page.margins.bottom - legendHeight)) {
+            doc.addPage();
+        }
+
+        // Add legend for bullet color coding
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text('LEGEND', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica').fontSize(9);
+
+        // Draw legend items with colored bullets
+        const legendCurrentY = doc.y;
+        const legendCurrentLeftMargin = 72;
+
+        // Passed (Green)
+        const passedCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, legendCurrentY, '#28a745');
+        doc.text('Passed', passedCurrentTextX, legendCurrentY);
+
+        // Failed (Red)
+        const failedCurrentY = legendCurrentY + 15;
+        const failedCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, failedCurrentY, '#dc3545');
+        doc.text('Failed', failedCurrentTextX, failedCurrentY);
+
+        // Warning (Yellow)
+        const warningCurrentY = legendCurrentY + 30;
+        const warningCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, warningCurrentY, '#ffc107');
+        doc.text('Optional/Not Checked', warningCurrentTextX, warningCurrentY);
+
+        // Skipped (Gray)
+        const skippedCurrentY = legendCurrentY + 45;
+        const skippedCurrentTextX = drawColoredBullet(doc, legendCurrentLeftMargin, skippedCurrentY, '#6c757d');
+        doc.text('Skipped', skippedCurrentTextX, skippedCurrentY);
+
         doc.moveDown(2);
 
         // === PDF VERIFICATION INFORMATION SECTION (at end of document) ===
