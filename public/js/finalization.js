@@ -254,6 +254,136 @@ document.getElementById('print-summary').addEventListener('click', () => {
     window.print();
 });
 
+// PDF Print functionality
+document.getElementById('print-pdf').addEventListener('click', async () => {
+    await printPDF(false); // Single language PDF
+});
+
+document.getElementById('print-pdf-bilingual').addEventListener('click', async () => {
+    await printPDF(true); // Bilingual PDF
+});
+
+// Function to generate and print PDF
+async function printPDF(bilingual = false) {
+    const printButton = bilingual ? document.getElementById('print-pdf-bilingual') : document.getElementById('print-pdf');
+    const originalText = printButton.textContent;
+
+    try {
+        // Disable button while generating
+        printButton.disabled = true;
+        printButton.textContent = getTranslatedText('finalization-generating-pdf', 'Generating PDF...');
+
+        // Prepare the same data structure as email functionality
+        const verificationResults = sessionStorage.getItem('verificationResults');
+        let verificationStatus = {
+            overall: true,
+            steps: {
+                base45Decode: true,
+                zlibDecompression: true,
+                jwtParsing: true,
+                signatureVerification: true,
+                certificateAuthority: true
+            }
+        };
+
+        // Parse verification results if available
+        if (verificationResults) {
+            try {
+                const results = JSON.parse(verificationResults);
+                verificationStatus = results;
+            } catch (e) {
+                console.error('Could not parse verification results');
+            }
+        }
+
+        const pdfData = {
+            referenceNumber: document.getElementById('reference-number').textContent,
+            treatmentDate: document.getElementById('treatment-date-summary').textContent,
+            verificationData: sessionStorage.getItem('verificationData') || '',
+            verificationStatus: verificationStatus,
+            identityVerification: sessionStorage.getItem('identityVerification'),
+            timestamp: new Date().toISOString(),
+            language: sessionStorage.getItem('usedLanguage') || 'en',
+            bilingual: bilingual
+        };
+
+        // Call PDF generation API
+        const response = await fetch('/api/generate-verification-pdf', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(pdfData)
+        });
+
+        if (response.ok) {
+            // Create blob from response
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            // Open PDF in new window for printing
+            const printWindow = window.open(url, '_blank');
+
+            // Clean up blob URL after a delay
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+            }, 1000);
+
+            // Optional: Auto-trigger print dialog (may be blocked by browsers)
+            if (printWindow) {
+                printWindow.onload = () => {
+                    setTimeout(() => {
+                        printWindow.print();
+                    }, 500);
+                };
+            }
+        } else {
+            const error = await response.json();
+            alert(getTranslatedText('finalization-pdf-error', 'Failed to generate PDF: ') + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('PDF generation error:', error);
+        alert(getTranslatedText('finalization-pdf-network-error', 'Network error while generating PDF. Please try again.'));
+    } finally {
+        // Re-enable button
+        printButton.disabled = false;
+        printButton.textContent = originalText;
+    }
+}
+
+// Show/hide bilingual PDF button based on verification data
+function updatePDFButtons() {
+    const verificationResults = sessionStorage.getItem('verificationResults');
+    const language = sessionStorage.getItem('usedLanguage') || 'en';
+
+    if (verificationResults) {
+        try {
+            const results = JSON.parse(verificationResults);
+            const verificationData = sessionStorage.getItem('verificationData');
+
+            // Check if we have verification data that would support bilingual PDFs
+            if (verificationData && language !== 'en') {
+                const bilingualButton = document.getElementById('print-pdf-bilingual');
+                if (bilingualButton) {
+                    bilingualButton.style.display = 'inline-block';
+                    // Update button text to show languages
+                    const countryLang = getCountryLanguage(results) || 'Country Language';
+                    bilingualButton.textContent = `Print PDF (${language.toUpperCase()} + ${countryLang.toUpperCase()})`;
+                }
+            }
+        } catch (e) {
+            console.error('Could not parse verification results for PDF buttons');
+        }
+    }
+}
+
+// Helper function to determine country language from verification results
+function getCountryLanguage(results) {
+    // This would extract the issuing country and map to language
+    // For now, return a generic label
+    return 'EN';
+}
+
 // Clear session data when starting new verification
 document.querySelector('a[href="/"]').addEventListener('click', () => {
     sessionStorage.clear();
@@ -576,4 +706,5 @@ function addTileClickHandlers() {
 // Initialize validation summary when page loads
 document.addEventListener('DOMContentLoaded', () => {
     displayValidationSummary();
+    updatePDFButtons();
 });

@@ -2190,6 +2190,924 @@ router.post('/api/send-verification-email', async (req, res) => {
     }
 });
 
+// PDF generation endpoint for printing
+router.post('/api/generate-verification-pdf', async (req, res) => {
+    try {
+        const { referenceNumber, treatmentDate, verificationData, verificationStatus, identityVerification, timestamp, language, bilingual } = req.body;
+
+        // Validate required data
+        if (!referenceNumber) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing reference number'
+            });
+        }
+
+        // Log the PDF generation request
+        logger.info('PDF generation request', {
+            referenceNumber: referenceNumber,
+            language: language,
+            bilingual: bilingual,
+            timestamp: timestamp
+        });
+
+        // Generate PDF using the same logic as email endpoint
+        const PDFDocument = require('pdfkit');
+        const QRCode = require('qrcode');
+        const fs = require('fs');
+        const path = require('path');
+
+        // Create PDF document
+        const doc = new PDFDocument();
+        const pdfFileName = `verification-${referenceNumber}-${Date.now()}.pdf`;
+        const pdfPath = path.join(__dirname, '..', 'temp', pdfFileName);
+
+        // Ensure temp directory exists
+        const tempDir = path.join(__dirname, '..', 'temp');
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir);
+        }
+
+        // Stream to file
+        doc.pipe(fs.createWriteStream(pdfPath));
+
+        // Use the same PDF generation logic as email endpoint
+        const userLanguage = language || 'en';
+        let pdfLanguage = 'en'; // Default fallback
+
+        // Determine PDF language based on issuing country (same logic as email)
+        const countryToLanguageMap = {
+            'AT': 'de', 'BE': 'en', 'BG': 'bg', 'HR': 'hr', 'CY': 'el', 'CZ': 'cs',
+            'DK': 'da', 'EE': 'et', 'FI': 'fi', 'FR': 'fr', 'DE': 'de', 'GR': 'el',
+            'HU': 'hu', 'IS': 'is', 'IE': 'en', 'IT': 'it', 'LV': 'lv', 'LI': 'de',
+            'LT': 'lt', 'LU': 'en', 'MT': 'en', 'NL': 'nl', 'NO': 'no', 'PL': 'pl',
+            'PT': 'pt', 'RO': 'ro', 'SK': 'sk', 'SI': 'sl', 'ES': 'es', 'SE': 'sv',
+            'CH': 'en'
+        };
+
+        // Extract PRC data and determine PDF language
+        let prcData = {
+            issuingMemberState: 'N/A',
+            cardHolderName: 'N/A',
+            cardHolderGivenName: 'N/A',
+            dateOfBirth: 'N/A',
+            personalIdNumber: 'N/A',
+            institutionId: 'N/A',
+            institutionName: 'N/A',
+            cardId: 'N/A',
+            expiryDate: 'N/A',
+            validityStart: 'N/A',
+            validityEnd: 'N/A',
+            deliveryDate: 'N/A'
+        };
+
+        if (verificationData) {
+            try {
+                const jwtDecoded = JSON.parse(verificationData);
+                const prc = jwtDecoded?.payload?.prc;
+
+                if (prc) {
+                    // Extract data and determine country language
+                    prcData.issuingMemberState = prc.ic || 'N/A';
+                    pdfLanguage = countryToLanguageMap[prc.ic] || 'en';
+
+                    prcData.cardHolderName = prc.sn || 'N/A';
+                    prcData.cardHolderGivenName = prc.fn || 'N/A';
+                    prcData.dateOfBirth = prc.dob || 'N/A';
+                    prcData.personalIdNumber = prc.pin || 'N/A';
+                    prcData.institutionId = prc.ii || 'N/A';
+                    prcData.institutionName = prc.in || 'N/A';
+                    prcData.cardId = prc.ci || 'N/A';
+                    prcData.expiryDate = prc.xd || 'N/A';
+                    prcData.validityStart = prc.sd || 'N/A';
+                    prcData.validityEnd = prc.ed || 'N/A';
+                    prcData.deliveryDate = prc.di || 'N/A';
+                }
+            } catch (e) {
+                logger.warn('Could not parse verification data for PDF generation');
+            }
+        }
+
+        // Use the EXACT same PDF generation logic as the email endpoint
+        //
+        // IMPORTANT: The following code is an exact copy of the email PDF generation logic
+        // from lines 704-1538 in the email endpoint to ensure PDFs are identical
+
+        // Move up to reduce top margin before main title
+        doc.moveUp(2.5);
+
+        // Main titles: Arial 12pt Bold (in appropriate language)
+        doc.font('Helvetica-Bold').fontSize(12)
+           .text(getTranslation('pdf-title1', pdfLanguage), { align: 'center' });
+        doc.text(getTranslation('pdf-title2', pdfLanguage), { align: 'center' });
+        doc.text(getTranslation('pdf-title3', pdfLanguage), { align: 'center' });
+
+        // Subtitles: Arial 9pt Italics (in appropriate language)
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-subtitle1', pdfLanguage), { align: 'center' });
+        doc.text(getTranslation('pdf-subtitle2', pdfLanguage), { align: 'center' });
+        doc.moveDown(1); // Add some margin between subtitle and next section
+
+        // Helper function to get validation status (used by both PDF and email)
+        const validationData = verificationStatus?.validationSummary || verificationStatus?.steps || {};
+
+        // STATUS SYMBOLS - to be used later
+        // Updated to handle warning and skipped states
+        const statusSymbol = (key, fallbackKey) => {
+            const validation = validationData[key];
+            if (validation && typeof validation === 'object') {
+                switch(validation.status) {
+                    case 'success': return '✅';
+                    case 'error': return '❌';
+                    case 'warning': return '⚠️';
+                    case 'skipped': return '➖';
+                    default: return '❌';
+                }
+            }
+            // Fallback to old boolean format
+            const oldStatus = validationData[fallbackKey];
+            return oldStatus ? '✅' : '❌';
+        };
+
+        // Debug logging
+        logger.debug('Validation data for PDF/Email', {
+            hasValidationSummary: !!verificationStatus?.validationSummary,
+            hasSteps: !!verificationStatus?.steps,
+            validationDataKeys: Object.keys(validationData),
+            sampleValidation: validationData.officialIdValidation || validationData.countryCodeValidation
+        });
+
+        const getValidationStatus = (key, fallbackKey) => {
+            const validation = validationData[key];
+            if (validation && typeof validation === 'object') {
+                return validation.status === 'success';
+            }
+            // Fallback to old boolean format
+            return validationData[fallbackKey] || false;
+        };
+
+        // Helper function to check if validation was skipped
+        const getValidationSkipped = (key) => {
+            const validation = validationData[key];
+            if (validation && typeof validation === 'object') {
+                return validation.status === 'skipped';
+            }
+            return false;
+        };
+
+        // Extract EHIC/PRC data from JWT payload (EXACT SAME LOGIC AS EMAIL)
+        prcData = {
+            issuingMemberState: 'N/A',
+            cardHolderName: 'N/A',
+            cardHolderGivenName: 'N/A',
+            dateOfBirth: 'N/A',
+            personalIdNumber: 'N/A',
+            institutionId: 'N/A',
+            institutionName: 'N/A',
+            cardId: 'N/A',
+            expiryDate: 'N/A',
+            validityStart: 'N/A',
+            validityEnd: 'N/A',
+            deliveryDate: 'N/A'
+        };
+
+        // Debug: Log the verification status structure
+        logger.debug('Verification status structure for JWT parsing', {
+            hasVerificationStatus: !!verificationStatus,
+            hasDetails: !!verificationStatus?.details,
+            hasJwt: !!verificationStatus?.details?.jwt,
+            hasPayload: !!verificationStatus?.details?.jwt?.payload,
+            verificationStatusKeys: verificationStatus ? Object.keys(verificationStatus) : [],
+            detailsKeys: verificationStatus?.details ? Object.keys(verificationStatus.details) : []
+        });
+
+        if (verificationStatus?.details?.jwt?.payload) {
+            const payload = verificationStatus.details.jwt.payload;
+
+            logger.debug('JWT payload structure', {
+                payloadKeys: Object.keys(payload),
+                hasHcert: !!payload.hcert,
+                hcertStructure: payload.hcert ? Object.keys(payload.hcert) : []
+            });
+
+            // Check for EHIC/PRC specific structure - try both formats
+            let cert = null;
+
+            if (payload.prc) {
+                // New structure: payload.prc
+                cert = payload.prc;
+                logger.debug('Certificate data found in payload.prc', {
+                    certKeys: Object.keys(cert),
+                    ic: cert.ic,
+                    fn: cert.fn,
+                    gn: cert.gn,
+                    dob: cert.dob,
+                    hi: cert.hi,
+                    ii: cert.ii,
+                    in: cert.in
+                });
+            } else if (payload.hcert && payload.hcert.v) {
+                // Legacy structure: payload.hcert.v[0]
+                cert = payload.hcert.v[0];
+                logger.debug('Certificate data found in payload.hcert.v[0]', {
+                    certKeys: Object.keys(cert),
+                    ic: cert.ic,
+                    fn: cert.fn,
+                    gn: cert.gn,
+                    dob: cert.dob,
+                    hi: cert.hi,
+                    ii: cert.ii,
+                    in: cert.in
+                });
+            }
+
+            if (cert) {
+
+                // Debug: Log all certificate fields to see what's available
+                logger.info('Certificate fields available:', Object.keys(cert));
+                logger.info('Certificate institution fields:', {
+                    ii: cert.ii,
+                    in: cert.in,
+                    raw_cert: JSON.stringify(cert)
+                });
+
+                // Institution fields - ii is the ID, in is the name
+                // According to EHIC spec, field 7 should show the institution ID (ii)
+                let institutionId = cert.ii || 'N/A';
+                let institutionName = cert.in || 'N/A';
+
+                prcData = {
+                    issuingMemberState: cert.ic || payload.iss?.split('/').pop() || 'N/A',  // 2. Issuing Member State
+                    cardHolderName: cert.fn || 'N/A',                                        // 3. Name
+                    cardHolderGivenName: cert.gn || 'N/A',                                   // 4. Given name(s)
+                    dateOfBirth: cert.dob ? formatDate(cert.dob) : 'N/A',                   // 5. Date of birth
+                    personalIdNumber: cert.hi || 'N/A',                                      // 6. Personal identification number
+                    institutionId: institutionId,                                            // 7. Institution ID (ii field)
+                    institutionName: institutionName,                                        // Institution name (in field)
+                    cardId: cert.ci || 'N/A',                                                // 8. Card ID (not in mapping but keeping)
+                    expiryDate: cert.xd ? formatDate(cert.xd) : 'N/A',                     // 9. Expiry date (not in mapping but keeping)
+                    validityStart: cert.sd ? formatDate(cert.sd) : 'N/A',                   // (a). Certificate validity period From
+                    validityEnd: cert.ed ? formatDate(cert.ed) : 'N/A',                     // (b). Certificate validity period To
+                    deliveryDate: cert.di ? formatDate(cert.di) : 'N/A'                     // (c). Certificate delivery date
+                };
+
+                logger.info('PRC data successfully extracted from JWT', {
+                    issuingMemberState: prcData.issuingMemberState,
+                    cardHolderName: prcData.cardHolderName,
+                    cardHolderGivenName: prcData.cardHolderGivenName,
+                    institutionId: prcData.institutionId
+                });
+            } else {
+                logger.warn('JWT payload structure not as expected', {
+                    hasHcert: !!payload.hcert,
+                    hcertType: typeof payload.hcert,
+                    payloadStructure: JSON.stringify(payload, null, 2).substring(0, 500)
+                });
+            }
+        } else {
+            logger.warn('No JWT payload found in verification status', {
+                verificationStatusStructure: JSON.stringify(verificationStatus, null, 2).substring(0, 500)
+            });
+
+            // Try alternative data sources
+            if (verificationData) {
+                logger.info('Attempting to parse JWT from verification data directly');
+                try {
+                    // Try to decode the JWT from verification data if it's available
+                    const jwt = require('jsonwebtoken');
+                    const decoded = jwt.decode(verificationData, { complete: true });
+
+                    let cert = null;
+                    if (decoded && decoded.payload) {
+                        if (decoded.payload.prc) {
+                            cert = decoded.payload.prc;
+                        } else if (decoded.payload.hcert && decoded.payload.hcert.v) {
+                            cert = decoded.payload.hcert.v[0];
+                        }
+                    }
+
+                    if (cert) {
+
+                        logger.info('Successfully decoded JWT from verification data', {
+                            certKeys: Object.keys(cert)
+                        });
+
+                        // Institution fields - ii is the ID, in is the name
+                        let institutionId = cert.ii || 'N/A';
+                        let institutionName = cert.in || 'N/A';
+
+                        prcData = {
+                            issuingMemberState: cert.ic || 'N/A',
+                            cardHolderName: cert.fn || 'N/A',
+                            cardHolderGivenName: cert.gn || 'N/A',
+                            dateOfBirth: cert.dob ? formatDate(cert.dob) : 'N/A',
+                            personalIdNumber: cert.hi || 'N/A',
+                            institutionId: institutionId,
+                            institutionName: institutionName,
+                            cardId: cert.ci || 'N/A',
+                            expiryDate: cert.xd ? formatDate(cert.xd) : 'N/A',
+                            validityStart: cert.sd ? formatDate(cert.sd) : 'N/A',
+                            validityEnd: cert.ed ? formatDate(cert.ed) : 'N/A',
+                            deliveryDate: cert.di ? formatDate(cert.di) : 'N/A'
+                        };
+
+                        logger.info('PRC data extracted from direct JWT parsing', {
+                            issuingMemberState: prcData.issuingMemberState,
+                            cardHolderName: prcData.cardHolderName,
+                            cardHolderGivenName: prcData.cardHolderGivenName,
+                            institutionId: prcData.institutionId
+                        });
+                    }
+                } catch (directJwtError) {
+                    logger.error('Failed to decode JWT directly from verification data', {
+                        error: directJwtError.message
+                    });
+
+                    // Last resort: try to process the verification data through the full chain
+                    logger.info('Attempting full QR code processing chain');
+                    try {
+                        const base45 = require('base45');
+                        const pako = require('pako');
+
+                        // Step 1: BASE45 decode
+                        const base45Decoded = base45.decode(verificationData);
+
+                        // Step 2: ZLIB decompress
+                        const zlibDecompressed = pako.inflate(base45Decoded, { to: 'string' });
+
+                        // Step 3: Parse JWT
+                        const jwt = require('jsonwebtoken');
+                        const jwtDecoded = jwt.decode(zlibDecompressed, { complete: true });
+
+                        let cert = null;
+                        if (jwtDecoded && jwtDecoded.payload) {
+                            if (jwtDecoded.payload.prc) {
+                                cert = jwtDecoded.payload.prc;
+                            } else if (jwtDecoded.payload.hcert && jwtDecoded.payload.hcert.v) {
+                                cert = jwtDecoded.payload.hcert.v[0];
+                            }
+                        }
+
+                        if (cert) {
+
+                            logger.info('Successfully processed full QR code chain', {
+                                certKeys: Object.keys(cert)
+                            });
+
+                            // Institution fields - ii is the ID, in is the name
+                            let institutionId = cert.ii || 'N/A';
+                            let institutionName = cert.in || 'N/A';
+
+                            prcData = {
+                                issuingMemberState: cert.ic || 'N/A',
+                                cardHolderName: cert.fn || 'N/A',
+                                cardHolderGivenName: cert.gn || 'N/A',
+                                dateOfBirth: cert.dob ? formatDate(cert.dob) : 'N/A',
+                                personalIdNumber: cert.hi || 'N/A',
+                                institutionId: institutionId,
+                                institutionName: institutionName,
+                                cardId: cert.ci || 'N/A',
+                                expiryDate: cert.xd ? formatDate(cert.xd) : 'N/A',
+                                validityStart: cert.sd ? formatDate(cert.sd) : 'N/A',
+                                validityEnd: cert.ed ? formatDate(cert.ed) : 'N/A',
+                                deliveryDate: cert.di ? formatDate(cert.di) : 'N/A'
+                            };
+
+                            logger.info('PRC data extracted from full QR processing chain', {
+                                issuingMemberState: prcData.issuingMemberState,
+                                cardHolderName: prcData.cardHolderName,
+                                cardHolderGivenName: prcData.cardHolderGivenName,
+                                institutionId: prcData.institutionId
+                            });
+                        }
+                    } catch (fullChainError) {
+                        logger.error('Failed to process full QR code chain', {
+                            error: fullChainError.message
+                        });
+                    }
+                }
+            }
+        }
+
+        // Final verification that we have some data
+        logger.info('Final PRC data status', {
+            issuingMemberState: prcData.issuingMemberState,
+            cardHolderName: prcData.cardHolderName,
+            cardHolderGivenName: prcData.cardHolderGivenName,
+            hasRealData: prcData.cardHolderName !== 'N/A' || prcData.issuingMemberState !== 'N/A'
+        });
+
+        // Update the PDF language based on issuing country
+        if (prcData && prcData.issuingMemberState && prcData.issuingMemberState !== 'N/A') {
+            pdfLanguage = countryToLanguageMap[prcData.issuingMemberState.toUpperCase()] || 'en';
+        }
+
+        logger.info('PDF language determination', {
+            issuingCountry: prcData?.issuingMemberState || 'unknown',
+            determinedLanguage: pdfLanguage,
+            userRequestedLanguage: userLanguage
+        });
+
+        // Helper function to format dates
+        function formatDate(dateStr) {
+            try {
+                if (!dateStr) return 'N/A';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            } catch (e) {
+                return dateStr; // Return original if parsing fails
+            }
+        }
+
+        // PRC Certificate sections - exact template format
+
+        // Calculate true page dimensions for left-aligned boxes
+        const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        const leftMargin = doc.page.margins.left;  // True left edge
+        const fullPageWidth = doc.page.width - leftMargin - doc.page.margins.right;  // Full width from true left
+
+        // Ensure pageWidth is valid
+        if (!pageWidth || isNaN(pageWidth) || pageWidth <= 0) {
+            logger.error('Invalid page width calculated', { pageWidth, docPageWidth: doc.page.width });
+            throw new Error('Invalid page dimensions for PDF generation');
+        }
+
+        // Right-aligned section header: Arial 9pt italics
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-issuing-member-state', pdfLanguage), { align: 'right' });
+        doc.moveDown(0.5);
+
+        // Create bordered text boxes for fields 1 and 2
+        const currentY = doc.y;
+        const boxHeight = 30;
+        const box1Width = pageWidth * 0.48;  // 48% of page width
+        const box2Width = pageWidth * 0.48;  // 48% of page width
+        const box2X = doc.x + pageWidth * 0.52; // Start at 52% to leave 2% gap
+
+        // Validate coordinates
+        if (isNaN(currentY) || isNaN(box1Width) || isNaN(box2Width) || isNaN(box2X)) {
+            logger.error('Invalid coordinates calculated', {
+                currentY, box1Width, box2Width, box2X, docX: doc.x, docY: doc.y
+            });
+            throw new Error('Invalid coordinates for PDF box generation');
+        }
+
+        // Box 1: "1." (0% to 48%) - Arial 9pt, reduced border weight
+        doc.lineWidth(0.5); // Reduce border weight by 50%
+        doc.rect(doc.x, currentY, box1Width, boxHeight).stroke();
+        doc.font('Helvetica').fontSize(9).text('1.', doc.x + 5, currentY + 10);
+
+        // Box 2: "2. [Country]" (52% to 100%) - Arial 9pt, reduced border weight
+        doc.rect(box2X, currentY, box2Width, boxHeight).stroke();
+        doc.text(`2. ${prcData.issuingMemberState}`, box2X + 5, currentY + 10);
+
+        // Move cursor below the boxes
+        doc.y = currentY + boxHeight + 10;
+
+        // Card holder-related information - truly left-aligned header, Arial 9pt italics
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-card-holder-info', pdfLanguage), leftMargin, doc.y);
+        doc.moveDown(0.5);
+
+        // Create grouped box for fields 3-6 - positioned at true left edge
+        let fieldY = doc.y;
+
+        // Validate fieldY
+        if (isNaN(fieldY)) {
+            logger.error('Invalid fieldY at field 3', { fieldY, docY: doc.y });
+            fieldY = 300; // Set a safe starting position
+        }
+
+        const groupBoxHeight = 80; // Reduced height for tighter spacing (20px each)
+
+        // Draw the outer group box from true left edge with reduced border weight
+        doc.lineWidth(0.5); // Reduce border weight by 50%
+        doc.rect(leftMargin, fieldY, fullPageWidth, groupBoxHeight).stroke();
+
+        // Define consistent left margin for all fields (from true left edge)
+        const fieldLeftMargin = leftMargin + 5;
+
+        // Field 3: Name - Arial 9pt, truly left-aligned within box
+        doc.font('Helvetica').fontSize(9)
+           .text(`3. ${getTranslation('pdf-name-field', pdfLanguage)} ${prcData.cardHolderName}`,
+                  fieldLeftMargin, fieldY + 8);
+
+        // Field 4: Given name(s) - aligned exactly under field 3 with reduced spacing
+        doc.text(`4. ${getTranslation('pdf-given-name-field', pdfLanguage)} ${prcData.cardHolderGivenName}`,
+                 fieldLeftMargin, fieldY + 28);
+
+        // Field 5: Date of birth - aligned exactly under field 4 with reduced spacing
+        doc.text(`5. ${getTranslation('pdf-date-of-birth-field', pdfLanguage)} ${prcData.dateOfBirth}`,
+                 fieldLeftMargin, fieldY + 48);
+
+        // Field 6: Personal identification number - aligned exactly under field 5 with reduced spacing
+        doc.text(`6. ${getTranslation('pdf-personal-id-field', pdfLanguage)} ${prcData.personalIdNumber}`,
+                 fieldLeftMargin, fieldY + 68);
+
+        // Move cursor below the group box
+        const newDocY = fieldY + groupBoxHeight + 10;
+        if (isNaN(newDocY)) {
+            logger.error('Invalid doc.y calculation after card holder section', { fieldY, newDocY });
+            doc.y = 400; // Safe fallback
+        } else {
+            doc.y = newDocY;
+        }
+
+        // Competent institution-related information - Arial 9pt italics, truly left-aligned
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-competent-institution-info', pdfLanguage), leftMargin, doc.y);
+        doc.moveDown(0.5);
+
+        // Field 7: Institution information (larger box for multi-line content) - at true left edge
+        fieldY = doc.y;
+
+        // Validate fieldY for institution section
+        if (isNaN(fieldY)) {
+            logger.error('Invalid fieldY at institution section', { fieldY, docY: doc.y });
+            fieldY = 450; // Set a safe position
+        }
+
+        const institutionBoxHeight = 35; // Increased to accommodate multi-line text
+        doc.lineWidth(0.5); // Reduce border weight by 50%
+        doc.rect(leftMargin, fieldY, fullPageWidth, institutionBoxHeight).stroke();
+
+        // Institution ID and name content - render label and data separately for precise spacing control
+        doc.font('Helvetica').fontSize(9);
+
+        // Render the label first
+        doc.text(`7. ${getTranslation('pdf-institution-id-field', pdfLanguage)}`, leftMargin + 5, fieldY + 5);
+
+        // Move down by 0.35 line height (approximately 3.15 pixels for 9pt font)
+        const lineSpacing = 3.15; // 0.35 * 9pt
+
+        // Render the concatenated institution data with indentation
+        let institutionData = "";
+        if (prcData.institutionId !== 'N/A' && prcData.institutionName !== 'N/A') {
+            institutionData = `    ${prcData.institutionId} - ${prcData.institutionName}`;
+        } else if (prcData.institutionId !== 'N/A') {
+            institutionData = `    ${prcData.institutionId}`;
+        } else if (prcData.institutionName !== 'N/A') {
+            institutionData = `    ${prcData.institutionName}`;
+        } else {
+            institutionData = `    N/A`;
+        }
+
+        // Debug: Log what we're trying to render
+        logger.info('Rendering institution text in PDF:', {
+            institutionId: prcData.institutionId,
+            institutionName: prcData.institutionName,
+            institutionData: institutionData
+        });
+
+        // Render the institution data at the calculated position with 0.35 line spacing
+        // 9pt font has approximately 12 pixels line height, so 0.35 * 12 = 4.2 pixels
+        doc.text(institutionData, leftMargin + 5, fieldY + 5 + 12 + lineSpacing, {
+            width: fullPageWidth - 10
+        });
+        doc.moveDown(0.5);
+
+        // Move cursor below the box
+        doc.y = fieldY + institutionBoxHeight + 10;
+
+        // CONTINUE WITH THE EXACT SAME LOGIC AS EMAIL ENDPOINT FROM LINE 1183-1538
+
+        // Card-related information - Arial 9pt italics, truly left-aligned
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-card-info', pdfLanguage), leftMargin, doc.y);
+        doc.moveDown(0.5);
+
+        // Fields 8 and 9: Combined in one box - Arial 9pt, at true left edge with reduced border weight
+        fieldY = doc.y;
+        const combinedBoxHeight = 45; // Height for both fields combined
+        doc.lineWidth(0.5); // Reduce border weight by 50%
+        doc.rect(leftMargin, fieldY, fullPageWidth, combinedBoxHeight).stroke();
+        doc.font('Helvetica').fontSize(9)
+           .text(`8. ${getTranslation('pdf-card-id-field', pdfLanguage)} ${prcData.cardId}`, leftMargin + 5, fieldY + 8);
+        doc.text(`9. ${getTranslation('pdf-expiry-date-field', pdfLanguage)} ${prcData.expiryDate}`, leftMargin + 5, fieldY + 28);
+
+        // Move cursor below the combined box
+        doc.y = fieldY + combinedBoxHeight + 10;
+
+        // Certificate validity period and delivery date - side by side layout
+        // Calculate split box dimensions like the first section
+        const validityBoxWidth = fullPageWidth * 0.48;  // 48% of page width
+        const deliveryBoxWidth = fullPageWidth * 0.48;  // 48% of page width
+        const deliveryBoxX = leftMargin + fullPageWidth * 0.52; // Start at 52% to leave 2% gap
+        const splitBoxHeight = 50; // Height for both fields (a) and (b)
+
+        // Save Y position for headers on same line
+        const headerY = doc.y;
+
+        // Certificate validity period header - left-aligned
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-certificate-validity-period', pdfLanguage), leftMargin, headerY);
+
+        // Certificate delivery date header - right-aligned at same Y position
+        doc.text(getTranslation('pdf-certificate-delivery-date', pdfLanguage), deliveryBoxX, headerY);
+        doc.moveDown(0.5);
+
+        // Create split boxes at same Y level
+        fieldY = doc.y;
+
+        // Left box: Certificate validity period (48% width) with reduced border weight
+        doc.lineWidth(0.5); // Reduce border weight by 50% (default is 1)
+        doc.rect(leftMargin, fieldY, validityBoxWidth, splitBoxHeight).stroke();
+
+        // Right box: Certificate delivery date (48% width, starting at 52%) with reduced border weight
+        doc.rect(deliveryBoxX, fieldY, deliveryBoxWidth, splitBoxHeight).stroke();
+
+        // Content for left box - Certificate validity period
+        doc.font('Helvetica').fontSize(9)
+           .text(`(a). ${getTranslation('pdf-from-field', pdfLanguage)} ${prcData.validityStart}`,
+                  leftMargin + 5, fieldY + 8);
+        doc.text(`(b). ${getTranslation('pdf-to-field', pdfLanguage)} ${prcData.validityEnd}`,
+                 leftMargin + 5, fieldY + 28);
+
+        // Content for right box - Certificate delivery date
+        doc.text(`(c). ${prcData.deliveryDate}`, deliveryBoxX + 5, fieldY + 18);
+
+        // Move cursor below the split boxes
+        doc.y = fieldY + splitBoxHeight + 10;
+
+        // Add signature section with QR code in signature box
+        // Validate current Y position
+        if (isNaN(doc.y)) {
+            logger.error('Invalid doc.y before signature section', { docY: doc.y });
+            doc.y = 500; // Set a safe fallback position
+        }
+
+        // Position "Signature and stamp of the institution" at 50% of page width
+        const signatureHeaderX = leftMargin + (pageWidth * 0.52);
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-signature-stamp', pdfLanguage), signatureHeaderX, doc.y);
+        doc.moveDown();
+
+        // Create signature box with QR code inside - positioned at 50% of page width
+        const signatureBoxY = doc.y;
+        const signatureBoxHeight = 160;
+        const signatureBoxWidth = pageWidth * 0.35;
+        const signatureBoxX = leftMargin + (pageWidth * 0.52);
+
+        // Validate signature box coordinates
+        if (isNaN(signatureBoxY) || isNaN(signatureBoxHeight) || isNaN(signatureBoxWidth)) {
+            logger.error('Invalid signature box coordinates', {
+                signatureBoxY, signatureBoxHeight, signatureBoxWidth
+            });
+            throw new Error('Invalid signature box coordinates');
+        }
+
+        // Draw signature box border with reduced weight
+        doc.lineWidth(0.5); // Reduce border weight by 50%
+        doc.rect(signatureBoxX, signatureBoxY, signatureBoxWidth, signatureBoxHeight).stroke();
+
+        // Add QR code in the center of signature box
+        if (verificationData) {
+            try {
+                const qrCodeBuffer = await QRCode.toBuffer(verificationData, {
+                    type: 'png',
+                    width: 140,
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+
+                // Center QR code in signature box
+                const qrCodeSize = 140;
+                const qrCodeX = signatureBoxX + (signatureBoxWidth - qrCodeSize) / 2;
+                const qrCodeY = signatureBoxY + (signatureBoxHeight - qrCodeSize) / 2;
+
+                doc.image(qrCodeBuffer, qrCodeX, qrCodeY, {
+                    width: qrCodeSize,
+                    height: qrCodeSize
+                });
+
+                logger.info('QR code generated for PDF signature box');
+            } catch (qrError) {
+                logger.error('Failed to generate QR code for PDF', { error: qrError.message });
+                // If QR code fails, add detailed error info in signature box
+                doc.fontSize(9);
+                doc.text('QR Code Generation Failed', signatureBoxX + 20, signatureBoxY + 60);
+                doc.fontSize(7);
+                doc.text(`Error: ${qrError.message}`, signatureBoxX + 20, signatureBoxY + 80);
+                doc.text(`Data length: ${verificationData.length} chars`, signatureBoxX + 20, signatureBoxY + 95);
+            }
+        }
+
+        // Move past signature box
+        const newY = signatureBoxY + signatureBoxHeight + 15;
+        if (isNaN(newY)) {
+            logger.error('Invalid Y position after signature box', {
+                signatureBoxY, signatureBoxHeight, calculatedY: newY
+            });
+            doc.y = 700; // Set a safe fallback position
+        } else {
+            doc.y = newY;
+        }
+
+        // Add horizontal ruler after signature section
+        doc.moveTo(leftMargin, doc.y)
+           .lineTo(leftMargin + pageWidth, doc.y)
+           .lineWidth(0.5)
+           .stroke();
+        doc.moveDown(0.5);
+
+        doc.font('Helvetica-Oblique').fontSize(9)
+           .text(getTranslation('pdf-notes-title', pdfLanguage), leftMargin, doc.y);
+        doc.moveDown(0.3);
+        doc.font('Helvetica').fontSize(9)
+           .text(getTranslation('pdf-notes-text', pdfLanguage), leftMargin, doc.y, {
+            width: pageWidth,
+            align: 'justify'
+        });
+
+        // === PAGE 2: VERIFICATION STATUS ===
+        // Add new page for verification status
+        doc.addPage();
+
+        // Add verification header on page 2
+        // Check for errors and warnings in validation summary
+        let hasErrors = false;
+        let hasWarnings = false;
+
+        if (validationData) {
+            Object.values(validationData).forEach(validation => {
+                if (validation && typeof validation === 'object') {
+                    if (validation.status === 'error') hasErrors = true;
+                    if (validation.status === 'warning') hasWarnings = true;
+                }
+            });
+        }
+
+        let statusText, statusColor;
+        if (hasErrors) {
+            statusText = getTranslation('pdf-verification-failed', pdfLanguage);
+            statusColor = '#cc0000';
+        } else if (hasWarnings) {
+            statusText = getTranslation('pdf-verification-warnings', pdfLanguage);
+            statusColor = '#ff8c00';
+        } else {
+            statusText = getTranslation('pdf-verification-approved', pdfLanguage);
+            statusColor = '#006600';
+        }
+
+        // Status header
+        doc.font('Helvetica-Bold').fontSize(14)
+           .text(getTranslation('pdf-verification-information', pdfLanguage), { align: 'center' });
+        doc.moveDown(1);
+
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text(getTranslation('pdf-verification-status', pdfLanguage), leftMargin);
+        doc.moveDown(0.5);
+
+        // Status summary box
+        const statusY = doc.y;
+        const statusBoxHeight = 80;
+        doc.lineWidth(1);
+        doc.rect(leftMargin, statusY, fullPageWidth, statusBoxHeight).stroke();
+
+        doc.font('Helvetica').fontSize(9).fillColor(statusColor)
+           .text(`${getTranslation('pdf-verification', pdfLanguage)} ${statusText}`, leftMargin + 10, statusY + 10);
+        doc.fillColor('#000000');
+
+        doc.text(`${getTranslation('pdf-reference', pdfLanguage)} ${referenceNumber}`, leftMargin + 10, statusY + 30);
+        doc.text(`${getTranslation('pdf-treatment-date', pdfLanguage)} ${treatmentDate || 'N/A'}`, leftMargin + 10, statusY + 45);
+        doc.text(`${getTranslation('pdf-verified', pdfLanguage)} ${new Date(timestamp).toLocaleDateString()}`, leftMargin + 10, statusY + 60);
+
+        doc.y = statusY + statusBoxHeight + 15;
+
+        // Identity verification warnings
+        const identityData = identityVerification ? JSON.parse(identityVerification) : {};
+        if (identityData.identitySkipped || identityData.birthdateSkipped) {
+            const warningY = doc.y;
+            const warningBoxHeight = 45;
+            doc.lineWidth(1);
+            doc.rect(leftMargin, warningY, fullPageWidth, warningBoxHeight).stroke();
+            doc.fillColor('#ff8c00');
+            doc.font('Helvetica-Bold').fontSize(9)
+               .text('⚠️ WARNING', leftMargin + 10, warningY + 8);
+            doc.fillColor('#000000');
+            doc.font('Helvetica').fontSize(8);
+
+            if (identityData.identitySkipped) {
+                doc.text('• Identity verification was skipped', leftMargin + 10, warningY + 22);
+            }
+            if (identityData.birthdateSkipped) {
+                doc.text('• Birthdate verification was skipped', leftMargin + 10, warningY + 32);
+            }
+            doc.y = warningY + warningBoxHeight + 15;
+        }
+
+        // VALIDATION RESULTS SECTIONS
+        const passedText = 'PASSED';
+        const failedText = 'FAILED';
+
+        // Technical Validations Section
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text('TECHNICAL VALIDATIONS', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica').fontSize(9);
+
+        doc.text(`${statusSymbol('qrCodeAnalysis', 'qrCodeAnalysis')} QR Code Analysis: ${getValidationStatus('qrCodeAnalysis', 'qrCodeAnalysis') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('base45Decode', 'base45Decode')} BASE45 Decoding: ${getValidationStatus('base45Decode', 'base45Decode') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('zlibDecompress', 'zlibDecompress')} ZLIB Decompression: ${getValidationStatus('zlibDecompress', 'zlibDecompress') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('jwtParsing', 'jwtParsing')} JWT Parsing: ${getValidationStatus('jwtParsing', 'jwtParsing') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('schemaFileCheck', 'schemaFileCheck')} Schema File Check: ${getValidationStatus('schemaFileCheck', 'schemaFileCheck') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('schemaValidation', 'schemaValidation')} Schema Validation: ${getValidationStatus('schemaValidation', 'schemaValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('kidHeaderValidation', 'kidHeaderValidation')} Kid Header Validation: ${getValidationStatus('kidHeaderValidation', 'kidHeaderValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('algorithmHeaderValidation', 'algorithmHeaderValidation')} Algorithm Header Validation: ${getValidationStatus('algorithmHeaderValidation', 'algorithmHeaderValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('signatureVerification', 'signatureVerification')} Signature Retrieval: ${getValidationStatus('signatureVerification', 'signatureVerification') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('signatureCountValidation', 'signatureCountValidation')} Signature Count Validation: ${getValidationStatus('signatureCountValidation', 'signatureCountValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('countryCodeValidation', 'countryCodeValidation')} Country Code Validation: ${getValidationStatus('countryCodeValidation', 'countryCodeValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('officialIdValidation', 'officialIdValidation')} Official ID Validation: ${getValidationStatus('officialIdValidation', 'officialIdValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('jwtSignatureValidation', 'jwtSignatureValidation')} JWT Signature Validation: ${getValidationStatus('jwtSignatureValidation', 'jwtSignatureValidation') ? passedText : failedText}`);
+
+        doc.moveDown(1);
+
+        // Business Validations Section
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text('BUSINESS VALIDATIONS', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica').fontSize(9);
+
+        doc.text(`${statusSymbol('certificateValidityDate', 'certificateValidityDate')} Certificate Validity Date: ${getValidationStatus('certificateValidityDate', 'certificateValidityDate') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('ehicAccreditation', 'ehicAccreditation')} EHIC Accreditation: ${getValidationStatus('ehicAccreditation', 'ehicAccreditation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('dateOfBirthValidation', 'dateOfBirthValidation')} Date of Birth Validation: ${getValidationStatus('dateOfBirthValidation', 'dateOfBirthValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('dateRangeValidation', 'dateRangeValidation')} Start/End Date Validation: ${getValidationStatus('dateRangeValidation', 'dateRangeValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('startIssuanceValidation', 'startIssuanceValidation')} Start/Issuance Date Validation: ${getValidationStatus('startIssuanceValidation', 'startIssuanceValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('issuanceEndValidation', 'issuanceEndValidation')} Issuance/End Date Validation: ${getValidationStatus('issuanceEndValidation', 'issuanceEndValidation') ? passedText : failedText}`);
+        doc.text(`${statusSymbol('expiryDateValidation', 'expiryDateValidation')} Expiry Date Validation: ${getValidationStatus('expiryDateValidation', 'expiryDateValidation') ? passedText : getValidationSkipped('expiryDateValidation') ? 'skipped - no expiry date found' : failedText}`);
+        doc.text(`${statusSymbol('institutionLengthValidation', 'institutionLengthValidation')} Institution Length Validation (Optional): ${getValidationStatus('institutionLengthValidation', 'institutionLengthValidation') ? passedText : getValidationSkipped('institutionLengthValidation') ? 'skipped - no expiry date found' : failedText}`);
+        doc.text(`${statusSymbol('cardIdDigitValidation', 'cardIdDigitValidation')} Card ID Digit Validation (Optional): ${getValidationStatus('cardIdDigitValidation', 'cardIdDigitValidation') ? passedText : getValidationSkipped('cardIdDigitValidation') ? 'skipped - no card id found' : failedText}`);
+        doc.text(`${statusSymbol('institutionIdDigitValidation', 'institutionIdDigitValidation')} Institution ID Digit Validation (Optional): ${getValidationStatus('institutionIdDigitValidation', 'institutionIdDigitValidation') ? passedText : getValidationSkipped('institutionIdDigitValidation') ? 'skipped - no institution id found' : failedText}`);
+
+        doc.moveDown(1);
+
+        // Revocation Validations Section
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text('REVOCATION VALIDATIONS', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica').fontSize(9);
+
+        doc.text(`${statusSymbol('revocationPresence', 'revocationPresence')} Revocation Information Presence: ${getValidationStatus('revocationPresence', 'revocationPresence') ? passedText : getValidationSkipped('revocationPresence') ? 'skipped - no revocation data' : failedText}`);
+        doc.text(`${statusSymbol('revocationStatus', 'revocationStatus')} Revocation Status Check: ${getValidationStatus('revocationStatus', 'revocationStatus') ? passedText : getValidationSkipped('revocationStatus') ? 'skipped - no revocation data' : failedText}`);
+
+        doc.moveDown(1);
+
+        // Treatment Date Validations Section
+        doc.font('Helvetica-Bold').fontSize(10)
+           .text('TREATMENT DATE VALIDATIONS', { align: 'left' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica').fontSize(9);
+
+        doc.text(`${statusSymbol('treatmentDatePresence', 'treatmentDatePresence')} Treatment Date Presence: ${getValidationStatus('treatmentDatePresence', 'treatmentDatePresence') ? passedText : getValidationSkipped('treatmentDatePresence') ? 'skipped - no treatment date' : failedText}`);
+        doc.text(`${statusSymbol('treatmentDateRange', 'treatmentDateRange')} Treatment Date Range Validation: ${getValidationStatus('treatmentDateRange', 'treatmentDateRange') ? passedText : getValidationSkipped('treatmentDateRange') ? 'skipped - no treatment date' : failedText}`);
+        doc.moveDown(2);
+
+        // === PDF VERIFICATION INFORMATION SECTION (at end of document) ===
+        // Finalize PDF
+        doc.end();
+
+        // Wait for PDF to be written
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Read the generated PDF
+        const pdfBuffer = fs.readFileSync(pdfPath);
+
+        // Clean up temp file
+        fs.unlinkSync(pdfPath);
+
+        // Send PDF directly to browser
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${pdfFileName}"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        res.send(pdfBuffer);
+
+        logger.info('PDF generated successfully for printing', {
+            referenceNumber: referenceNumber,
+            language: pdfLanguage,
+            fileSize: pdfBuffer.length
+        });
+
+    } catch (error) {
+        logger.error('Failed to generate PDF for printing', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            success: false,
+            error: 'Failed to generate PDF. Please try again later.'
+        });
+    }
+});
+
+
 
 // Set up multer for file uploads
 const upload = multer({
