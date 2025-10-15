@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 0.28.0 - 2025-10-15
+## Current Status - Version 0.29.0 - 2025-10-15
 
 ### ✅ Completed Features
 
@@ -37,13 +37,16 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **OpenSSL Certificate Display** - Complete X.509 certificate details in Step 11 with proper formatting
 - **Enhanced Navigation** - Smooth scrolling and visual highlighting for better user experience
 - **Cross-Page Navigation** - Clickable validation tiles across verify, results, and finalization pages with seamless step navigation
+- **Application Footer** - Displays application version from package.json alongside copyright information with responsive design
 
 #### Visual Verification System
+- **Enhanced Radio Button Interface** - Replaced checkboxes with radio buttons for clearer verification choices (matched/not-matched/not-checked)
 - **Optional Identity Check** - Visual verification of patient identity after QR verification
 - **PRC Data Display** - Shows extracted certificate information for comparison with identity documents
 - **Improved Workflow** - Logical flow: Treatment Date → QR Verification → Results → Visual Verification → Finalization
 - **Warning System** - Clear warnings in finalization, email, and PDF when visual verification is skipped
 - **Enhanced Terminology** - Endpoint and UI updated from "Identity Check" to "Visual Verification" for clearer medical terminology
+- **PDF Download Functionality** - Download verification documents as PDF files for local storage and offline access
 
 #### Results & Finalization
 - **Detailed Results Display** - Shows all validation steps with success/failure status

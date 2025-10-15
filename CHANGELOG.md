@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.29.0] - 2025-10-15
+
+### Added
+- **Application Footer Version Display**: Footer now displays application version from package.json alongside copyright information
+  - Version read directly from package.json and made available to all views through server middleware
+  - Responsive design with centered copyright and right-aligned version
+  - Mobile-friendly layout that stacks vertically on small screens
+  - Version displayed in monospace font with reduced opacity for subtle appearance
+
+- **PDF Download Functionality**: Added download capabilities for verification documents
+  - Download buttons for both standard and bilingual PDF reports
+  - Local file storage for offline access and record keeping
+  - Seamless integration with existing PDF generation system
+
+### Enhanced
+- **Visual Verification Interface**: Replaced checkboxes with radio buttons for clearer verification choices
+  - Identity verification options: "Checked and matched", "Checked and not matched", "Not checked"
+  - Birthdate verification options: "Checked and matched", "Checked and not matched", "Not checked"
+  - Improved user experience with more intuitive selection mechanism
+  - Better status tracking and logic for verification completion
+  - Enhanced finalization display with clearer verification status indicators
+
+### Changed
+- **Footer Layout**: Updated footer design with professional left-right layout
+  - Copyright text centered in footer area
+  - Version information positioned on the far right
+  - Consistent styling across all application pages
+  - Responsive behavior for mobile devices
+
+### Technical Improvements
+- **Server Middleware Enhancement**: Extended application middleware to include version information
+  - `res.locals.appVersion` now available to all EJS templates
+  - Version automatically synced with package.json changes
+  - Consistent version display across entire application
+- **Visual Verification Logic**: Enhanced radio button handling and status management
+  - Improved form validation and submission logic
+  - Better integration with finalization workflow
+  - Enhanced status tracking for both identity and birthdate verification
+- **CSS Enhancements**: Added responsive footer styling with flexbox layout
+  - Mobile media queries for optimal display on all screen sizes
+  - Professional typography and spacing for version display
+
 ## [0.28.0] - 2025-10-15
 
 ### Added
