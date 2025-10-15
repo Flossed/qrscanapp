@@ -40,16 +40,50 @@
                     <div class="verification-checklist">
                         <h3 data-i18n-key="identity-checklist-title">Identity Verification</h3>
                         <div class="checklist-items">
-                            <label class="checklist-item">
-                                <input type="checkbox" id="identityVerified" name="verification">
-                                <span class="checkmark"></span>
-                                <span class="checklist-text" data-i18n-key="identity-checklist-verified">Visualized name(s) match name(s) on identity card of citizen</span>
-                            </label>
-                            <label class="checklist-item">
-                                <input type="checkbox" id="birthdateVerified" name="verification">
-                                <span class="checkmark"></span>
-                                <span class="checklist-text" data-i18n-key="identity-checklist-birthdate">Visualized birthdate matches birthdate on identity card of citizen</span>
-                            </label>
+                            <!-- Name Verification Radio Group -->
+                            <div class="verification-group">
+                                <h4 class="verification-group-title" data-i18n-key="identity-checklist-verified">Visualized name(s) match name(s) on identity card of citizen</h4>
+                                <div class="radio-group">
+                                    <label class="radio-item">
+                                        <input type="radio" name="identityVerification" value="matched" id="identity-matched">
+                                        <span class="radio-checkmark"></span>
+                                        <span class="radio-text" data-i18n-key="identity-radio-matched">Checked and matched</span>
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="identityVerification" value="not-matched" id="identity-not-matched">
+                                        <span class="radio-checkmark"></span>
+                                        <span class="radio-text" data-i18n-key="identity-radio-not-matched">Checked and not matched</span>
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="identityVerification" value="not-checked" id="identity-not-checked" checked>
+                                        <span class="radio-checkmark"></span>
+                                        <span class="radio-text" data-i18n-key="identity-radio-not-checked">Not checked</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Birthdate Verification Radio Group -->
+                            <div class="verification-group">
+                                <h4 class="verification-group-title" data-i18n-key="identity-checklist-birthdate">Visualized birthdate matches birthdate on identity card of citizen</h4>
+                                <div class="radio-group">
+                                    <label class="radio-item">
+                                        <input type="radio" name="birthdateVerification" value="matched" id="birthdate-matched">
+                                        <span class="radio-checkmark"></span>
+                                        <span class="radio-text" data-i18n-key="identity-radio-matched">Checked and matched</span>
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="birthdateVerification" value="not-matched" id="birthdate-not-matched">
+                                        <span class="radio-checkmark"></span>
+                                        <span class="radio-text" data-i18n-key="identity-radio-not-matched">Checked and not matched</span>
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="birthdateVerification" value="not-checked" id="birthdate-not-checked" checked>
+                                        <span class="radio-checkmark"></span>
+                                        <span class="radio-text" data-i18n-key="identity-radio-not-checked">Not checked</span>
+                                    </label>
+                                </div>
+                            </div>
+
                             <p class="identity-optional-note" data-i18n-key="identity-optional-note">This verification is optional. If skipped, a warning will be included in the finalization documentation.</p>
                         </div>
                     </div>

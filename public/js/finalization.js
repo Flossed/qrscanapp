@@ -80,6 +80,22 @@ if (verificationResults) {
             });
         }
 
+        // Check identity verification status - if any "not-matched", mark as error
+        const identityVerificationData = sessionStorage.getItem('identityVerification');
+        if (identityVerificationData) {
+            try {
+                const identityData = JSON.parse(identityVerificationData);
+                const identityValue = identityData.identityVerification || 'not-checked';
+                const birthdateValue = identityData.birthdateVerification || 'not-checked';
+
+                if (identityValue === 'not-matched' || birthdateValue === 'not-matched') {
+                    hasErrors = true; // Visual verification failure should cause overall failure
+                }
+            } catch (e) {
+                console.error('Could not parse identity verification data for overall status');
+            }
+        }
+
         if (hasErrors) {
             statusIcon.textContent = '❌';
             statusTitle.textContent = 'Verification Failed';
@@ -127,20 +143,34 @@ if (identityVerificationData) {
     try {
         const identityData = JSON.parse(identityVerificationData);
 
-        // Handle identity verification status
-        if (identityData.identitySkipped) {
-            identityStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ <span data-i18n-key="finalization-identity-skipped">Identity verification skipped</span></span>';
-        } else if (identityData.identityVerified) {
-            identityStatusElement.innerHTML = '<span data-i18n-key="finalization-confirmed">✅ Confirmed</span>';
-        } else {
-            identityStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ <span data-i18n-key="finalization-identity-skipped">Identity verification skipped</span></span>';
+        // Handle identity verification status with new radio button values
+        const identityValue = identityData.identityVerification || 'not-checked';
+        switch(identityValue) {
+            case 'matched':
+                identityStatusElement.innerHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
+                break;
+            case 'not-matched':
+                identityStatusElement.innerHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
+                break;
+            case 'not-checked':
+            default:
+                identityStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
+                break;
         }
 
-        // Handle birthdate verification status
-        if (identityData.birthdateVerified) {
-            birthdateStatusElement.innerHTML = '<span data-i18n-key="finalization-confirmed">✅ Confirmed</span>';
-        } else {
-            birthdateStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ <span data-i18n-key="finalization-identity-skipped">Birthdate verification skipped</span></span>';
+        // Handle birthdate verification status with new radio button values
+        const birthdateValue = identityData.birthdateVerification || 'not-checked';
+        switch(birthdateValue) {
+            case 'matched':
+                birthdateStatusElement.innerHTML = '<span style="color: #28a745;">✅ Checked and matched</span>';
+                break;
+            case 'not-matched':
+                birthdateStatusElement.innerHTML = '<span style="color: #dc3545;">❌ Checked and not matched</span>';
+                break;
+            case 'not-checked':
+            default:
+                birthdateStatusElement.innerHTML = '<span style="color: #f39c12;">⚠️ Not checked</span>';
+                break;
         }
     } catch (e) {
         console.error('Could not parse identity verification data');

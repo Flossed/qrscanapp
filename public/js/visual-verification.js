@@ -1,8 +1,12 @@
 // Identity Check Page JavaScript
 // Button is enabled by default since identity verification is optional
-const identityCheckbox = document.getElementById('identityVerified');
-const birthdateCheckbox = document.getElementById('birthdateVerified');
 const continueButton = document.getElementById('continueToFinalization');
+
+// Function to get selected radio button value from a group
+function getRadioValue(name) {
+    const radio = document.querySelector(`input[name="${name}"]:checked`);
+    return radio ? radio.value : null;
+}
 
 // Enable button by default since verification is optional
 continueButton.disabled = false;
@@ -133,12 +137,30 @@ function displayPRCData(prcData) {
 
 // Handle continue button click
 continueButton.addEventListener('click', function() {
-    // Store identity verification data
+    // Get radio button values
+    const identityValue = getRadioValue('identityVerification');
+    const birthdateValue = getRadioValue('birthdateVerification');
+
+    // Store identity verification data with new radio button structure
     const verificationData = {
-        identityVerified: identityCheckbox.checked,
-        birthdateVerified: birthdateCheckbox.checked,
-        identitySkipped: !identityCheckbox.checked && !birthdateCheckbox.checked,
-        verifiedAt: new Date().toISOString()
+        identityVerification: identityValue || 'not-checked',
+        birthdateVerification: birthdateValue || 'not-checked',
+        // Legacy compatibility fields for existing functionality
+        identityVerified: identityValue === 'matched',
+        birthdateVerified: birthdateValue === 'matched',
+        identitySkipped: identityValue === 'not-checked' && birthdateValue === 'not-checked',
+        verifiedAt: new Date().toISOString(),
+        // Enhanced verification status
+        identityStatus: {
+            value: identityValue || 'not-checked',
+            checked: identityValue !== 'not-checked',
+            matched: identityValue === 'matched'
+        },
+        birthdateStatus: {
+            value: birthdateValue || 'not-checked',
+            checked: birthdateValue !== 'not-checked',
+            matched: birthdateValue === 'matched'
+        }
     };
 
     sessionStorage.setItem('identityVerification', JSON.stringify(verificationData));
