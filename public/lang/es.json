@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "¡Escaneo duplicado detectado! Escaneado {count} veces.",
     "scan-error-saving": "Error guardando escaneo",
     "scan-camera-https-required": "Cámara no disponible (HTTPS requerido)",
+    "scan-handscanner-manual-input": "Escáner manual o entrada manual",
 
     "results-title": "Resultados de verificación",
     "results-nav-results": "Resultados",

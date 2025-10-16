@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Otkriveno duplirano skeniranje! Skenirano {count} puta.",
     "scan-error-saving": "Greška prilikom spremanja skeniranja",
     "scan-camera-https-required": "Kamera nije dostupna (potreban HTTPS)",
+    "scan-handscanner-manual-input": "Ručni skener ili ručni unos",
 
     "results-title": "Rezultati provjere",
     "results-nav-results": "Rezultati",

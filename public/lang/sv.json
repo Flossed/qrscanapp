@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Dubblettskanning upptäckt! Skannad {count} gånger.",
     "scan-error-saving": "Fel vid sparning av skanning",
     "scan-camera-https-required": "Kamera inte tillgänglig (HTTPS krävs)",
+    "scan-handscanner-manual-input": "Handskanner eller manuell inmatning",
 
     "results-title": "Verifieringsresultat",
     "results-nav-results": "Resultat",

@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Aptiktas dubliuotas skenavimas! Nuskenuota {count} kartų.",
     "scan-error-saving": "Klaida išsaugant skenavimą",
     "scan-camera-https-required": "Kamera nepasiekiama (reikalingas HTTPS)",
+    "scan-handscanner-manual-input": "Rankinis skeneris arba rankinis įvedimas",
 
     "results-title": "Verifikavimo rezultatai",
     "results-nav-results": "Rezultatai",

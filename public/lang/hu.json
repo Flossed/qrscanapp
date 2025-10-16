@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Duplikált beolvasás észlelve! {count} alkalommal beolvasva.",
     "scan-error-saving": "Hiba a beolvasás mentése során",
     "scan-camera-https-required": "Kamera nem elérhető (HTTPS szükséges)",
+    "scan-handscanner-manual-input": "Kézi szkenner vagy kézi bevitel",
 
     "results-title": "Hitelesítési eredmények",
     "results-nav-results": "Eredmények",

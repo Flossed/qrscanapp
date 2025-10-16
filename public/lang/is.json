@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Afrit skönnun greind! Skannað {count} sinnum.",
     "scan-error-saving": "Villa við að vista skönnun",
     "scan-camera-https-required": "Myndavél ekki tiltæk (HTTPS nauðsynlegt)",
+    "scan-handscanner-manual-input": "Handskanni eða handvirk innsláttur",
 
     "results-title": "Staðfestingarniðurstöður",
     "results-nav-results": "Niðurstöður",

@@ -9,16 +9,21 @@
         <div class="scanner-container">
             <h1 data-i18n-key="scan-title">Scan QR Code</h1>
 
-            <% if (typeof isDebugMode !== 'undefined' && isDebugMode) { %>
             <div class="debug-input-container">
-                <h3>Debug Mode: Manual BASE45 Input</h3>
+                <h3 data-i18n-key="scan-handscanner-manual-input">Handscanner or Manual Input</h3>
                 <textarea id="debug-base45-input" class="debug-base45-input" placeholder="Paste BASE45 encoded text here (up to 2000 characters)" maxlength="2000" rows="4"></textarea>
-                <button id="process-base45" class="btn btn-warning">Process BASE45 Text</button>
+                <% if (typeof appMode !== "undefined" && appMode === "PRODUCTION") { %>
+                <div id="processing-spinner" class="processing-spinner" style="display: none;">
+                    <div class="spinner"></div>
+                    <span class="spinner-text">Processing automatically in <span id="countdown">2</span> seconds...</span>
+                </div>
+                <% } else { %>
+                <button id="process-base45" class="btn btn-primary">Process BASE45 Text</button>
+                <% } %>
             </div>
             <div class="debug-separator">
                 <span>OR</span>
             </div>
-            <% } %>
 
             <div id="reader" class="qr-reader"></div>
 
@@ -48,6 +53,90 @@
         // Make app mode available to JavaScript
         window.APP_MODE = '<%= typeof appMode !== "undefined" ? appMode : "DEBUG" %>';
         window.IS_PRODUCTION = window.APP_MODE === 'PRODUCTION';
+
+        // Auto-focus on BASE45 input when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Focus on the BASE45 input field for better UX
+            const base45Input = document.getElementById('debug-base45-input');
+            if (base45Input) {
+                base45Input.focus();
+
+                // In production mode, auto-redirect after BASE45 input with 5-second delay
+                if (window.IS_PRODUCTION) {
+                    let inputTimeout;
+                    let countdownInterval;
+
+                    const spinner = document.getElementById('processing-spinner');
+                    const countdownElement = document.getElementById('countdown');
+
+                    base45Input.addEventListener('input', () => {
+                        const inputValue = base45Input.value.trim();
+
+                        // Clear existing timeouts
+                        if (inputTimeout) {
+                            clearTimeout(inputTimeout);
+                        }
+                        if (countdownInterval) {
+                            clearInterval(countdownInterval);
+                        }
+
+                        // Hide spinner if input is empty
+                        if (inputValue.length === 0) {
+                            if (spinner) {
+                                spinner.style.display = 'none';
+                            }
+                            return;
+                        }
+
+                        // Show spinner and start countdown
+                        if (spinner) {
+                            spinner.style.display = 'flex';
+                            let countdown = 2;
+                            if (countdownElement) {
+                                countdownElement.textContent = countdown;
+                            }
+
+                            // Update countdown every second
+                            countdownInterval = setInterval(() => {
+                                countdown--;
+                                if (countdownElement) {
+                                    countdownElement.textContent = countdown;
+                                }
+                                if (countdown <= 0) {
+                                    clearInterval(countdownInterval);
+                                }
+                            }, 1000);
+
+                            // Auto-process after 5 seconds
+                            inputTimeout = setTimeout(() => {
+                                // Hide spinner
+                                spinner.style.display = 'none';
+
+                                // Process the BASE45 input using the same logic as the button
+                                if (inputValue.length > 0) {
+                                    // Display the result in the result container (same as button logic)
+                                    const resultContainer = document.getElementById('result-container');
+                                    const resultDiv = document.getElementById('result');
+
+                                    if (resultDiv && resultContainer) {
+                                        resultDiv.textContent = inputValue;
+                                        resultContainer.style.display = 'block';
+
+                                        // Store in sessionStorage for verification (same as button logic)
+                                        sessionStorage.setItem('verificationData', inputValue);
+
+                                        // Auto-redirect to results in production mode
+                                        setTimeout(() => {
+                                            window.location.href = '/results';
+                                        }, 500); // Small delay to show the result briefly
+                                    }
+                                }
+                            }, 2000); // 2 second delay
+                        }
+                    });
+                }
+            }
+        });
 
         // In production mode, auto-redirect to results after successful scan
         if (window.IS_PRODUCTION) {

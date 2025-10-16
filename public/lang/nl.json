@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Dubbele scan gedetecteerd! {count} keer gescand.",
     "scan-error-saving": "Fout bij opslaan scan",
     "scan-camera-https-required": "Camera niet beschikbaar (HTTPS vereist)",
+    "scan-handscanner-manual-input": "Handscanner of handmatige invoer",
 
     "results-title": "Verificatieresultaten",
     "results-nav-results": "Resultaten",

@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Iskanjar duplikat ġie rilevat! Iffattex {count} darbiet.",
     "scan-error-saving": "Żball meta qed isalva l-iskanjar",
     "scan-camera-https-required": "Il-kamera mhix disponibbli (HTTPS meħtieġ)",
+    "scan-handscanner-manual-input": "Iskanner tal-id jew dħul manwali",
 
     "results-title": "Riżultati tal-Verifikazzjoni",
     "results-nav-results": "Riżultati",
