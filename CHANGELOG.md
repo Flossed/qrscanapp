@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-10-16
+
+### Fixed
+- **Authentication Redirect Loop**: Resolved authentication redirect loop occurring in production mode after v1.1.0 release
+  - **Session Cookie Configuration**: Changed session cookie secure flag from environment-dependent to false to support HTTP connections
+  - **SSL Termination Support**: Updated session configuration to work with external SSL termination at load balancer/proxy level
+  - **Production Compatibility**: Allows HTTP cookies since SSL termination happens at infrastructure level rather than application level
+  - **User Authentication Flow**: Fixed redirect loop between `/auth/login` and `/` (home page) that prevented successful login
+
+### Enhanced
+- **Production Environment Support**: Better support for production deployments with external SSL termination
+- **Session Management**: Improved session cookie handling for environments where SSL is terminated externally
+- **Authentication Reliability**: More reliable authentication flow in production environments
+
+### Technical Improvements
+- **Session Configuration** (server.js): Modified cookie settings to set `secure: false` for all environments
+- **Infrastructure Compatibility**: Enhanced compatibility with load balancers and reverse proxies that handle SSL termination
+- **Comment Updates**: Updated configuration comments to explain SSL termination architecture
+
+### Closed Issues Since v1.1.0
+- Authentication redirect loop in production mode (reported via issue)
+
+### Open Issues for Future Releases
+- Issue #71: EHIC_DEMO: Verification "V" is overlapped with the checkmark indicator when the mobile device is used
+- Issue #70: Error while downloading zip file
+- Issue #69: EHIC_DEMO: Future date should be disabled when the user selects the calendar option for the treatment date using a mobile device
+- Issue #68: EHIC-Verification-EHIC-yyyymmdd-cccccc-bilingual-yyyy-mm-dd.pdf is not encoded in the language of choice
+- Issue #67: Bilingual PDF is created with mixed translations
+- Issue #66: Generated Email is created with mixed translations
+- Issue #65: The finalization page is missing translations
+- Issue #64: Visual verification page missing translations
+- Issue #63: Result page missing translations
+- Issue #62: Debug verify page missing translations
+
+### Migration Notes
+- Hotfix release addressing critical authentication issue in production deployments
+- No breaking changes - all existing functionality preserved
+- Immediate improvement for production authentication reliability
+- No user action required for existing installations
+
 ## [1.1.0] - 2025-10-16
 
 ### Added

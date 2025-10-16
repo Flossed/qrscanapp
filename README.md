@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 1.1.0 - 2025-10-16
+## Current Status - Version 1.1.1 - 2025-10-16
 
 ### ✅ Completed Features
 
@@ -92,6 +92,11 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **Complete Auto-Focus**: BASE45 input field automatically focused when visiting scanner page
 - **Auto-Redirect Flow**: Automatic processing and redirect to results page in production mode
 - **Maintained Debug Mode**: Debug mode retains manual processing button for testing and development
+
+**Latest v1.1.1 Authentication Hotfix:**
+- **Session Cookie Fix**: Resolved authentication redirect loop in production mode caused by secure cookie requirement
+- **SSL Termination Support**: Updated session configuration to work with external SSL termination (load balancer/proxy)
+- **Production Compatibility**: Allows HTTP cookies since SSL termination happens at infrastructure level rather than application level
 
 #### Technical Infrastructure
 - **MongoDB Integration** - Stores scan history and verification results
