@@ -1,6 +1,6 @@
 {
   "name": "qrscanapp",
-  "version": "0.29.1",
+  "version": "1.0.0",
   "description": "QR Code Scanner Application",
   "main": "server.js",
   "scripts": {
