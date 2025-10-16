@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Digitalização duplicada detectada! Digitalizado {count} vezes.",
     "scan-error-saving": "Erro salvando digitalização",
     "scan-camera-https-required": "Câmera não disponível (HTTPS necessário)",
+    "scan-handscanner-manual-input": "Scanner manual ou entrada manual",
 
     "results-title": "Resultados de verificação",
     "results-nav-results": "Resultados",

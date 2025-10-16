@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Duplicate scan detected! Scanned {count} times.",
     "scan-error-saving": "Error saving scan",
     "scan-camera-https-required": "Camera not available (HTTPS required)",
+    "scan-handscanner-manual-input": "Handscanner or Manual Input",
 
     "results-title": "Verification Results",
     "results-nav-results": "Results",

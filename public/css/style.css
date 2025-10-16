@@ -2301,15 +2301,15 @@ body {
 
 /* Debug Mode Input */
 .debug-input-container {
-    background: #fff3cd;
-    border: 2px solid #ffc107;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
     border-radius: 8px;
     padding: 1.5rem;
     margin-bottom: 2rem;
 }
 
 .debug-input-container h3 {
-    color: #856404;
+    color: #155724;
     font-size: 1.2rem;
     margin-bottom: 1rem;
     font-weight: 600;
@@ -2331,6 +2331,45 @@ body {
     outline: none;
     border-color: #ffc107;
     box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
+}
+
+/* Processing Spinner Styles */
+.processing-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #c3e6cb;
+    border-top: 4px solid #28a745;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spinner-text {
+    color: #155724;
+    font-weight: 500;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+#countdown {
+    font-weight: bold;
+    color: #155724;
 }
 
 .debug-separator {

@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Duplikatskanning oppdaget! Skannet {count} ganger.",
     "scan-error-saving": "Feil ved lagring av skanning",
     "scan-camera-https-required": "Kamera ikke tilgjengelig (HTTPS kreves)",
+    "scan-handscanner-manual-input": "Håndskanner eller manuell innlegging",
 
     "results-title": "Verifiseringsresultater",
     "results-nav-results": "Resultater",

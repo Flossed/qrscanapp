@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Konstatēta dublēta skenēšana! Skenēts {count} reizes.",
     "scan-error-saving": "Kļūda, saglabājot skenēšanu",
     "scan-camera-https-required": "Kamera nav pieejama (nepieciešams HTTPS)",
+    "scan-handscanner-manual-input": "Rokas skeneris vai manuāla ievade",
 
     "results-title": "Verifikācijas rezultāti",
     "results-nav-results": "Rezultāti",

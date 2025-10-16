@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Duplikat scanning detekteret! Scannet {count} gange.",
     "scan-error-saving": "Fejl ved gemning af scanning",
     "scan-camera-https-required": "Kamera ikke tilgængeligt (HTTPS påkrævet)",
+    "scan-handscanner-manual-input": "Håndscanner eller manuel indtastning",
 
     "results-title": "Verifikationsresultater",
     "results-nav-results": "Resultater",

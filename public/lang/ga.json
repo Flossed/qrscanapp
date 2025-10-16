@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Scanadh dúblach braite! Scannaithe {count} uair.",
     "scan-error-saving": "Earráid ag sábháil scanadh",
     "scan-camera-https-required": "Níl ceamara ar fáil (HTTPS ag teastáil)",
+    "scan-handscanner-manual-input": "Scanóir láimhe nó ionchur láimhe",
 
     "results-title": "Torthaí Fíoraithe",
     "results-nav-results": "Torthaí",

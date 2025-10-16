@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Zistený duplicitný sken! Naskenované {count} krát.",
     "scan-error-saving": "Chyba pri ukladaní skenovania",
     "scan-camera-https-required": "Kamera nie je dostupná (vyžaduje sa HTTPS)",
+    "scan-handscanner-manual-input": "Ručný skener alebo ručné zadanie",
 
     "results-title": "Výsledky overenia",
     "results-nav-results": "Výsledky",

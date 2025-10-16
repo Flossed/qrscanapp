@@ -87,6 +87,7 @@
     "scan-duplicate-detected": "Duplikaatti skannaus havaittu! Skannattu {count} kertaa.",
     "scan-error-saving": "Virhe skannauksen tallentamisessa",
     "scan-camera-https-required": "Kamera ei ole käytettävissä (HTTPS vaaditaan)",
+    "scan-handscanner-manual-input": "Käsiskanneri tai manuaalinen syöttö",
     "results-title": "Vahvistustulokset",
     "results-nav-results": "Tulokset",
     "results-overall-status": "Kokonaistila",

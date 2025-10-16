@@ -87,6 +87,7 @@
     "scan-duplicate-detected": "Tuvastati duplikaat skaneerimine! Skannitud {count} korda.",
     "scan-error-saving": "Viga skaneerimise salvestamisel",
     "scan-camera-https-required": "Kaamera pole saadaval (HTTPS nõutav)",
+    "scan-handscanner-manual-input": "Käsiskanner või käsitsi sisestamine",
     "results-title": "Kontrollimise tulemused",
     "results-nav-results": "Tulemused",
     "results-overall-status": "Üldine olek",

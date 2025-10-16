@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Scansione duplicata rilevata! Scansionato {count} volte.",
     "scan-error-saving": "Errore nel salvare la scansione",
     "scan-camera-https-required": "Fotocamera non disponibile (HTTPS richiesto)",
+    "scan-handscanner-manual-input": "Scanner manuale o inserimento manuale",
 
     "results-title": "Risultati verifica",
     "results-nav-results": "Risultati",

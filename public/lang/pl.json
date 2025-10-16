@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Wykryto duplikat skanowania! Zeskanowano {count} razy.",
     "scan-error-saving": "Błąd zapisywania skanowania",
     "scan-camera-https-required": "Kamera niedostępna (wymagany HTTPS)",
+    "scan-handscanner-manual-input": "Skaner ręczny lub wprowadzanie ręczne",
 
     "results-title": "Wyniki weryfikacji",
     "results-nav-results": "Wyniki",

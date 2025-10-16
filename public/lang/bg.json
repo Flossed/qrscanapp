@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Открито е дублиращо се сканиране! Сканирано {count} пъти.",
     "scan-error-saving": "Грешка при запазване на сканирането",
     "scan-camera-https-required": "Камерата не е налична (изисква се HTTPS)",
+    "scan-handscanner-manual-input": "Ръчен скенер или ръчно въвеждане",
 
     "results-title": "Резултати от проверката",
     "results-nav-results": "Резултати",

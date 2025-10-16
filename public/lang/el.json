@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Εντοπίστηκε διπλή σάρωση! Σαρώθηκε {count} φορές.",
     "scan-error-saving": "Σφάλμα αποθήκευσης σάρωσης",
     "scan-camera-https-required": "Η κάμερα δεν είναι διαθέσιμη (απαιτείται HTTPS)",
+    "scan-handscanner-manual-input": "Χειροκίνητος σαρωτής ή χειροκίνητη εισαγωγή",
 
     "results-title": "Αποτελέσματα επαλήθευσης",
     "results-nav-results": "Αποτελέσματα",

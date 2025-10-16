@@ -98,6 +98,7 @@
     "scan-duplicate-detected": "Scanare duplicată detectată! Scanat de {count} ori.",
     "scan-error-saving": "Eroare la salvarea scanării",
     "scan-camera-https-required": "Camera nu este disponibilă (HTTPS necesar)",
+    "scan-handscanner-manual-input": "Scaner manual sau introducere manuală",
 
     "results-title": "Rezultatele verificării",
     "results-nav-results": "Rezultate",
