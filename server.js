@@ -77,7 +77,7 @@ app.use(session({
     touchAfter: 24 * 3600 // lazy session update
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // true in production with HTTPS
+    secure: false, // Allow HTTP cookies since SSL termination happens at load balancer/proxy
     httpOnly: true,
     maxAge: null // Session cookie - expires when browser is closed
   }
