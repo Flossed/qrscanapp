@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 1.0.0 - 2025-01-16
+## Current Status - Version 1.1.0 - 2025-10-16
 
 ### ✅ Completed Features
 
@@ -84,11 +84,14 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **Regional Languages**: Irish Gaelic (Gaeilge), West Frisian (Frysk)
 - **EFTA Coverage**: German, French, Italian, Norwegian, Icelandic
 
-**Recent v1.0.0 Translation Enhancements:**
-- **Complete Coverage**: All 27 European languages now include comprehensive 337-key translation sets
-- **Medical Terminology**: Enhanced healthcare and administrative vocabulary for professional use
-- **Visual Consistency**: Improved PDF formatting and warning display across all languages
-- **Download Improvements**: Enhanced ZIP download containing both PDF and JSON evidence files
+**Recent v1.1.0 Production Mode Enhancements:**
+- **Production Mode BASE45 Input**: BASE45 text input now available in production mode with enhanced user experience
+- **Auto-Processing Spinner**: Replaced manual "Process BASE45 Text" button with automatic 2-second countdown processing
+- **Enhanced UI Styling**: Updated input containers and spinner to match green success theme throughout application
+- **Handscanner Support**: Renamed and enhanced manual input to support both handscanner devices and manual text entry
+- **Complete Auto-Focus**: BASE45 input field automatically focused when visiting scanner page
+- **Auto-Redirect Flow**: Automatic processing and redirect to results page in production mode
+- **Maintained Debug Mode**: Debug mode retains manual processing button for testing and development
 
 #### Technical Infrastructure
 - **MongoDB Integration** - Stores scan history and verification results

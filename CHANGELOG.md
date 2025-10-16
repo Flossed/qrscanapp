@@ -5,6 +5,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-10-16
+
+### Added
+- **Production Mode BASE45 Input Processing**: Enhanced BASE45 input functionality now available in production mode with streamlined user experience
+  - **Auto-Processing Spinner**: Replaced manual "Process BASE45 Text" button with automatic 2-second countdown processing in production mode
+  - **Enhanced UI Styling**: Updated input containers and spinner to match green success theme throughout application
+  - **Handscanner Device Support**: Renamed manual input to support both handscanner devices and manual text entry with comprehensive internationalization
+  - **Auto-Focus Enhancement**: BASE45 input field automatically focused when visiting scanner page for improved user workflow
+  - **Auto-Redirect Flow**: Automatic processing and redirect to results page in production mode after successful input processing
+  - **Maintained Debug Mode**: Debug mode retains manual processing button for testing and development purposes
+
+### Enhanced
+- **User Experience Improvements**: Streamlined production workflow with automatic processing reduces manual steps
+- **Visual Design Consistency**: All UI elements now use consistent green success theme matching verification results
+- **Internationalization Coverage**: Added `scan-handscanner-manual-input` translation key across all 26 European languages
+- **Processing Efficiency**: Reduced countdown timer from 5 seconds to 2 seconds for more responsive user experience
+- **Cross-Platform Compatibility**: Fixed JavaScript errors by removing non-existent API calls and using existing button logic
+
+### Fixed
+- **JavaScript Errors**: Resolved "Failed to load resource: 404" errors by implementing proper BASE45 processing logic
+- **API Call Issues**: Removed non-existent `/process-base45` endpoint calls and implemented client-side processing
+- **Production Mode Compatibility**: BASE45 input functionality now fully operational in production mode as requested
+
+### Technical Improvements
+- **Frontend Updates**:
+  - `views/scan.ejs`: Enhanced template with conditional rendering for production vs debug modes
+  - `public/css/style.css`: Added spinner animation styles and green success theme updates
+  - `public/lang/*.json`: Added comprehensive translations for "Handscanner or Manual Input" across all 26 European languages
+- **JavaScript Enhancements**:
+  - Auto-processing logic with 2-second countdown timer and visual feedback
+  - Auto-focus functionality for improved user experience
+  - Auto-redirect to results page after successful processing
+  - Error handling for processing failures with user feedback
+- **UI/UX Improvements**:
+  - Spinner animation with countdown display for processing feedback
+  - Consistent color scheme using green success theme
+  - Responsive design maintaining mobile compatibility
+  - Clear visual indicators for processing status
+
+### Closed Issues Since v1.0.0
+- Issue #60: Scanning input should also be there in production not only debug
+
+### Open Issues for Future Releases
+- Issue #71: EHIC_DEMO: Verification "V" is overlapped with the checkmark indicator when the mobile device is used
+- Issue #70: Error while downloading zip file
+- Issue #69: EHIC_DEMO: Future date should be disabled when the user selects the calendar option for the treatment date using a mobile device
+- Issue #68: EHIC-Verification-EHIC-yyyymmdd-cccccc-bilingual-yyyy-mm-dd.pdf is not encoded in the language of choice
+- Issue #67: Bilingual PDF is created with mixed translations
+- Issue #66: Generated Email is created with mixed translations
+- Issue #65: The finalization page is missing translations
+- Issue #64: Visual verification page missing translations
+- Issue #63: Result page missing translations
+- Issue #62: Debug verify page missing translations
+
+### Translation Coverage
+Complete translations added for "Handscanner or Manual Input" header:
+🇧🇬 Bulgarian, 🇨🇿 Czech, 🇩🇰 Danish, 🇩🇪 German, 🇬🇷 Greek, 🇪🇸 Spanish, 🇪🇪 Estonian, 🇫🇮 Finnish, 🇫🇷 French, 🇳🇱 Frisian, 🇮🇪 Irish, 🇭🇷 Croatian, 🇭🇺 Hungarian, 🇮🇸 Icelandic, 🇮🇹 Italian, 🇱🇹 Lithuanian, 🇱🇻 Latvian, 🇲🇹 Maltese, 🇳🇱 Dutch, 🇳🇴 Norwegian, 🇵🇱 Polish, 🇵🇹 Portuguese, 🇷🇴 Romanian, 🇸🇰 Slovak, 🇸🇮 Slovenian, 🇸🇪 Swedish
+
+### Migration Notes
+- Production mode now supports BASE45 input with enhanced user experience
+- Debug mode functionality preserved for development and testing
+- All existing workflows and functionality remain unchanged
+- New auto-processing feature improves production workflow efficiency
+
 ## [1.0.0] - 2025-01-16
 
 ### Added
