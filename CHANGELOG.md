@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-01-16
+
+### Added
+- **Complete European Language Translation Coverage**: All 27 European languages now include comprehensive 337-key translation sets
+  - **Hungarian (hu.json)**: Complete medical and administrative translations for Hungarian healthcare terminology
+  - **Icelandic (is.json)**: Full translation coverage for Icelandic administrative and medical contexts
+  - **Lithuanian (lt.json)**: Comprehensive Lithuanian translations with proper formal healthcare language
+  - **Latvian (lv.json)**: Complete Latvian translation set with medical terminology appropriate for official documentation
+  - **Maltese (mt.json)**: Full Maltese administrative language translations for healthcare verification
+  - **Norwegian (no.json)**: Complete Norwegian translation coverage with healthcare and administrative terminology
+  - **Slovak (sk.json)**: Comprehensive Slovak translations using formal medical and administrative vocabulary
+  - **Slovenian (sl.json)**: Complete Slovenian translation set with proper healthcare terminology
+  - **Swedish (sv.json)**: Updated from incomplete structure to comprehensive 337-key translation format
+
+### Enhanced
+- **Visual Design Standardization**: Enhanced visual verification tile styling to match business validations
+  - Consistent tile appearance across all validation categories
+  - Unified color scheme and typography throughout the application
+  - Professional medical application aesthetic with improved accessibility
+
+- **ZIP Download Functionality**: Enhanced evidence package downloads
+  - Combined PDF and JSON verification documents in single ZIP file
+  - Streamlined evidence collection for comprehensive documentation
+  - Improved workflow for healthcare providers requiring complete verification records
+
+- **PDF Warning Display Improvements**: Enhanced PDF warning systems
+  - Removed unwanted warning boxes in specific validation scenarios
+  - Cleaner PDF formatting with improved professional presentation
+  - Better visual hierarchy for warning and error displays
+
+- **Translation Quality Improvements**: Enhanced medical and administrative terminology
+  - Professional healthcare vocabulary across all 27 languages
+  - Consistent administrative language suitable for official documentation
+  - Cultural and linguistic appropriateness for each European country
+
+### Fixed
+- **PDF Symbol Display**: Replaced Unicode symbols with colored bullet points for better cross-platform compatibility
+- **Print Summary Button**: Removed redundant print summary functionality as requested in issue #42
+- **Visual Verification Tile Styling**: Standardized appearance to match business validation tiles
+
+### Closed Issues Since v0.29.0
+- Issue #53: Unwanted warning box on the printed and downloaded PDF in case of warning
+- Issue #51: The download button should contain all evidences PDF(s) and JSON
+- Issue #49: Replace the Symbols in the PDF with a colored bulletpoint
+- Issue #47: Style of finalized page for the tile 'Visual Verification' the same as 'Business Validations'
+- Issue #45: Add manual validations to the results email and the PDF
+- Issue #44: Create version
+- Issue #42: Remove print summary button
+- Issue #35: Add print PDF
+- Issue #34: Currently the manual verification of the PRC to replace the checkbox with radio buttons
+- Issue #33: Change the manual verification of the ID to replace the checkbox vs. radio buttons to select either
+- Issue #32: Add download button
+- Issue #22: For business validations which only give warning the result page shows verification failed
+- Issue #1: Results and Visual Verification have some 'undefined' localisations in other than EN
+
+### Open Issues for Future Releases
+- Issue #67: Bilingual PDF is created with mixed translations
+- Issue #66: Generated Email is created with mixed translations
+- Issue #65: The finalization page is missing translations
+- Issue #64: Visual verification page missing translations
+- Issue #63: Result page missing translations
+- Issue #62: Debug verify page missing translations
+- Issue #61: /scanner should have a help text explaining the usage
+- Issue #60: Scanning input should also be there in production not only debug
+- Issue #59: Text modal is not translated correctly in scanner
+- Issue #58: Helper text in the box in Additional Notes (Optional) on /treatment-date not translated
+
+### Technical Improvements
+- **Translation Infrastructure**: Enhanced internationalization system to support 337 translation keys per language
+- **File Structure Consistency**: All language files now follow the same comprehensive structure
+- **Medical Terminology Standards**: Implemented consistent healthcare vocabulary standards across all European languages
+- **Code Quality**: Improved language file organization and maintenance
+
+### Breaking Changes
+- **Swedish Translation Structure**: Updated sv.json from custom format to standard 337-key structure (maintains functionality but changes internal structure)
+
+### Migration Notes
+- All existing language preferences are preserved
+- Users will automatically benefit from enhanced translations
+- No user action required for translation improvements
+
 ## [0.29.0] - 2025-10-15
 
 ### Added

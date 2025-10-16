@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 0.29.0 - 2025-10-15
+## Current Status - Version 1.0.0 - 2025-01-16
 
 ### ✅ Completed Features
 
@@ -62,12 +62,14 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **Cross-Platform Validation Consistency** - All validations displayed consistently across web interface, email notifications, and PDF reports
 
 #### Internationalization & Localization
-- **26 Language Support** - Complete translations for all EEA/EFTA countries
+- **27 European Language Support** - Complete translations for all EEA/EFTA countries
 - **Professional Healthcare Terminology** - Medical/government appropriate translations
 - **Native Language Names** - Language selector displays options in native scripts
 - **Full Character Support** - Cyrillic, Greek, and special character encoding
 - **Dynamic Language Switching** - Seamless language changes with session persistence
-- **Complete UI Coverage** - 260+ translation keys across all application features
+- **Complete UI Coverage** - 337 translation keys across all application features
+- **Enhanced Visual Design** - Standardized visual verification tile styling matching business validations
+- **ZIP Download Functionality** - Combined download of PDF documents and JSON data for comprehensive evidence packages
 
 #### Intelligent PDF Language Rendering
 - **Automatic Language Detection** - PDFs render in the issuing country's native language
@@ -81,6 +83,12 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **EEA Languages**: Norwegian, Icelandic
 - **Regional Languages**: Irish Gaelic (Gaeilge), West Frisian (Frysk)
 - **EFTA Coverage**: German, French, Italian, Norwegian, Icelandic
+
+**Recent v1.0.0 Translation Enhancements:**
+- **Complete Coverage**: All 27 European languages now include comprehensive 337-key translation sets
+- **Medical Terminology**: Enhanced healthcare and administrative vocabulary for professional use
+- **Visual Consistency**: Improved PDF formatting and warning display across all languages
+- **Download Improvements**: Enhanced ZIP download containing both PDF and JSON evidence files
 
 #### Technical Infrastructure
 - **MongoDB Integration** - Stores scan history and verification results
