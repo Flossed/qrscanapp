@@ -7451,7 +7451,7 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                 });
 
                                 // Set status based on validation result
-                                const rangeStatus = !treatmentDate ? 'skipped' : (treatmentDateRangeValidationPassed ? 'success' : 'warning');
+                                const rangeStatus = !treatmentDate ? 'skipped' : (treatmentDateRangeValidationPassed ? 'success' : 'error');
                                 validationSummary.treatmentDateRange = {
                                     status: rangeStatus,
                                     message: treatmentDateRangeValidationMessage
