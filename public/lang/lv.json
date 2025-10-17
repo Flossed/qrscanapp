@@ -11,6 +11,17 @@
     "nav-login": "Ieiet",
     "nav-register": "Reģistrēties",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Drošs autentifikācijas portāls",
+    "login-email-label": "E-pasta adrese",
+    "login-email-placeholder": "Ievadiet savu e-pastu",
+    "login-password-label": "Parole",
+    "login-password-placeholder": "Ievadiet savu paroli",
+    "login-submit-button": "Pierakstīties",
+    "login-forgot-password": "Aizmirsāt paroli?",
+    "login-create-account": "Izveidot kontu",
+    "login-validation-error": "Lūdzu, aizpildiet visus laukus",
+
     "landing-breadcrumb-welcome": "Laipni lūdzam",
     "landing-breadcrumb-treatment-date": "Ārstēšanas datums",
     "landing-breadcrumb-visual-verification": "Vizuālā verifikācija",

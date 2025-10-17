@@ -11,6 +11,17 @@
     "nav-login": "Σύνδεση",
     "nav-register": "Εγγραφή",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Πύλη ασφαλούς πιστοποίησης",
+    "login-email-label": "Διεύθυνση email",
+    "login-email-placeholder": "Εισαγάγετε το email σας",
+    "login-password-label": "Κωδικός πρόσβασης",
+    "login-password-placeholder": "Εισαγάγετε τον κωδικό πρόσβασής σας",
+    "login-submit-button": "Σύνδεση",
+    "login-forgot-password": "Ξεχάσατε τον κωδικό;",
+    "login-create-account": "Δημιουργία λογαριασμού",
+    "login-validation-error": "Παρακαλώ συμπληρώστε όλα τα πεδία",
+
     "landing-breadcrumb-welcome": "Καλώς ήλθατε",
     "landing-breadcrumb-treatment-date": "Ημερομηνία θεραπείας",
     "landing-breadcrumb-visual-verification": "Οπτική επαλήθευση",

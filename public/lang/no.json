@@ -11,6 +11,17 @@
     "nav-login": "Logg inn",
     "nav-register": "Registrer",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Sikker autentiseringsportal",
+    "login-email-label": "E-postadresse",
+    "login-email-placeholder": "Skriv inn din e-post",
+    "login-password-label": "Passord",
+    "login-password-placeholder": "Skriv inn ditt passord",
+    "login-submit-button": "Logg inn",
+    "login-forgot-password": "Glemt passord?",
+    "login-create-account": "Opprett konto",
+    "login-validation-error": "Vennligst fyll ut alle felt",
+
     "landing-breadcrumb-welcome": "Velkommen",
     "landing-breadcrumb-treatment-date": "Behandlingsdato",
     "landing-breadcrumb-visual-verification": "Visuell verifisering",

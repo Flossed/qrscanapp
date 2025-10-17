@@ -9,6 +9,18 @@
     "nav-logout": "Kirjaudu ulos",
     "nav-login": "Kirjaudu sisään",
     "nav-register": "Rekisteröidy",
+
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Turvallinen todennusportaali",
+    "login-email-label": "Sähköpostiosoite",
+    "login-email-placeholder": "Syötä sähköpostisi",
+    "login-password-label": "Salasana",
+    "login-password-placeholder": "Syötä salasanasi",
+    "login-submit-button": "Kirjaudu sisään",
+    "login-forgot-password": "Unohditko salasanan?",
+    "login-create-account": "Luo tili",
+    "login-validation-error": "Täytä kaikki kentät",
+
     "landing-breadcrumb-welcome": "Tervetuloa",
     "landing-breadcrumb-treatment-date": "Hoitopäivä",
     "landing-breadcrumb-visual-verification": "Visuaalinen vahvistus",

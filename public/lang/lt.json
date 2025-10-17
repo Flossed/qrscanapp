@@ -11,6 +11,17 @@
     "nav-login": "Prisijungti",
     "nav-register": "Registruotis",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Saugus autentifikavimo portalas",
+    "login-email-label": "El. pašto adresas",
+    "login-email-placeholder": "Įveskite savo el. paštą",
+    "login-password-label": "Slaptažodis",
+    "login-password-placeholder": "Įveskite savo slaptažodį",
+    "login-submit-button": "Prisijungti",
+    "login-forgot-password": "Pamiršote slaptažodį?",
+    "login-create-account": "Sukurti paskyrą",
+    "login-validation-error": "Prašome užpildyti visus laukus",
+
     "landing-breadcrumb-welcome": "Sveiki atvykę",
     "landing-breadcrumb-treatment-date": "Gydymo data",
     "landing-breadcrumb-visual-verification": "Vizualinis patikrinimas",

@@ -11,6 +11,17 @@
     "nav-login": "Idħol",
     "nav-register": "Irreġistra",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Portal ta' Awtentikazzjoni Sigur",
+    "login-email-label": "Indirizz tal-email",
+    "login-email-placeholder": "Daħħal l-email tiegħek",
+    "login-password-label": "Password",
+    "login-password-placeholder": "Daħħal il-password tiegħek",
+    "login-submit-button": "Idħol",
+    "login-forgot-password": "Insejt il-password?",
+    "login-create-account": "Oħloq kont",
+    "login-validation-error": "Jekk jogħġbok imla l-oqsma kollha",
+
     "landing-breadcrumb-welcome": "Merħba",
     "landing-breadcrumb-treatment-date": "Data tal-Kura",
     "landing-breadcrumb-visual-verification": "Verifikazzjoni Viżwali",

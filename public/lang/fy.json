@@ -9,6 +9,18 @@
     "nav-logout": "Útlogge",
     "nav-login": "Ynlogge",
     "nav-register": "Registrearje",
+
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Feilich autentikaasjeportaal",
+    "login-email-label": "E-postadres",
+    "login-email-placeholder": "Fier jo e-post yn",
+    "login-password-label": "Wachtwurd",
+    "login-password-placeholder": "Fier jo wachtwurd yn",
+    "login-submit-button": "Ynlogge",
+    "login-forgot-password": "Wachtwurd fergetten?",
+    "login-create-account": "Account oanmeitsje",
+    "login-validation-error": "Folje alle fjilden yn asjebleaft",
+
     "landing-breadcrumb-welcome": "Wolkom",
     "landing-breadcrumb-treatment-date": "Behannelingsdatum",
     "landing-breadcrumb-visual-verification": "Fisuele Ferifikaasje",

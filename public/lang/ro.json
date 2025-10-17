@@ -11,6 +11,17 @@
     "nav-login": "Conectare",
     "nav-register": "Înregistrare",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Portal de autentificare securizat",
+    "login-email-label": "Adresă de e-mail",
+    "login-email-placeholder": "Introduceți adresa dvs. de e-mail",
+    "login-password-label": "Parolă",
+    "login-password-placeholder": "Introduceți parola dvs.",
+    "login-submit-button": "Conectare",
+    "login-forgot-password": "Ați uitat parola?",
+    "login-create-account": "Creați cont",
+    "login-validation-error": "Vă rugăm să completați toate câmpurile",
+
     "landing-breadcrumb-welcome": "Bine ați venit",
     "landing-breadcrumb-treatment-date": "Data tratamentului",
     "landing-breadcrumb-visual-verification": "Verificare vizuală",

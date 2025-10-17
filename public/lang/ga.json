@@ -11,6 +11,17 @@
     "nav-login": "Logáil Isteach",
     "nav-register": "Cláraigh",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Tairseach Fíordheimhnithe Slán",
+    "login-email-label": "Seoladh Ríomhphoist",
+    "login-email-placeholder": "Cuir isteach do ríomhphost",
+    "login-password-label": "Pasfhocal",
+    "login-password-placeholder": "Cuir isteach do phasfhocal",
+    "login-submit-button": "Sínigh Isteach",
+    "login-forgot-password": "Pasfhocal Dearmadta?",
+    "login-create-account": "Cruthaigh Cuntas",
+    "login-validation-error": "Líon isteach gach réimse le do thoil",
+
     "landing-breadcrumb-welcome": "Fáilte",
     "landing-breadcrumb-treatment-date": "Dáta Cóireála",
     "landing-breadcrumb-visual-verification": "Fíorú Amhairc",
