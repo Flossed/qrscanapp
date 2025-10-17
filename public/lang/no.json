@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Passordene stemmer ikke overens!",
     "register-password-length-alert": "Passordet må være minst 6 tegn langt!",
 
+    "forgot-password-title": "Tilbakestill passord",
+    "forgot-password-instruction": "Skriv inn e-postadressen din, så sender vi deg en lenke for å tilbakestille passordet ditt.",
+    "forgot-password-email-label": "E-postadresse",
+    "forgot-password-submit-button": "Send tilbakestillingslenke",
+    "forgot-password-back-to-login": "Tilbake til innlogging",
+    "forgot-password-email-placeholder": "Skriv inn din e-post",
+
     "landing-breadcrumb-welcome": "Velkommen",
     "landing-breadcrumb-treatment-date": "Behandlingsdato",
     "landing-breadcrumb-visual-verification": "Visuell verifisering",

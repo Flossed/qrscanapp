@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Parolele nu se potrivesc!",
     "register-password-length-alert": "Parola trebuie să aibă cel puțin 6 caractere!",
 
+    "forgot-password-title": "Resetare parolă",
+    "forgot-password-instruction": "Introduceți adresa dvs. de e-mail și vă vom trimite un link pentru a vă reseta parola.",
+    "forgot-password-email-label": "Adresă de e-mail",
+    "forgot-password-submit-button": "Trimiteți linkul de resetare",
+    "forgot-password-back-to-login": "Înapoi la autentificare",
+    "forgot-password-email-placeholder": "Introduceți adresa dvs. de e-mail",
+
     "landing-breadcrumb-welcome": "Bine ați venit",
     "landing-breadcrumb-treatment-date": "Data tratamentului",
     "landing-breadcrumb-visual-verification": "Verificare vizuală",

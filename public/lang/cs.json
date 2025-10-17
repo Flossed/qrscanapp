@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Hesla se neshodují!",
     "register-password-length-alert": "Heslo musí mít alespoň 6 znaků!",
 
+    "forgot-password-title": "Obnovení hesla",
+    "forgot-password-instruction": "Zadejte svou e-mailovou adresu a my vám zašleme odkaz pro obnovení hesla.",
+    "forgot-password-email-label": "E-mailová adresa",
+    "forgot-password-submit-button": "Odeslat odkaz pro obnovení",
+    "forgot-password-back-to-login": "Zpět na přihlášení",
+    "forgot-password-email-placeholder": "Zadejte svůj e-mail",
+
     "landing-breadcrumb-welcome": "Vítejte",
     "landing-breadcrumb-treatment-date": "Datum léčby",
     "landing-breadcrumb-visual-verification": "Vizuální ověření",

@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "¡Las contraseñas no coinciden!",
     "register-password-length-alert": "¡La contraseña debe tener al menos 6 caracteres!",
 
+    "forgot-password-title": "Restablecer contraseña",
+    "forgot-password-instruction": "Ingrese su dirección de correo electrónico y le enviaremos un enlace para restablecer su contraseña.",
+    "forgot-password-email-label": "Dirección de correo electrónico",
+    "forgot-password-submit-button": "Enviar enlace de restablecimiento",
+    "forgot-password-back-to-login": "Volver al inicio de sesión",
+    "forgot-password-email-placeholder": "Ingrese su correo electrónico",
+
     "landing-breadcrumb-welcome": "Bienvenido",
     "landing-breadcrumb-treatment-date": "Fecha de tratamiento",
     "landing-breadcrumb-visual-verification": "Verificación visual",

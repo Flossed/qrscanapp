@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "A jelszavak nem egyeznek!",
     "register-password-length-alert": "A jelszónak legalább 6 karakter hosszúnak kell lennie!",
 
+    "forgot-password-title": "Jelszó visszaállítása",
+    "forgot-password-instruction": "Adja meg e-mail címét és küldünk egy linket a jelszó visszaállításához.",
+    "forgot-password-email-label": "E-mail cím",
+    "forgot-password-submit-button": "Visszaállítási link küldése",
+    "forgot-password-back-to-login": "Vissza a bejelentkezéshez",
+    "forgot-password-email-placeholder": "Adja meg e-mail címét",
+
     "landing-breadcrumb-welcome": "Üdvözöljük",
     "landing-breadcrumb-treatment-date": "Kezelés dátuma",
     "landing-breadcrumb-visual-verification": "Vizuális hitelesítés",

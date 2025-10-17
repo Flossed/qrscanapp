@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "As senhas não correspondem!",
     "register-password-length-alert": "A senha deve ter pelo menos 6 caracteres!",
 
+    "forgot-password-title": "Redefinir senha",
+    "forgot-password-instruction": "Digite seu endereço de e-mail e enviaremos um link para redefinir sua senha.",
+    "forgot-password-email-label": "Endereço de e-mail",
+    "forgot-password-submit-button": "Enviar link de redefinição",
+    "forgot-password-back-to-login": "Voltar ao login",
+    "forgot-password-email-placeholder": "Digite seu e-mail",
+
     "landing-breadcrumb-welcome": "Bem-vindo",
     "landing-breadcrumb-treatment-date": "Data do tratamento",
     "landing-breadcrumb-visual-verification": "Verificação visual",

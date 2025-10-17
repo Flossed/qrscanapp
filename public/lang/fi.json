@@ -44,6 +44,13 @@
     "register-password-mismatch-alert": "Salasanat eivät täsmää!",
     "register-password-length-alert": "Salasanan on oltava vähintään 6 merkkiä pitkä!",
 
+    "forgot-password-title": "Nollaa salasana",
+    "forgot-password-instruction": "Syötä sähköpostiosoitteesi ja lähetämme sinulle linkin salasanan nollaamiseksi.",
+    "forgot-password-email-label": "Sähköpostiosoite",
+    "forgot-password-submit-button": "Lähetä nollauslinkki",
+    "forgot-password-back-to-login": "Takaisin kirjautumiseen",
+    "forgot-password-email-placeholder": "Syötä sähköpostisi",
+
     "landing-breadcrumb-welcome": "Tervetuloa",
     "landing-breadcrumb-treatment-date": "Hoitopäivä",
     "landing-breadcrumb-visual-verification": "Visuaalinen vahvistus",

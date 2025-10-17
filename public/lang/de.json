@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Passwörter stimmen nicht überein!",
     "register-password-length-alert": "Passwort muss mindestens 6 Zeichen lang sein!",
 
+    "forgot-password-title": "Passwort zurücksetzen",
+    "forgot-password-instruction": "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.",
+    "forgot-password-email-label": "E-Mail-Adresse",
+    "forgot-password-submit-button": "Zurücksetzungslink senden",
+    "forgot-password-back-to-login": "Zurück zur Anmeldung",
+    "forgot-password-email-placeholder": "Geben Sie Ihre E-Mail ein",
+
     "landing-breadcrumb-welcome": "Willkommen",
     "landing-breadcrumb-treatment-date": "Behandlungsdatum",
     "landing-breadcrumb-visual-verification": "Sichtprüfung",

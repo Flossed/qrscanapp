@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Паролите не съвпадат!",
     "register-password-length-alert": "Паролата трябва да бъде поне 6 знака!",
 
+    "forgot-password-title": "Нулиране на парола",
+    "forgot-password-instruction": "Въведете вашия имейл адрес и ще ви изпратим връзка за нулиране на паролата.",
+    "forgot-password-email-label": "Имейл адрес",
+    "forgot-password-submit-button": "Изпращане на връзка за нулиране",
+    "forgot-password-back-to-login": "Назад към вход",
+    "forgot-password-email-placeholder": "Въведете вашия имейл",
+
     "landing-breadcrumb-welcome": "Добре дошли",
     "landing-breadcrumb-treatment-date": "Дата на лечението",
     "landing-breadcrumb-visual-verification": "Визуална проверка",

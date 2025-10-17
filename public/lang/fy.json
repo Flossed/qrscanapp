@@ -44,6 +44,13 @@
     "register-password-mismatch-alert": "Wachtwurden komme net oerien!",
     "register-password-length-alert": "Wachtwurd moat op syn minst 6 tekens lang wêze!",
 
+    "forgot-password-title": "Wachtwurd opnij ynstelle",
+    "forgot-password-instruction": "Fier jo e-postadres yn en wy stjoere jo in keppeling om jo wachtwurd opnij yn te stellen.",
+    "forgot-password-email-label": "E-postadres",
+    "forgot-password-submit-button": "Stjoer keppeling foar opnij ynstellen",
+    "forgot-password-back-to-login": "Werom nei ynlogge",
+    "forgot-password-email-placeholder": "Fier jo e-post yn",
+
     "landing-breadcrumb-welcome": "Wolkom",
     "landing-breadcrumb-treatment-date": "Behannelingsdatum",
     "landing-breadcrumb-visual-verification": "Fisuele Ferifikaasje",

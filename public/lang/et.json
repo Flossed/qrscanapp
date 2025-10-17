@@ -44,6 +44,13 @@
     "register-password-mismatch-alert": "Paroolid ei ühti!",
     "register-password-length-alert": "Parool peab olema vähemalt 6 tähemärki pikk!",
 
+    "forgot-password-title": "Parooli lähtestamine",
+    "forgot-password-instruction": "Sisestage oma e-posti aadress ja me saadame teile parooli lähtestamise lingi.",
+    "forgot-password-email-label": "E-posti aadress",
+    "forgot-password-submit-button": "Saada lähtestamislink",
+    "forgot-password-back-to-login": "Tagasi sisselogimisse",
+    "forgot-password-email-placeholder": "Sisesta oma e-post",
+
     "landing-breadcrumb-welcome": "Tere tulemast",
     "landing-breadcrumb-treatment-date": "Ravi kuupäev",
     "landing-breadcrumb-visual-verification": "Visuaalne kontroll",

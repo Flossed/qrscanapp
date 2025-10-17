@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Adgangskoder matcher ikke!",
     "register-password-length-alert": "Adgangskode skal være mindst 6 tegn lang!",
 
+    "forgot-password-title": "Nulstil adgangskode",
+    "forgot-password-instruction": "Indtast din e-mailadresse, og vi sender dig et link til at nulstille din adgangskode.",
+    "forgot-password-email-label": "E-mailadresse",
+    "forgot-password-submit-button": "Send nulstillingslink",
+    "forgot-password-back-to-login": "Tilbage til login",
+    "forgot-password-email-placeholder": "Indtast din e-mail",
+
     "landing-breadcrumb-welcome": "Velkommen",
     "landing-breadcrumb-treatment-date": "Behandlingsdato",
     "landing-breadcrumb-visual-verification": "Visuel verifikation",

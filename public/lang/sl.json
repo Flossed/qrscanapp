@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Gesli se ne ujemata!",
     "register-password-length-alert": "Geslo mora biti dolgo vsaj 6 znakov!",
 
+    "forgot-password-title": "Ponastavitev gesla",
+    "forgot-password-instruction": "Vnesite svoj e-poštni naslov in poslali vam bomo povezavo za ponastavitev gesla.",
+    "forgot-password-email-label": "E-poštni naslov",
+    "forgot-password-submit-button": "Pošlji povezavo za ponastavitev",
+    "forgot-password-back-to-login": "Nazaj na prijavo",
+    "forgot-password-email-placeholder": "Vnesite svoj e-poštni naslov",
+
     "landing-breadcrumb-welcome": "Dobrodošli",
     "landing-breadcrumb-treatment-date": "Datum zdravljenja",
     "landing-breadcrumb-visual-verification": "Vizualno preverjanje",
