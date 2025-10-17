@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Il-passwords ma jaqblux!",
     "register-password-length-alert": "Il-password trid tkun mill-inqas 6 karattri!",
 
+    "forgot-password-title": "Irrisettja l-Password",
+    "forgot-password-instruction": "Daħħal l-indirizz tal-email tiegħek u se nibagħtulek link biex tirrisettja l-password tiegħek.",
+    "forgot-password-email-label": "Indirizz tal-email",
+    "forgot-password-submit-button": "Ibgħat Link ta' Rissettjar",
+    "forgot-password-back-to-login": "Lura għall-Login",
+    "forgot-password-email-placeholder": "Daħħal l-email tiegħek",
+
     "landing-breadcrumb-welcome": "Merħba",
     "landing-breadcrumb-treatment-date": "Data tal-Kura",
     "landing-breadcrumb-visual-verification": "Verifikazzjoni Viżwali",

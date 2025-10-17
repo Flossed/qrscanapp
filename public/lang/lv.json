@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Paroles nesakrīt!",
     "register-password-length-alert": "Parolei jābūt vismaz 6 rakstzīmes!",
 
+    "forgot-password-title": "Atjaunot paroli",
+    "forgot-password-instruction": "Ievadiet savu e-pasta adresi, un mēs nosūtīsim jums saiti paroles atjaunošanai.",
+    "forgot-password-email-label": "E-pasta adrese",
+    "forgot-password-submit-button": "Nosūtīt atjaunošanas saiti",
+    "forgot-password-back-to-login": "Atpakaļ uz pieteikšanos",
+    "forgot-password-email-placeholder": "Ievadiet savu e-pastu",
+
     "landing-breadcrumb-welcome": "Laipni lūdzam",
     "landing-breadcrumb-treatment-date": "Ārstēšanas datums",
     "landing-breadcrumb-visual-verification": "Vizuālā verifikācija",

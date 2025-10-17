@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Slaptažodžiai nesutampa!",
     "register-password-length-alert": "Slaptažodis turi būti mažiausiai 6 simbolių!",
 
+    "forgot-password-title": "Atstatyti slaptažodį",
+    "forgot-password-instruction": "Įveskite savo el. pašto adresą ir mes atsiųsime jums nuorodą slaptažodžio atstatymui.",
+    "forgot-password-email-label": "El. pašto adresas",
+    "forgot-password-submit-button": "Siųsti atstatymo nuorodą",
+    "forgot-password-back-to-login": "Atgal į prisijungimą",
+    "forgot-password-email-placeholder": "Įveskite savo el. paštą",
+
     "landing-breadcrumb-welcome": "Sveiki atvykę",
     "landing-breadcrumb-treatment-date": "Gydymo data",
     "landing-breadcrumb-visual-verification": "Vizualinis patikrinimas",

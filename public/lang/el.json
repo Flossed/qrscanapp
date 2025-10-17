@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Οι κωδικοί πρόσβασης δεν ταιριάζουν!",
     "register-password-length-alert": "Ο κωδικός πρόσβασης πρέπει να έχει τουλάχιστον 6 χαρακτήρες!",
 
+    "forgot-password-title": "Επαναφορά κωδικού πρόσβασης",
+    "forgot-password-instruction": "Εισαγάγετε τη διεύθυνση email σας και θα σας στείλουμε έναν σύνδεσμο για επαναφορά του κωδικού πρόσβασης.",
+    "forgot-password-email-label": "Διεύθυνση email",
+    "forgot-password-submit-button": "Αποστολή συνδέσμου επαναφοράς",
+    "forgot-password-back-to-login": "Επιστροφή στη σύνδεση",
+    "forgot-password-email-placeholder": "Εισαγάγετε το email σας",
+
     "landing-breadcrumb-welcome": "Καλώς ήλθατε",
     "landing-breadcrumb-treatment-date": "Ημερομηνία θεραπείας",
     "landing-breadcrumb-visual-verification": "Οπτική επαλήθευση",

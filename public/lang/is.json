@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Lykilorð passa ekki saman!",
     "register-password-length-alert": "Lykilorð þarf að vera að minnsta kosti 6 stafir að lengd!",
 
+    "forgot-password-title": "Endurstilla lykilorð",
+    "forgot-password-instruction": "Sláðu inn netfangið þitt og við munum senda þér tengil til að endurstilla lykilorðið þitt.",
+    "forgot-password-email-label": "Netfang",
+    "forgot-password-submit-button": "Senda endurstillingartengil",
+    "forgot-password-back-to-login": "Til baka í innskráningu",
+    "forgot-password-email-placeholder": "Sláðu inn netfangið þitt",
+
     "landing-breadcrumb-welcome": "Velkomin",
     "landing-breadcrumb-treatment-date": "Meðferðardagur",
     "landing-breadcrumb-visual-verification": "Sjónræn staðfesting",

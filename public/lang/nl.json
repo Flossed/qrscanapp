@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Wachtwoorden komen niet overeen!",
     "register-password-length-alert": "Wachtwoord moet minimaal 6 tekens lang zijn!",
 
+    "forgot-password-title": "Wachtwoord opnieuw instellen",
+    "forgot-password-instruction": "Voer uw e-mailadres in en wij sturen u een link om uw wachtwoord opnieuw in te stellen.",
+    "forgot-password-email-label": "E-mailadres",
+    "forgot-password-submit-button": "Herstelkoppeling verzenden",
+    "forgot-password-back-to-login": "Terug naar inloggen",
+    "forgot-password-email-placeholder": "Voer uw e-mailadres in",
+
     "landing-breadcrumb-welcome": "Welkom",
     "landing-breadcrumb-treatment-date": "Behandeldatum",
     "landing-breadcrumb-visual-verification": "Visuele verificatie",

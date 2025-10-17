@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Ní thagann na pasfhocail!",
     "register-password-length-alert": "Ní mór don phasfhocal a bheith 6 charachtar ar a laghad!",
 
+    "forgot-password-title": "Athshocraigh Pasfhocal",
+    "forgot-password-instruction": "Cuir isteach do sheoladh ríomhphoist agus seolfaimid nasc chugat chun do phasfhocal a athshocrú.",
+    "forgot-password-email-label": "Seoladh Ríomhphoist",
+    "forgot-password-submit-button": "Seol Nasc Athshocraithe",
+    "forgot-password-back-to-login": "Ar Ais go Logáil Isteach",
+    "forgot-password-email-placeholder": "Cuir isteach do ríomhphost",
+
     "landing-breadcrumb-welcome": "Fáilte",
     "landing-breadcrumb-treatment-date": "Dáta Cóireála",
     "landing-breadcrumb-visual-verification": "Fíorú Amhairc",

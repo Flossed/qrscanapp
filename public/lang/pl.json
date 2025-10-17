@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Hasła nie pasują do siebie!",
     "register-password-length-alert": "Hasło musi mieć co najmniej 6 znaków!",
 
+    "forgot-password-title": "Zresetuj hasło",
+    "forgot-password-instruction": "Wprowadź swój adres e-mail, a wyślemy Ci link do zresetowania hasła.",
+    "forgot-password-email-label": "Adres e-mail",
+    "forgot-password-submit-button": "Wyślij link resetujący",
+    "forgot-password-back-to-login": "Powrót do logowania",
+    "forgot-password-email-placeholder": "Wprowadź swój adres e-mail",
+
     "landing-breadcrumb-welcome": "Witaj",
     "landing-breadcrumb-treatment-date": "Data leczenia",
     "landing-breadcrumb-visual-verification": "Weryfikacja wizualna",

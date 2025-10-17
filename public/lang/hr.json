@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Lozinke se ne podudaraju!",
     "register-password-length-alert": "Lozinka mora biti duga najmanje 6 znakova!",
 
+    "forgot-password-title": "Ponovno postavi lozinku",
+    "forgot-password-instruction": "Unesite svoju e-mail adresu i poslat ćemo vam poveznicu za ponovno postavljanje lozinke.",
+    "forgot-password-email-label": "E-mail adresa",
+    "forgot-password-submit-button": "Pošalji poveznicu za ponovno postavljanje",
+    "forgot-password-back-to-login": "Natrag na prijavu",
+    "forgot-password-email-placeholder": "Unesite svoju e-mail adresu",
+
     "landing-breadcrumb-welcome": "Dobrodošli",
     "landing-breadcrumb-treatment-date": "Datum liječenja",
     "landing-breadcrumb-visual-verification": "Vizualna provjera",

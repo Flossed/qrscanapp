@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Passwords do not match!",
     "register-password-length-alert": "Password must be at least 6 characters long!",
 
+    "forgot-password-title": "Reset Password",
+    "forgot-password-instruction": "Enter your email address and we'll send you a link to reset your password.",
+    "forgot-password-email-label": "Email Address",
+    "forgot-password-submit-button": "Send Reset Link",
+    "forgot-password-back-to-login": "Back to Login",
+    "forgot-password-email-placeholder": "Enter your email",
+
     "landing-breadcrumb-welcome": "Welcome",
     "landing-breadcrumb-treatment-date": "Treatment Date",
     "landing-breadcrumb-visual-verification": "Visual Verification",

@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Le password non corrispondono!",
     "register-password-length-alert": "La password deve essere lunga almeno 6 caratteri!",
 
+    "forgot-password-title": "Reimposta password",
+    "forgot-password-instruction": "Inserisci il tuo indirizzo email e ti invieremo un link per reimpostare la tua password.",
+    "forgot-password-email-label": "Indirizzo email",
+    "forgot-password-submit-button": "Invia link di reimpostazione",
+    "forgot-password-back-to-login": "Torna all'accesso",
+    "forgot-password-email-placeholder": "Inserisci la tua email",
+
     "landing-breadcrumb-welcome": "Benvenuto",
     "landing-breadcrumb-treatment-date": "Data del trattamento",
     "landing-breadcrumb-visual-verification": "Verifica visiva",

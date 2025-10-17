@@ -45,6 +45,13 @@
     "register-password-mismatch-alert": "Les mots de passe ne correspondent pas !",
     "register-password-length-alert": "Le mot de passe doit comporter au moins 6 caractères !",
 
+    "forgot-password-title": "Réinitialiser le mot de passe",
+    "forgot-password-instruction": "Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+    "forgot-password-email-label": "Adresse e-mail",
+    "forgot-password-submit-button": "Envoyer le lien de réinitialisation",
+    "forgot-password-back-to-login": "Retour à la connexion",
+    "forgot-password-email-placeholder": "Entrez votre e-mail",
+
     "landing-breadcrumb-welcome": "Bienvenue",
     "landing-breadcrumb-treatment-date": "Date de traitement",
     "landing-breadcrumb-visual-verification": "Vérification visuelle",
