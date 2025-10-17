@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-10-16
+
+### Fixed
+- **Treatment Date Range Validation Severity**: Fixed validation severity level from warning to error when treatment date falls outside certificate validity period
+  - **Critical Error Handling**: Treatment dates outside the certificate validity period (not between startDate and endDate) now properly cause overall verification failure
+  - **Validation Logic Fix**: Changed validation status from 'warning' to 'error' in `routes/scanRoutes.js` for proper error handling
+  - **Verification Integrity**: Ensures that invalid treatment date ranges are treated as critical errors rather than just warnings
+  - **Business Logic Compliance**: Aligns validation behavior with business requirements for treatment date validation
+
+### Enhanced
+- **Validation Reliability**: Improved verification reliability by properly failing invalid treatment dates
+- **Error Consistency**: Treatment date range validation now behaves consistently with other critical validations
+- **User Experience**: Users receive proper error feedback when treatment dates are invalid
+
+### Technical Improvements
+- **Validation Status Logic** (routes/scanRoutes.js:7454): Modified range status logic to return 'error' instead of 'warning'
+- **Error Propagation**: Invalid treatment date ranges now properly contribute to overall verification failure
+- **Status Mapping**: Maintains existing behavior for other cases (skipped when no date, success when valid)
+
+### Closed Issues Since v1.1.1
+- PR #74: Fix Treatment Date Range Validation severity level (merged)
+
+### Open Issues for Future Releases
+- Issue #75: EHIC_DEMO: 'Scan History' button is still visible inside the Profile option of EHIC verifier which is not correct
+- Issue #71: EHIC_DEMO: Verification "V" is overlapped with the checkmark indicator when the mobile device is used
+- Issue #70: Error while downloading zip file
+- Issue #69: EHIC_DEMO: Future date should be disabled when the user selects the calendar option for the treatment date using a mobile device
+- Issue #68: EHIC-Verification-EHIC-yyyymmdd-cccccc-bilingual-yyyy-mm-dd.pdf is not encoded in the language of choice
+- Issue #67: Bilingual PDF is created with mixed translations
+- Issue #66: Generated Email is created with mixed translations
+- Issue #65: The finalization page is missing translations
+- Issue #64: Visual verification page missing translations
+- Issue #63: Result page missing translations
+- Issue #62: Debug verify page missing translations
+
+### Migration Notes
+- Critical validation fix that improves verification accuracy
+- No breaking changes to API or user interface
+- Maintains backward compatibility for valid scenarios
+- Invalid treatment dates will now properly fail verification as expected
+
 ## [1.1.1] - 2025-10-16
 
 ### Fixed

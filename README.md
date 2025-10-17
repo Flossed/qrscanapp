@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 1.1.1 - 2025-10-16
+## Current Status - Version 1.1.2 - 2025-10-16
 
 ### ✅ Completed Features
 
@@ -97,6 +97,11 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **Session Cookie Fix**: Resolved authentication redirect loop in production mode caused by secure cookie requirement
 - **SSL Termination Support**: Updated session configuration to work with external SSL termination (load balancer/proxy)
 - **Production Compatibility**: Allows HTTP cookies since SSL termination happens at infrastructure level rather than application level
+
+**Current v1.1.2 Validation Enhancement:**
+- **Treatment Date Range Validation Fix**: Changed validation severity from warning to error when treatment date falls outside certificate validity period
+- **Critical Error Handling**: Invalid treatment date ranges now properly cause overall verification failure instead of just showing warnings
+- **Validation Integrity**: Ensures that treatment dates outside the certificate validity period (not between startDate and endDate) are treated as critical errors
 
 #### Technical Infrastructure
 - **MongoDB Integration** - Stores scan history and verification results

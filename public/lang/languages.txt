@@ -1,37 +1,28 @@
- Volume in drive E is New Volume
- Volume Serial Number is 728C-C563
-
- Directory of E:\_Applications\__ZNDPRODS\qrscanapp\public\lang
-
-16/10/2025  07:25    <DIR>          .
-16/10/2025  07:25    <DIR>          ..
-15/10/2025  23:12            27.490 bg.json
-15/10/2025  23:12            19.548 cs.json
-15/10/2025  23:14            19.167 da.json
-15/10/2025  23:04            20.307 de.json
-15/10/2025  23:17            28.515 el.json
-15/10/2025  22:42            18.753 en.json
-15/10/2025  23:07            20.454 es.json
-15/10/2025  23:19            19.113 et.json
-15/10/2025  23:21            19.269 fi.json
-15/10/2025  23:05            20.774 fr.json
-15/10/2025  23:24            19.553 fy.json
-15/10/2025  23:55            19.765 ga.json
-15/10/2025  23:58            18.894 hr.json
-15/10/2025  23:52                 2 hu.json
-16/10/2025  07:22            19.527 is.json
-15/10/2025  23:08            19.833 it.json
-16/10/2025  07:25                 0 languages.txt
-15/10/2025  23:52                 2 lt.json
-15/10/2025  23:52                 2 lv.json
-15/10/2025  23:52                 2 mt.json
-15/10/2025  23:26            19.464 nl.json
-15/10/2025  23:52                 2 no.json
-15/10/2025  23:27            19.441 pl.json
-15/10/2025  23:29            20.175 pt.json
-16/10/2025  00:09            19.856 ro.json
-15/10/2025  23:52                 2 sk.json
-15/10/2025  23:52                 2 sl.json
-16/10/2025  00:05            10.826 sv.json
-              28 File(s)        400.738 bytes
-               2 Dir(s)  12.263.247.872 bytes free
+bg Bulgarian  Български  
+cs Czech      Čeština        
+da Danish     Dansk         
+de German     Deutsch       
+el Greek      Ελληνικά       
+en English    English      
+es Spanish    Español      
+et Estonian   Eesti       
+fi Finnish    Suomi        
+fr French     Français      
+fy Frisian    Frysk        
+ga Irish      Gaeilge        
+hr Croatian   Hrvatski    
+hu Hungarian  Magyar     
+is Icelandic  Íslenska   
+it Italian    Italiano     
+lt Lithuanian Lietuvių  
+lv Latvian    Latviešu     
+mt Maltese    Malti        
+nl Dutch      Nederlands     
+no Norwegian  Norsk      
+pl Polish     Polski        
+pt Portuguese Português 
+ro Romanian   Română      
+sk Slovak     Slovenčina    
+sl Slovenian  Slovenščina
+sv Swedish    Svenska      
+  
