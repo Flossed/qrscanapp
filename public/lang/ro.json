@@ -366,6 +366,9 @@
     "profile-total-scans": "Total scanări:",
     "profile-member-since": "Membru din:",
     "profile-last-login": "Ultima conectare:",
+    "profile-last-login-na": "Indisponibil",
+    "profile-password-mismatch-alert": "Noile parole nu se potrivesc!",
+    "profile-delete-confirm-alert": "Sunteți absolut sigur? Această acțiune nu poate fi anulată!",
 
     "delete-modal-title": "Confirmă ștergerea contului",
     "delete-modal-warning": "Această acțiune nu poate fi anulată!",

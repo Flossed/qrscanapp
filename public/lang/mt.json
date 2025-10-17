@@ -366,6 +366,9 @@
     "profile-total-scans": "Skanjars totali:",
     "profile-member-since": "Membru minn:",
     "profile-last-login": "L-aħħar login:",
+    "profile-last-login-na": "Mhux disponibbli",
+    "profile-password-mismatch-alert": "Il-passwords ġodda ma jaqblux!",
+    "profile-delete-confirm-alert": "Żgur li int assolutament ċert? Din l-azzjoni ma tistax tiġi annullata!",
 
     "delete-modal-title": "Ikkonferma t-tħassir tal-kont",
     "delete-modal-warning": "Din l-azzjoni ma tistax tiġi annullata!",

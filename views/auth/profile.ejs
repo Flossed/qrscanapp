@@ -11,6 +11,39 @@
 <body>
     <%- include('../partials/navbar') %>
 
+    <!-- Language Selector (positioned at top right) -->
+    <div class="language-selector-container">
+        <select id="languageSelector" class="form-select form-select-sm">
+            <option value="en">English</option>
+            <option value="bg">Български</option>
+            <option value="cs">Čeština</option>
+            <option value="da">Dansk</option>
+            <option value="de">Deutsch</option>
+            <option value="et">Eesti</option>
+            <option value="el">Ελληνικά</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="fy">Frysk</option>
+            <option value="ga">Gaeilge</option>
+            <option value="hr">Hrvatski</option>
+            <option value="is">Íslenska</option>
+            <option value="it">Italiano</option>
+            <option value="lv">Latviešu</option>
+            <option value="lt">Lietuvių</option>
+            <option value="hu">Magyar</option>
+            <option value="mt">Malti</option>
+            <option value="nl">Nederlands</option>
+            <option value="no">Norsk</option>
+            <option value="pl">Polski</option>
+            <option value="pt">Português</option>
+            <option value="ro">Română</option>
+            <option value="sk">Slovenčina</option>
+            <option value="sl">Slovenščina</option>
+            <option value="fi">Suomi</option>
+            <option value="sv">Svenska</option>
+        </select>
+    </div>
+
     <div class="container mt-5">
         <div class="row">
             <div class="col-md-3">
@@ -41,7 +74,7 @@
                         <small class="text-muted">
                             <i class="bi bi-qr-code"></i> <span data-i18n-key="profile-total-scans">Total Scans:</span> <strong><%= scanCount %></strong><br>
                             <i class="bi bi-calendar"></i> <span data-i18n-key="profile-member-since">Member Since:</span> <strong><%= new Date(user.createdAt).toLocaleDateString() %></strong><br>
-                            <i class="bi bi-clock"></i> <span data-i18n-key="profile-last-login">Last Login:</span> <strong><%= user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A' %></strong>
+                            <i class="bi bi-clock"></i> <span data-i18n-key="profile-last-login">Last Login:</span> <strong><%= user.lastLogin ? new Date(user.lastLogin).toLocaleString() : '' %><span id="lastLoginNA" style="<%= user.lastLogin ? 'display: none;' : '' %>" data-i18n-key="profile-last-login-na">N/A</span></strong>
                         </small>
                     </div>
                 </div>
@@ -89,7 +122,7 @@
                             <div class="mb-3">
                                 <label for="organization" class="form-label" data-i18n-key="profile-organization">Organization</label>
                                 <input type="text" class="form-control" id="organization" name="organization"
-                                       value="<%= user.organization || '' %>" data-i18n-key="profile-organization-placeholder" placeholder="Hospital / Clinic Name">
+                                       value="<%= user.organization || '' %>" placeholder="Hospital / Clinic Name">
                             </div>
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-save"></i> <span data-i18n-key="profile-update">Update Profile</span>
@@ -175,6 +208,11 @@
         </div>
     </div>
 
+    <!-- Hidden elements for JavaScript translation -->
+    <span data-i18n-key="profile-organization-placeholder" style="display: none;">Hospital / Clinic Name</span>
+    <span data-i18n-key="profile-password-mismatch-alert" style="display: none;">New passwords do not match!</span>
+    <span data-i18n-key="profile-delete-confirm-alert" style="display: none;">Are you absolutely sure? This action cannot be undone!</span>
+
     <style>
         .avatar-circle {
             width: 100px;
@@ -192,24 +230,78 @@
             color: white;
             font-weight: bold;
         }
+        .language-selector-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        #languageSelector {
+            background-color: rgba(255,255,255,0.9);
+            border: 1px solid rgba(0,0,0,0.2);
+            color: #333;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            min-width: 120px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        #languageSelector:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+        }
+        #languageSelector option {
+            background-color: white;
+            color: #333;
+        }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/manageLocale.js"></script>
     <script>
+        // Function to update placeholder text with translations
+        function updatePlaceholders() {
+            const organizationInput = document.getElementById('organization');
+            const organizationPlaceholder = document.querySelector('[data-i18n-key="profile-organization-placeholder"]')?.textContent || 'Hospital / Clinic Name';
+
+            if (organizationInput) {
+                organizationInput.placeholder = organizationPlaceholder;
+            }
+        }
+
         document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmNewPassword').value;
 
             if (newPassword !== confirmPassword) {
                 e.preventDefault();
-                alert('New passwords do not match!');
+                const alertMessage = document.querySelector('[data-i18n-key="profile-password-mismatch-alert"]')?.textContent || 'New passwords do not match!';
+                alert(alertMessage);
             }
         });
 
         document.getElementById('deleteForm').addEventListener('submit', function(e) {
-            const confirmed = confirm('Are you absolutely sure? This action cannot be undone!');
+            const confirmMessage = document.querySelector('[data-i18n-key="profile-delete-confirm-alert"]')?.textContent || 'Are you absolutely sure? This action cannot be undone!';
+            const confirmed = confirm(confirmMessage);
             if (!confirmed) {
                 e.preventDefault();
+            }
+        });
+
+        // Update placeholders when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait a bit for translations to load
+            setTimeout(updatePlaceholders, 100);
+        });
+
+        // Override the language selector change to also update placeholders
+        document.addEventListener('DOMContentLoaded', function() {
+            const languageSelector = document.getElementById('languageSelector');
+            if (languageSelector) {
+                languageSelector.addEventListener('change', function() {
+                    // Wait for translations to be applied
+                    setTimeout(updatePlaceholders, 100);
+                });
             }
         });
     </script>

@@ -366,6 +366,9 @@
     "profile-total-scans": "Kopējais skenēšanu skaits:",
     "profile-member-since": "Dalībnieks kopš:",
     "profile-last-login": "Pēdējā pieteikšanās:",
+    "profile-last-login-na": "Nav pieejams",
+    "profile-password-mismatch-alert": "Jaunās paroles nesakrīt!",
+    "profile-delete-confirm-alert": "Vai esat pilnībā pārliecināts? Šo darbību nevar atsaukt!",
 
     "delete-modal-title": "Apstiprināt konta dzēšanu",
     "delete-modal-warning": "Šo darbību nevar atsaukt!",

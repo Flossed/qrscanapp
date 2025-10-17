@@ -365,6 +365,9 @@
     "profile-total-scans": "Totala skanningar:",
     "profile-member-since": "Medlem sedan:",
     "profile-last-login": "Senaste inloggning:",
+    "profile-last-login-na": "Inte tillgänglig",
+    "profile-password-mismatch-alert": "Nya lösenord matchar inte!",
+    "profile-delete-confirm-alert": "Är du helt säker? Denna åtgärd kan inte ångras!",
 
     "delete-modal-title": "Bekräfta kontoborttagning",
     "delete-modal-warning": "Denna åtgärd kan inte ångras!",

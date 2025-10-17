@@ -365,6 +365,9 @@
     "profile-total-scans": "Łączne skanowania:",
     "profile-member-since": "Członek od:",
     "profile-last-login": "Ostatnie logowanie:",
+    "profile-last-login-na": "Niedostępne",
+    "profile-password-mismatch-alert": "Nowe hasła nie pasują do siebie!",
+    "profile-delete-confirm-alert": "Czy jesteś absolutnie pewien? Tej akcji nie można cofnąć!",
 
     "delete-modal-title": "Potwierdź usunięcie konta",
     "delete-modal-warning": "Ta akcja nie może być cofnięta!",

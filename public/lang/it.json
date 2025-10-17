@@ -365,6 +365,9 @@
     "profile-total-scans": "Scansioni totali:",
     "profile-member-since": "Membro dal:",
     "profile-last-login": "Ultimo accesso:",
+    "profile-last-login-na": "N/D",
+    "profile-password-mismatch-alert": "Le nuove password non corrispondono!",
+    "profile-delete-confirm-alert": "Sei assolutamente sicuro? Questa azione non può essere annullata!",
 
     "delete-modal-title": "Conferma eliminazione account",
     "delete-modal-warning": "Questa azione non può essere annullata!",
