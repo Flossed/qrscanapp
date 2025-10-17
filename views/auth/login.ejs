@@ -92,13 +92,37 @@
         .input-group .form-control {
             border-left: none;
         }
+        .language-selector-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        #languageSelector {
+            background-color: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            min-width: 120px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        #languageSelector:focus {
+            border-color: rgba(255,255,255,0.4);
+            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+        }
+        #languageSelector option {
+            background-color: #10b981;
+            color: white;
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1><i class="bi bi-shield-check"></i> EHIC Verifier</h1>
-            <p>Secure Authentication Portal</p>
+            <h1><i class="bi bi-shield-check"></i> <span data-i18n-key="login-title">EHIC Verifier</span></h1>
+            <p data-i18n-key="login-subtitle">Secure Authentication Portal</p>
         </div>
         <div class="login-body">
             <% if (typeof error !== 'undefined' && error) { %>
@@ -117,7 +141,7 @@
 
             <form method="POST" action="/auth/login" id="loginForm">
                 <div class="mb-3">
-                    <label for="email" class="form-label">Email Address</label>
+                    <label for="email" class="form-label" data-i18n-key="login-email-label">Email Address</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-envelope"></i></span>
                         <input type="email" class="form-control" id="email" name="email" required
@@ -126,7 +150,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
+                    <label for="password" class="form-label" data-i18n-key="login-password-label">Password</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-lock"></i></span>
                         <input type="password" class="form-control" id="password" name="password" required
@@ -139,20 +163,59 @@
 
                 <div class="d-grid mb-3">
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        <i class="bi bi-box-arrow-in-right"></i> <span data-i18n-key="login-submit-button">Sign In</span>
                     </button>
                 </div>
 
                 <div class="auth-links">
-                    <a href="/auth/forgot-password">Forgot Password?</a>
+                    <a href="/auth/forgot-password" data-i18n-key="login-forgot-password">Forgot Password?</a>
                     <span class="mx-2">|</span>
-                    <a href="/auth/register">Create Account</a>
+                    <a href="/auth/register" data-i18n-key="login-create-account">Create Account</a>
                 </div>
             </form>
+
+            <!-- Hidden elements for JavaScript translation -->
+            <span data-i18n-key="login-validation-error" style="display: none;">Please fill in all fields</span>
+            <span data-i18n-key="login-email-placeholder" style="display: none;">Enter your email</span>
+            <span data-i18n-key="login-password-placeholder" style="display: none;">Enter your password</span>
         </div>
     </div>
 
+    <!-- Language Selector (positioned at top right) -->
+    <div class="language-selector-container">
+        <select id="languageSelector" class="form-select form-select-sm">
+            <option value="en">English</option>
+            <option value="bg">Български</option>
+            <option value="cs">Čeština</option>
+            <option value="da">Dansk</option>
+            <option value="de">Deutsch</option>
+            <option value="et">Eesti</option>
+            <option value="el">Ελληνικά</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="fy">Frysk</option>
+            <option value="ga">Gaeilge</option>
+            <option value="hr">Hrvatski</option>
+            <option value="is">Íslenska</option>
+            <option value="it">Italiano</option>
+            <option value="lv">Latviešu</option>
+            <option value="lt">Lietuvių</option>
+            <option value="hu">Magyar</option>
+            <option value="mt">Malti</option>
+            <option value="nl">Nederlands</option>
+            <option value="no">Norsk</option>
+            <option value="pl">Polski</option>
+            <option value="pt">Português</option>
+            <option value="ro">Română</option>
+            <option value="sk">Slovenčina</option>
+            <option value="sl">Slovenščina</option>
+            <option value="fi">Suomi</option>
+            <option value="sv">Svenska</option>
+        </select>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/manageLocale.js"></script>
     <script>
         // Toggle password visibility
         document.getElementById('togglePassword').addEventListener('click', function() {
@@ -177,9 +240,40 @@
 
             if (!email || !password) {
                 e.preventDefault();
-                alert('Please fill in all fields');
+                alert(document.querySelector('[data-i18n-key="login-validation-error"]')?.textContent || 'Please fill in all fields');
             }
         });
+
+        // Function to update placeholder text with translations
+        function updatePlaceholders() {
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+
+            const emailPlaceholder = document.querySelector('[data-i18n-key="login-email-placeholder"]')?.textContent || 'Enter your email';
+            const passwordPlaceholder = document.querySelector('[data-i18n-key="login-password-placeholder"]')?.textContent || 'Enter your password';
+
+            if (emailInput) {
+                emailInput.placeholder = emailPlaceholder;
+            }
+            if (passwordInput) {
+                passwordInput.placeholder = passwordPlaceholder;
+            }
+        }
+
+        // Update placeholders when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait a bit for translations to load
+            setTimeout(updatePlaceholders, 100);
+        });
+
+        // Override the language selector change to also update placeholders
+        const originalLanguageSelector = document.getElementById('languageSelector');
+        if (originalLanguageSelector) {
+            originalLanguageSelector.addEventListener('change', function() {
+                // Wait for translations to be applied
+                setTimeout(updatePlaceholders, 100);
+            });
+        }
     </script>
 </body>
 </html>

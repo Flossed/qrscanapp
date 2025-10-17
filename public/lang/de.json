@@ -11,6 +11,17 @@
     "nav-login": "Anmelden",
     "nav-register": "Registrieren",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Sichere Authentifizierungsportal",
+    "login-email-label": "E-Mail-Adresse",
+    "login-email-placeholder": "Geben Sie Ihre E-Mail ein",
+    "login-password-label": "Passwort",
+    "login-password-placeholder": "Geben Sie Ihr Passwort ein",
+    "login-submit-button": "Anmelden",
+    "login-forgot-password": "Passwort vergessen?",
+    "login-create-account": "Konto erstellen",
+    "login-validation-error": "Bitte füllen Sie alle Felder aus",
+
     "landing-breadcrumb-welcome": "Willkommen",
     "landing-breadcrumb-treatment-date": "Behandlungsdatum",
     "landing-breadcrumb-visual-verification": "Sichtprüfung",

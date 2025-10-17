@@ -11,6 +11,17 @@
     "nav-login": "Innskráning",
     "nav-register": "Nýskráning",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Örugg auðkenningarsvæði",
+    "login-email-label": "Netfang",
+    "login-email-placeholder": "Sláðu inn netfangið þitt",
+    "login-password-label": "Lykilorð",
+    "login-password-placeholder": "Sláðu inn lykilorðið þitt",
+    "login-submit-button": "Skrá inn",
+    "login-forgot-password": "Gleymt lykilorð?",
+    "login-create-account": "Búa til reikning",
+    "login-validation-error": "Vinsamlegast fylltu út alla reiti",
+
     "landing-breadcrumb-welcome": "Velkomin",
     "landing-breadcrumb-treatment-date": "Meðferðardagur",
     "landing-breadcrumb-visual-verification": "Sjónræn staðfesting",

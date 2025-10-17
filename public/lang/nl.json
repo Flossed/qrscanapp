@@ -11,6 +11,17 @@
     "nav-login": "Inloggen",
     "nav-register": "Registreren",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Beveiligde authenticatieportal",
+    "login-email-label": "E-mailadres",
+    "login-email-placeholder": "Voer uw e-mailadres in",
+    "login-password-label": "Wachtwoord",
+    "login-password-placeholder": "Voer uw wachtwoord in",
+    "login-submit-button": "Aanmelden",
+    "login-forgot-password": "Wachtwoord vergeten?",
+    "login-create-account": "Account aanmaken",
+    "login-validation-error": "Vul alle velden in",
+
     "landing-breadcrumb-welcome": "Welkom",
     "landing-breadcrumb-treatment-date": "Behandeldatum",
     "landing-breadcrumb-visual-verification": "Visuele verificatie",

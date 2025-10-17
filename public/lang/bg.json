@@ -11,6 +11,17 @@
     "nav-login": "Вход",
     "nav-register": "Регистрация",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Портал за сигурна автентикация",
+    "login-email-label": "Имейл адрес",
+    "login-email-placeholder": "Въведете вашия имейл",
+    "login-password-label": "Парола",
+    "login-password-placeholder": "Въведете вашата парола",
+    "login-submit-button": "Вход",
+    "login-forgot-password": "Забравена парола?",
+    "login-create-account": "Създаване на акаунт",
+    "login-validation-error": "Моля, попълнете всички полета",
+
     "landing-breadcrumb-welcome": "Добре дошли",
     "landing-breadcrumb-treatment-date": "Дата на лечението",
     "landing-breadcrumb-visual-verification": "Визуална проверка",

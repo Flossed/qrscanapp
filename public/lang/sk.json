@@ -11,6 +11,17 @@
     "nav-login": "Prihlásiť",
     "nav-register": "Registrácia",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Bezpečný autentifikačný portál",
+    "login-email-label": "Emailová adresa",
+    "login-email-placeholder": "Zadajte svoj email",
+    "login-password-label": "Heslo",
+    "login-password-placeholder": "Zadajte svoje heslo",
+    "login-submit-button": "Prihlásiť sa",
+    "login-forgot-password": "Zabudli ste heslo?",
+    "login-create-account": "Vytvoriť účet",
+    "login-validation-error": "Prosím, vyplňte všetky polia",
+
     "landing-breadcrumb-welcome": "Vitajte",
     "landing-breadcrumb-treatment-date": "Dátum liečby",
     "landing-breadcrumb-visual-verification": "Vizuálne overenie",

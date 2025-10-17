@@ -9,6 +9,18 @@
     "nav-logout": "Logi välja",
     "nav-login": "Logi sisse",
     "nav-register": "Registreeri",
+
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Turvalise autentimise portaal",
+    "login-email-label": "E-posti aadress",
+    "login-email-placeholder": "Sisesta oma e-post",
+    "login-password-label": "Parool",
+    "login-password-placeholder": "Sisesta oma parool",
+    "login-submit-button": "Logi sisse",
+    "login-forgot-password": "Unustasid parooli?",
+    "login-create-account": "Loo konto",
+    "login-validation-error": "Palun täida kõik väljad",
+
     "landing-breadcrumb-welcome": "Tere tulemast",
     "landing-breadcrumb-treatment-date": "Ravi kuupäev",
     "landing-breadcrumb-visual-verification": "Visuaalne kontroll",

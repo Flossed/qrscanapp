@@ -11,6 +11,17 @@
     "nav-login": "Bejelentkezés",
     "nav-register": "Regisztráció",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Biztonságos hitelesítési portál",
+    "login-email-label": "E-mail cím",
+    "login-email-placeholder": "Adja meg e-mail címét",
+    "login-password-label": "Jelszó",
+    "login-password-placeholder": "Adja meg jelszavát",
+    "login-submit-button": "Bejelentkezés",
+    "login-forgot-password": "Elfelejtett jelszó?",
+    "login-create-account": "Fiók létrehozása",
+    "login-validation-error": "Kérjük, tö ltse ki az összes mezőt",
+
     "landing-breadcrumb-welcome": "Üdvözöljük",
     "landing-breadcrumb-treatment-date": "Kezelés dátuma",
     "landing-breadcrumb-visual-verification": "Vizuális hitelesítés",

@@ -11,6 +11,17 @@
     "nav-login": "Prijava",
     "nav-register": "Registracija",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Portal sigurne autentifikacije",
+    "login-email-label": "E-mail adresa",
+    "login-email-placeholder": "Unesite svoju e-mail adresu",
+    "login-password-label": "Lozinka",
+    "login-password-placeholder": "Unesite svoju lozinku",
+    "login-submit-button": "Prijavite se",
+    "login-forgot-password": "Zaboravljena lozinka?",
+    "login-create-account": "Kreiraj račun",
+    "login-validation-error": "Molimo popunite sva polja",
+
     "landing-breadcrumb-welcome": "Dobrodošli",
     "landing-breadcrumb-treatment-date": "Datum liječenja",
     "landing-breadcrumb-visual-verification": "Vizualna provjera",

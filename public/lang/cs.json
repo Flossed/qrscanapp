@@ -11,6 +11,17 @@
     "nav-login": "Přihlásit",
     "nav-register": "Registrovat",
 
+    "login-title": "EHIC Verifier",
+    "login-subtitle": "Portál zabezpečené autentizace",
+    "login-email-label": "E-mailová adresa",
+    "login-email-placeholder": "Zadejte svůj e-mail",
+    "login-password-label": "Heslo",
+    "login-password-placeholder": "Zadejte své heslo",
+    "login-submit-button": "Přihlásit se",
+    "login-forgot-password": "Zapomněli jste heslo?",
+    "login-create-account": "Vytvořit účet",
+    "login-validation-error": "Prosím vyplňte všechna pole",
+
     "landing-breadcrumb-welcome": "Vítejte",
     "landing-breadcrumb-treatment-date": "Datum léčby",
     "landing-breadcrumb-visual-verification": "Vizuální ověření",
