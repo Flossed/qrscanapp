@@ -7805,9 +7805,24 @@ async function validateJwtSignature(jwtToken, publicKeyData) {
             isValid = verifier.verify(publicKey, signature);
         } else if (algorithm === 'ES256') {
             // ECDSA signature verification using P-256 curve with SHA-256
+            // JWT ES256 signatures use IEEE P1363 format, but Node.js crypto expects ASN.1 DER format
+            logger.debug('Converting ES256 signature from IEEE P1363 to ASN.1 DER format', {
+                originalSignatureLength: signature.length,
+                signatureFormat: 'IEEE P1363 (JWT standard)'
+            });
+
+            // Convert signature from IEEE P1363 format to ASN.1 DER format
+            const derSignature = convertIEEEP1363ToASN1DER(signature);
+
+            logger.debug('ES256 signature format conversion completed', {
+                originalLength: signature.length,
+                convertedLength: derSignature.length,
+                conversionSuccessful: true
+            });
+
             const verifier = createVerify('SHA256');
             verifier.update(signingInput);
-            isValid = verifier.verify(publicKey, signature);
+            isValid = verifier.verify(publicKey, derSignature);
         } else {
             throw new Error(`Unsupported algorithm for signature verification: ${algorithm}`);
         }
@@ -7817,7 +7832,8 @@ async function validateJwtSignature(jwtToken, publicKeyData) {
             algorithm: algorithm,
             signingInputLength: signingInput.length,
             signatureLength: signature.length,
-            verificationMethod: algorithm === 'RS256' ? 'RSA-PKCS1' : 'ECDSA-P256'
+            verificationMethod: algorithm === 'RS256' ? 'RSA-PKCS1' : 'ECDSA-P256',
+            signatureFormat: algorithm === 'ES256' ? 'IEEE P1363 → ASN.1 DER' : 'Native'
         });
 
         logger.trace(applicationName + ':validateJwtSignature:Completed');
@@ -7967,6 +7983,115 @@ function convertEcJwkToPem(jwk) {
             crv: jwk.crv
         });
         logger.trace(applicationName + ':convertEcJwkToPem:Failed');
+        throw error;
+    }
+}
+
+// Helper function to convert ECDSA signature from IEEE P1363 format to ASN.1 DER format
+function convertIEEEP1363ToASN1DER(signature) {
+    logger.trace(applicationName + ':convertIEEEP1363ToASN1DER:Started');
+
+    try {
+        // Validate input signature length (should be 64 bytes for P-256 curve)
+        if (!Buffer.isBuffer(signature)) {
+            throw new Error('Signature must be a Buffer');
+        }
+        if (signature.length !== 64) {
+            throw new Error(`Invalid signature length: expected 64 bytes for P-256, got ${signature.length}`);
+        }
+
+        // Extract r and s components (32 bytes each for P-256)
+        const r = signature.slice(0, 32);
+        const s = signature.slice(32, 64);
+
+        logger.debug('IEEE P1363 signature components extracted', {
+            signatureLength: signature.length,
+            rLength: r.length,
+            sLength: s.length,
+            rStart: r.slice(0, 8).toString('hex') + '...',
+            sStart: s.slice(0, 8).toString('hex') + '...'
+        });
+
+        // Helper function to encode an integer for ASN.1 DER
+        function encodeASN1Integer(value) {
+            // Remove leading zeros, but keep at least one byte
+            let trimmed = value;
+            while (trimmed.length > 1 && trimmed[0] === 0x00) {
+                trimmed = trimmed.slice(1);
+            }
+
+            // If the first byte has the high bit set, prepend a zero byte
+            // to ensure it's interpreted as a positive integer
+            if (trimmed[0] & 0x80) {
+                trimmed = Buffer.concat([Buffer.from([0x00]), trimmed]);
+            }
+
+            // ASN.1 DER encoding: tag (0x02 for INTEGER) + length + value
+            const length = trimmed.length;
+            if (length < 0x80) {
+                // Short form length
+                return Buffer.concat([Buffer.from([0x02, length]), trimmed]);
+            } else {
+                // Long form length (shouldn't be needed for P-256, but included for completeness)
+                throw new Error('Long form ASN.1 length not supported for signature integers');
+            }
+        }
+
+        // Encode r and s as ASN.1 integers
+        const rEncoded = encodeASN1Integer(r);
+        const sEncoded = encodeASN1Integer(s);
+
+        // Calculate total length of the sequence content
+        const contentLength = rEncoded.length + sEncoded.length;
+
+        // Create ASN.1 SEQUENCE
+        let sequence;
+        if (contentLength < 0x80) {
+            // Short form length
+            sequence = Buffer.concat([
+                Buffer.from([0x30, contentLength]), // SEQUENCE tag + length
+                rEncoded,
+                sEncoded
+            ]);
+        } else {
+            // Long form length
+            const lengthBytes = Buffer.alloc(4);
+            lengthBytes.writeUInt32BE(contentLength, 0);
+
+            // Find the first non-zero byte
+            let lengthStart = 0;
+            while (lengthStart < 4 && lengthBytes[lengthStart] === 0) {
+                lengthStart++;
+            }
+
+            const actualLengthBytes = lengthBytes.slice(lengthStart);
+
+            sequence = Buffer.concat([
+                Buffer.from([0x30, 0x80 | actualLengthBytes.length]), // SEQUENCE tag + long form length indicator
+                actualLengthBytes,
+                rEncoded,
+                sEncoded
+            ]);
+        }
+
+        logger.debug('ASN.1 DER signature successfully created', {
+            inputLength: signature.length,
+            outputLength: sequence.length,
+            rEncodedLength: rEncoded.length,
+            sEncodedLength: sEncoded.length,
+            sequenceStart: sequence.slice(0, 16).toString('hex') + '...'
+        });
+
+        logger.trace(applicationName + ':convertIEEEP1363ToASN1DER:Completed');
+        return sequence;
+
+    } catch (error) {
+        logger.error('IEEE P1363 to ASN.1 DER conversion failed', {
+            error: error.message,
+            signatureLength: signature ? signature.length : 'N/A',
+            signatureType: typeof signature
+        });
+        logger.trace(applicationName + ':convertIEEEP1363ToASN1DER:Failed');
         throw error;
     }
 }
