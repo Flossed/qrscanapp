@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2025-10-17
+
+### Added
+- **Complete ES256 Algorithm Support**: Full support for ECDSA signatures using P-256 curve with SHA-256 hash
+  - **IEEE P1363 to ASN.1 DER Conversion**: Implemented proper signature format conversion between JWT standard (IEEE P1363) and Node.js crypto expectations (ASN.1 DER)
+  - **Enhanced Cryptographic Validation**: Both RS256 (RSA) and ES256 (ECDSA) algorithms now fully supported for JWT signature verification
+  - **EC Key Support**: Added complete Elliptic Curve key handling alongside existing RSA key support in JWK to PEM conversion
+  - **Signature Format Detection**: Automatic detection and conversion of ES256 signatures from 64-byte IEEE P1363 to ASN.1 DER format
+  - **Comprehensive Algorithm Validation**: Enhanced algorithm validation to accept both RS256 and ES256 with proper error messaging
+
+### Fixed
+- **ES256 Signature Verification**: Resolved signature verification failures for ES256 certificates due to format incompatibility
+  - **Root Cause**: JWT ES256 uses IEEE P1363 format (64 bytes: r || s) but Node.js crypto.verify() expects ASN.1 DER format
+  - **Solution**: Added convertIEEEP1363ToASN1DER() function with proper ASN.1 encoding for ECDSA signatures
+  - **Result**: ES256 certificates now validate successfully with full cryptographic verification
+- **Certificate Validity Date Verification**: Fixed certificate validity verification for same-day issuance dates
+  - **Issue**: Certificates issued on the same date as validity start date were incorrectly flagged as invalid due to timezone/time component differences
+  - **Fix**: Added date normalization to ignore time components and compare only date values for inclusive range checking
+- **Production Mode UI Issues**: Fixed multiple production mode interface issues
+  - **Scan History Button**: Fixed visibility in profile page - now only visible in debug mode as intended
+  - **Profile Page Internationalization**: Added complete multilingual support with language selector matching main page design
+
+### Enhanced
+- **Comprehensive Internationalization**: Complete multilingual support across all authentication pages
+  - **Login Page**: Added complete translation support with language selector and dynamic placeholder updates
+  - **Register Page**: Enhanced with 22 translation keys and cultural localization for placeholder names
+  - **Forgot Password Page**: Implemented full internationalization with professional password reset terminology
+  - **Profile Page**: Added language selector, enhanced JavaScript translation, and fixed placeholder handling
+  - **Translation Coverage**: All authentication pages now support 27 European languages with professional healthcare terminology
+- **Enhanced Logging**: Comprehensive logging for signature format conversion and algorithm-specific verification
+  - **ES256 Conversion Logging**: Detailed logging of IEEE P1363 to ASN.1 DER conversion process with component analysis
+  - **Algorithm Detection**: Enhanced logging shows verification method used (RSA-PKCS1 vs ECDSA-P256)
+  - **Signature Format Tracking**: Logs signature format conversion success and component validation
+
+### Technical Improvements
+- **Signature Verification Architecture**: Enhanced JWT signature validation with algorithm-specific handling
+  - **convertIEEEP1363ToASN1DER()**: New function implementing proper ASN.1 DER encoding for ECDSA signatures
+  - **convertEcJwkToPem()**: Enhanced EC key conversion supporting P-256 curve with comprehensive validation
+  - **Algorithm-Specific Processing**: Distinct verification paths for RS256 and ES256 with appropriate format handling
+- **Cryptographic Standards Compliance**: Full compliance with JWT ES256 and RS256 standards
+  - **IEEE P1363 Support**: Proper handling of JWT standard ECDSA signature format
+  - **ASN.1 DER Encoding**: Compliant ASN.1 encoding with proper integer encoding and sequence structure
+  - **P-256 Curve Validation**: Enhanced validation for NIST P-256 curve requirements in ES256
+- **Date Validation Improvements**: Enhanced certificate validity date verification
+  - **Timezone Normalization**: All dates normalized to midnight UTC for consistent comparison
+  - **Inclusive Range Checking**: Proper >= and <= logic for certificate validity periods
+  - **Enhanced Debugging**: Additional logging for date conversion and comparison processes
+
+### Closed Issues Since v1.1.2
+- Issue #89: failing to decrypt ES256 signature (fixed with IEEE P1363 to ASN.1 DER conversion)
+- Issue #87: Issue with acceptance of a attestation using Algorithm ES256 is not supported (resolved with complete ES256 support)
+- Issue #84: Certificate Validity Date Verification check fails with same-day issuance dates (fixed with date normalization)
+- Issue #83: Inconsistent translation profile page (resolved with complete internationalization)
+- Issue #81: Inconsistent translation forgot password page (fixed with language selector and translations)
+- Issue #78: Inconsistent translation register page (resolved with comprehensive multilingual support)
+- Issue #75: Scan History button visibility in production mode (fixed in profile page)
+
+### Open Issues for Future Releases
+- Issue #71: EHIC_DEMO: Verification "V" is overlapped with the checkmark indicator when the mobile device is used
+- Issue #70: Error while downloading zip file
+- Issue #69: EHIC_DEMO: Future date should be disabled when the user selects the calendar option for the treatment date using a mobile device
+- Issue #68: EHIC-Verification-EHIC-yyyymmdd-cccccc-bilingual-yyyy-mm-dd.pdf is not encoded in the language of choice
+- Issue #67: Bilingual PDF is created with mixed translations
+- Issue #66: Generated Email is created with mixed translations
+- Issue #65: The finalization page is missing translations
+- Issue #64: Visual verification page missing translations
+- Issue #63: Result page missing translations
+- Issue #62: Debug verify page missing translations
+
+### Migration Notes
+- **Enhanced ES256 Support**: All ES256 certificates now validate correctly - no action required for existing deployments
+- **Backward Compatibility**: RS256 certificates continue to work unchanged with no impact to existing functionality
+- **Authentication UI**: Enhanced multilingual authentication interface improves user experience across all languages
+- **Production Mode**: Scan History button now properly hidden in production mode as designed
+- **No Breaking Changes**: All existing workflows and API endpoints remain unchanged
+
+### Security Enhancements
+- **Cryptographic Algorithm Support**: Enhanced cryptographic verification supporting both RSA and ECDSA algorithms
+- **Signature Format Validation**: Proper validation and conversion of JWT signature formats for security compliance
+- **Key Type Support**: Comprehensive support for both RSA and Elliptic Curve keys from EBSI infrastructure
+
 ## [1.1.2] - 2025-10-16
 
 ### Fixed

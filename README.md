@@ -3,7 +3,7 @@
 ## Overview
 A comprehensive EHIC (European Health Insurance Card) verification system that processes QR codes and validates digital certificates using EBSI (European Blockchain Services Infrastructure).
 
-## Current Status - Version 1.1.2 - 2025-10-16
+## Current Status - Version 1.1.3 - 2025-10-17
 
 ### ✅ Completed Features
 
@@ -98,10 +98,18 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
 - **SSL Termination Support**: Updated session configuration to work with external SSL termination (load balancer/proxy)
 - **Production Compatibility**: Allows HTTP cookies since SSL termination happens at infrastructure level rather than application level
 
-**Current v1.1.2 Validation Enhancement:**
+**Latest v1.1.2 Validation Enhancement:**
 - **Treatment Date Range Validation Fix**: Changed validation severity from warning to error when treatment date falls outside certificate validity period
 - **Critical Error Handling**: Invalid treatment date ranges now properly cause overall verification failure instead of just showing warnings
 - **Validation Integrity**: Ensures that treatment dates outside the certificate validity period (not between startDate and endDate) are treated as critical errors
+
+**Current v1.1.3 ES256 Signature Support (Hotfix):**
+- **Complete ES256 Algorithm Support**: Added full support for ECDSA signatures using P-256 curve with SHA-256 hash
+- **IEEE P1363 to ASN.1 DER Conversion**: Implemented proper signature format conversion for ES256 JWT signatures to work with Node.js crypto
+- **Enhanced Cryptographic Validation**: Both RS256 (RSA) and ES256 (ECDSA) algorithms now fully supported for JWT signature verification
+- **Certificate Validation Fix**: Fixed certificate validity date verification for same-day issuance dates
+- **Comprehensive Internationalization**: Complete multilingual support across all authentication pages (login, register, forgot-password, profile)
+- **Production Mode Improvements**: Fixed Scan History button visibility and profile page language selector integration
 
 #### Technical Infrastructure
 - **MongoDB Integration** - Stores scan history and verification results
@@ -167,8 +175,10 @@ A comprehensive EHIC (European Health Insurance Card) verification system that p
     - Cryptographic algorithm security validation
 
 13. **JWT Signature Validation** ✅
-    - Cryptographic signature verification
-    - Public key validation using EBSI
+    - **RS256 (RSA)**: PKCS1 signature verification
+    - **ES256 (ECDSA)**: P-256 curve with IEEE P1363 to ASN.1 DER conversion
+    - Public key validation using EBSI (both RSA and EC keys supported)
+    - Comprehensive signature format handling for JWT compatibility
 
 ### 🏢 Business Validations (Complete)
 
