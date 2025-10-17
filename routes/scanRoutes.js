@@ -7723,9 +7723,10 @@ async function validateJwtSignature(jwtToken, publicKeyData) {
             kid: header.kid?.substring(0, 50) + '...'
         });
 
-        // Validate algorithm (currently only support RS256)
-        if (algorithm !== 'RS256') {
-            throw new Error(`Unsupported JWT algorithm: ${algorithm}. Only RS256 is supported.`);
+        // Validate algorithm (support RS256 and ES256)
+        const supportedAlgorithms = ['RS256', 'ES256'];
+        if (!supportedAlgorithms.includes(algorithm)) {
+            throw new Error(`Unsupported JWT algorithm: ${algorithm}. Supported algorithms: ${supportedAlgorithms.join(', ')}`);
         }
 
         // Create the signing input (header.payload)
@@ -7762,14 +7763,19 @@ async function validateJwtSignature(jwtToken, publicKeyData) {
                     kty: publicKeyJwk.kty,
                     hasModulus: !!publicKeyJwk.n,
                     hasExponent: !!publicKeyJwk.e,
+                    hasCurve: !!publicKeyJwk.crv,
+                    hasX: !!publicKeyJwk.x,
+                    hasY: !!publicKeyJwk.y,
                     hasThumbprint: !!publicKeyJwk['x5t#S256']
                 });
 
                 // Convert JWK to PEM format for crypto operations
                 if (publicKeyJwk.kty === 'RSA' && publicKeyJwk.n && publicKeyJwk.e) {
                     publicKey = convertRsaJwkToPem(publicKeyJwk);
+                } else if (publicKeyJwk.kty === 'EC' && publicKeyJwk.crv && publicKeyJwk.x && publicKeyJwk.y) {
+                    publicKey = convertEcJwkToPem(publicKeyJwk);
                 } else {
-                    throw new Error(`Unsupported JWK key type: ${publicKeyJwk.kty}`);
+                    throw new Error(`Unsupported JWK key type: ${publicKeyJwk.kty}. Supported types: RSA, EC`);
                 }
             }
             // Fallback to X509 certificate if available
@@ -7790,17 +7796,28 @@ async function validateJwtSignature(jwtToken, publicKeyData) {
             publicKeyStart: publicKey ? publicKey.substring(0, 50) + '...' : 'N/A'
         });
 
-        // Create verifier
-        const verifier = createVerify('SHA256');
-        verifier.update(signingInput);
-
-        // Verify the signature
-        const isValid = verifier.verify(publicKey, signature);
+        // Create verifier based on algorithm
+        let isValid;
+        if (algorithm === 'RS256') {
+            // RSA signature verification using PKCS1 padding
+            const verifier = createVerify('SHA256');
+            verifier.update(signingInput);
+            isValid = verifier.verify(publicKey, signature);
+        } else if (algorithm === 'ES256') {
+            // ECDSA signature verification using P-256 curve with SHA-256
+            const verifier = createVerify('SHA256');
+            verifier.update(signingInput);
+            isValid = verifier.verify(publicKey, signature);
+        } else {
+            throw new Error(`Unsupported algorithm for signature verification: ${algorithm}`);
+        }
 
         logger.info('JWT signature validation completed', {
             signatureValid: isValid,
+            algorithm: algorithm,
             signingInputLength: signingInput.length,
-            signatureLength: signature.length
+            signatureLength: signature.length,
+            verificationMethod: algorithm === 'RS256' ? 'RSA-PKCS1' : 'ECDSA-P256'
         });
 
         logger.trace(applicationName + ':validateJwtSignature:Completed');
@@ -7889,6 +7906,67 @@ function convertRsaJwkToPem(jwk) {
             kty: jwk.kty
         });
         logger.trace(applicationName + ':convertRsaJwkToPem:Failed');
+        throw error;
+    }
+}
+
+// Helper function to convert EC JWK to PEM format
+function convertEcJwkToPem(jwk) {
+    logger.trace(applicationName + ':convertEcJwkToPem:Started');
+
+    try {
+        if (jwk.kty !== 'EC' || !jwk.crv || !jwk.x || !jwk.y) {
+            throw new Error('Invalid EC JWK - missing required fields (kty, crv, x, y)');
+        }
+
+        // ES256 requires P-256 curve
+        if (jwk.crv !== 'P-256') {
+            throw new Error(`Unsupported EC curve: ${jwk.crv}. Only P-256 is supported for ES256`);
+        }
+
+        logger.debug('EC JWK parameters decoded', {
+            curve: jwk.crv,
+            xLength: jwk.x ? Buffer.from(jwk.x, 'base64url').length : 0,
+            yLength: jwk.y ? Buffer.from(jwk.y, 'base64url').length : 0,
+            hasThumbprint: !!jwk['x5t#S256']
+        });
+
+        // Use Node.js crypto to create public key from EC JWK components
+        const publicKey = crypto.createPublicKey({
+            key: {
+                kty: 'EC',
+                crv: jwk.crv,
+                x: jwk.x,
+                y: jwk.y
+            },
+            format: 'jwk'
+        });
+
+        // Export as PEM
+        const pemKey = publicKey.export({
+            type: 'spki',
+            format: 'pem'
+        });
+
+        logger.debug('EC JWK successfully converted to PEM', {
+            pemLength: pemKey.length,
+            pemStart: pemKey.substring(0, 50) + '...'
+        });
+
+        logger.trace(applicationName + ':convertEcJwkToPem:Completed');
+        return pemKey;
+
+    } catch (error) {
+        logger.error('EC JWK to PEM conversion failed', {
+            error: error.message,
+            jwkKeys: Object.keys(jwk),
+            hasX: !!jwk.x,
+            hasY: !!jwk.y,
+            hasCrv: !!jwk.crv,
+            kty: jwk.kty,
+            crv: jwk.crv
+        });
+        logger.trace(applicationName + ':convertEcJwkToPem:Failed');
         throw error;
     }
 }
