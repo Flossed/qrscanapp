@@ -6401,7 +6401,12 @@ async function processVerificationData(originalData, treatmentDate = null) {
 
                             // Now that we have extracted dates from OpenSSL, perform proper validity check
                             if (notBefore && notAfter) {
-                                const isValid = issuanceDateObj >= notBefore && issuanceDateObj <= notAfter;
+                                // Normalize all dates to midnight UTC for fair comparison (ignoring time components)
+                                const issuanceDateNormalized = new Date(issuanceDateObj.getFullYear(), issuanceDateObj.getMonth(), issuanceDateObj.getDate());
+                                const notBeforeNormalized = new Date(notBefore.getFullYear(), notBefore.getMonth(), notBefore.getDate());
+                                const notAfterNormalized = new Date(notAfter.getFullYear(), notAfter.getMonth(), notAfter.getDate());
+
+                                const isValid = issuanceDateNormalized >= notBeforeNormalized && issuanceDateNormalized <= notAfterNormalized;
 
                                 certificateValidityPassed = isValid;
                                 certificateValidityMessage = isValid
@@ -6413,6 +6418,10 @@ async function processVerificationData(originalData, treatmentDate = null) {
                                     treatmentDate: treatmentDate,
                                     notBefore: notBefore.toISOString(),
                                     notAfter: notAfter.toISOString(),
+                                    issuanceDateOriginal: issuanceDateObj.toISOString(),
+                                    issuanceDateNormalized: issuanceDateNormalized.toISOString(),
+                                    notBeforeNormalized: notBeforeNormalized.toISOString(),
+                                    notAfterNormalized: notAfterNormalized.toISOString(),
                                     isValid: isValid
                                 });
                             }
