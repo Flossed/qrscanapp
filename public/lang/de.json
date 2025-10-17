@@ -365,6 +365,9 @@
     "profile-total-scans": "Gesamte Scans:",
     "profile-member-since": "Mitglied seit:",
     "profile-last-login": "Letzter Login:",
+    "profile-last-login-na": "Nicht verfügbar",
+    "profile-password-mismatch-alert": "Neue Passwörter stimmen nicht überein!",
+    "profile-delete-confirm-alert": "Sind Sie absolut sicher? Diese Aktion kann nicht rückgängig gemacht werden!",
 
     "delete-modal-title": "Kontolöschung bestätigen",
     "delete-modal-warning": "Diese Aktion kann nicht rückgängig gemacht werden!",

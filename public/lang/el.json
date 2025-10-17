@@ -365,6 +365,9 @@
     "profile-total-scans": "Σύνολο σαρώσεων:",
     "profile-member-since": "Μέλος από:",
     "profile-last-login": "Τελευταία σύνδεση:",
+    "profile-last-login-na": "Μη διαθέσιμο",
+    "profile-password-mismatch-alert": "Οι νέοι κωδικοί πρόσβασης δεν ταιριάζουν!",
+    "profile-delete-confirm-alert": "Είστε απόλυτα σίγουροι; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί!",
 
     "delete-modal-title": "Επιβεβαίωση διαγραφής λογαριασμού",
     "delete-modal-warning": "Αυτή η ενέργεια δεν μπορεί να αναιρεθεί!",

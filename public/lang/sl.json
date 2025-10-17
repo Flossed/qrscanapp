@@ -365,6 +365,9 @@
     "profile-total-scans": "Skupno skeniranj:",
     "profile-member-since": "Član od:",
     "profile-last-login": "Zadnja prijava:",
+    "profile-last-login-na": "Ni na voljo",
+    "profile-password-mismatch-alert": "Novi gesli se ne ujemata!",
+    "profile-delete-confirm-alert": "Ste popolnoma prepričani? Tega dejanja ni mogoče razveljaviti!",
 
     "delete-modal-title": "Potrdi brisanje računa",
     "delete-modal-warning": "To dejanje se ne da razveljaviti!",

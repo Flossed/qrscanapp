@@ -365,6 +365,9 @@
     "profile-total-scans": "Total Scans:",
     "profile-member-since": "Member Since:",
     "profile-last-login": "Last Login:",
+    "profile-last-login-na": "N/A",
+    "profile-password-mismatch-alert": "New passwords do not match!",
+    "profile-delete-confirm-alert": "Are you absolutely sure? This action cannot be undone!",
 
     "delete-modal-title": "Confirm Account Deletion",
     "delete-modal-warning": "This action cannot be undone!",

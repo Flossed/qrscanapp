@@ -365,6 +365,9 @@
     "profile-total-scans": "Totale scanninger:",
     "profile-member-since": "Medlem siden:",
     "profile-last-login": "Sidste login:",
+    "profile-last-login-na": "Ikke tilgængelig",
+    "profile-password-mismatch-alert": "Nye adgangskoder matcher ikke!",
+    "profile-delete-confirm-alert": "Er du helt sikker? Denne handling kan ikke fortrydes!",
 
     "delete-modal-title": "Bekræft sletning af konto",
     "delete-modal-warning": "Denne handling kan ikke fortrydes!",

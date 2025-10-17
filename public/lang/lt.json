@@ -366,6 +366,9 @@
     "profile-total-scans": "Iš viso skenavimų:",
     "profile-member-since": "Narys nuo:",
     "profile-last-login": "Paskutinis prisijungimas:",
+    "profile-last-login-na": "Nėra duomenų",
+    "profile-password-mismatch-alert": "Nauji slaptažodžiai nesutampa!",
+    "profile-delete-confirm-alert": "Ar tikrai esate tikri? Šio veiksmo negalima atšaukti!",
 
     "delete-modal-title": "Patvirtinti paskyros ištrynimą",
     "delete-modal-warning": "Šio veiksmo anuliuoti negalima!",

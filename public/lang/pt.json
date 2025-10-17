@@ -365,6 +365,9 @@
     "profile-total-scans": "Total de digitalizações:",
     "profile-member-since": "Membro desde:",
     "profile-last-login": "Último login:",
+    "profile-last-login-na": "Não disponível",
+    "profile-password-mismatch-alert": "As novas senhas não correspondem!",
+    "profile-delete-confirm-alert": "Tem certeza absoluta? Esta ação não pode ser desfeita!",
 
     "delete-modal-title": "Confirmar deleção da conta",
     "delete-modal-warning": "Esta ação não pode ser desfeita!",

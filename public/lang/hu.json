@@ -366,6 +366,9 @@
     "profile-total-scans": "Összes beolvasás:",
     "profile-member-since": "Tag óta:",
     "profile-last-login": "Utolsó bejelentkezés:",
+    "profile-last-login-na": "Nem elérhető",
+    "profile-password-mismatch-alert": "Az új jelszavak nem egyeznek!",
+    "profile-delete-confirm-alert": "Teljesen biztos benne? Ez a művelet nem vonható vissza!",
 
     "delete-modal-title": "Fiók törlés megerősítése",
     "delete-modal-warning": "Ez a művelet nem vonható vissza!",

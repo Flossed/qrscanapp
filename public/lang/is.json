@@ -366,6 +366,9 @@
     "profile-total-scans": "Heildarfjöldi skannana:",
     "profile-member-since": "Meðlimur síðan:",
     "profile-last-login": "Síðasta innskráning:",
+    "profile-last-login-na": "Á ekki við",
+    "profile-password-mismatch-alert": "Nýju lykilorðin passa ekki saman!",
+    "profile-delete-confirm-alert": "Ertu alveg viss? Þessa aðgerð er ekki hægt að afturkalla!",
 
     "delete-modal-title": "Staðfestu eyðingu reiknings",
     "delete-modal-warning": "Þessa aðgerð er ekki hægt að afturkalla!",

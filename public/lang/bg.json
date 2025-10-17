@@ -365,6 +365,9 @@
     "profile-total-scans": "Общо сканирания:",
     "profile-member-since": "Член от:",
     "profile-last-login": "Последно влизане:",
+    "profile-last-login-na": "Няма данни",
+    "profile-password-mismatch-alert": "Новите пароли не съвпадат!",
+    "profile-delete-confirm-alert": "Абсолютно ли сте сигурни? Това действие не може да бъде отменено!",
 
     "delete-modal-title": "Потвърждаване на изтриването на акаунта",
     "delete-modal-warning": "Това действие не може да бъде отменено!",

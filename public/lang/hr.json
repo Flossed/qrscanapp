@@ -365,6 +365,9 @@
     "profile-total-scans": "Ukupno skeniranja:",
     "profile-member-since": "Član od:",
     "profile-last-login": "Posljednja prijava:",
+    "profile-last-login-na": "N/A",
+    "profile-password-mismatch-alert": "Nove lozinke se ne podudaraju!",
+    "profile-delete-confirm-alert": "Jeste li apsolutno sigurni? Ova radnja se ne može poništiti!",
 
     "delete-modal-title": "Potvrdite brisanje računa",
     "delete-modal-warning": "Ova radnja se ne može poništiti!",

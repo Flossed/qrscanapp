@@ -366,6 +366,9 @@
     "profile-total-scans": "Totale skanninger:",
     "profile-member-since": "Medlem siden:",
     "profile-last-login": "Siste innlogging:",
+    "profile-last-login-na": "Ikke tilgjengelig",
+    "profile-password-mismatch-alert": "Nye passord stemmer ikke overens!",
+    "profile-delete-confirm-alert": "Er du helt sikker? Denne handlingen kan ikke angres!",
 
     "delete-modal-title": "Bekreft kontosletting",
     "delete-modal-warning": "Denne handlingen kan ikke angres!",

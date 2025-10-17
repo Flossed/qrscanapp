@@ -365,6 +365,9 @@
     "profile-total-scans": "Scanadh Iomlán:",
     "profile-member-since": "Ball Ó:",
     "profile-last-login": "Logáil Isteach Deireanach:",
+    "profile-last-login-na": "N/B",
+    "profile-password-mismatch-alert": "Ní thagann na pasfhocail nua le chéile!",
+    "profile-delete-confirm-alert": "An bhfuil tú cinnte go hiomlán? Ní féidir an gníomh seo a chealú!",
 
     "delete-modal-title": "Dearbhaigh Scriosadh Cuntais",
     "delete-modal-warning": "Ní féidir an gníomh seo a chealú!",

@@ -365,6 +365,9 @@
     "profile-total-scans": "Celkový počet skenov:",
     "profile-member-since": "Člen od:",
     "profile-last-login": "Posledné prihlásenie:",
+    "profile-last-login-na": "Nedostupné",
+    "profile-password-mismatch-alert": "Nové heslá sa nezhodujú!",
+    "profile-delete-confirm-alert": "Ste si absolútne istí? Túto akciu sa nedá vrátiť späť!",
 
     "delete-modal-title": "Potvrdiť vymazanie účtu",
     "delete-modal-warning": "Túto akciu sa nedá vrátiť späť!",

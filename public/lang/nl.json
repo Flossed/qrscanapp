@@ -365,6 +365,9 @@
     "profile-total-scans": "Totaal scans:",
     "profile-member-since": "Lid sinds:",
     "profile-last-login": "Laatste login:",
+    "profile-last-login-na": "Niet beschikbaar",
+    "profile-password-mismatch-alert": "Nieuwe wachtwoorden komen niet overeen!",
+    "profile-delete-confirm-alert": "Weet u het absoluut zeker? Deze actie kan niet ongedaan worden gemaakt!",
 
     "delete-modal-title": "Bevestig accountverwijdering",
     "delete-modal-warning": "Deze actie kan niet ongedaan worden gemaakt!",

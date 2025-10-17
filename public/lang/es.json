@@ -365,6 +365,9 @@
     "profile-total-scans": "Total de escaneos:",
     "profile-member-since": "Miembro desde:",
     "profile-last-login": "Último acceso:",
+    "profile-last-login-na": "N/D",
+    "profile-password-mismatch-alert": "¡Las nuevas contraseñas no coinciden!",
+    "profile-delete-confirm-alert": "¿Está absolutamente seguro? ¡Esta acción no se puede deshacer!",
 
     "delete-modal-title": "Confirmar eliminación de cuenta",
     "delete-modal-warning": "¡Esta acción no puede ser deshecha!",
